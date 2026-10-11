@@ -40,6 +40,8 @@ Organize your Windows desktop into beautiful, translucent groups of icons. Tiny,
 | 🔒 **Private** | No account, no telemetry, no ads; the only network call is the update check |
 | 👤 **No admin needed** | Per-user installer, optional start with Windows |
 
+<p align="center"><img src="docs/settings.png" alt="Rust Desktop Icons settings" width="460"></p>
+
 ## Install
 
 1. Download `rust-desktop-icons-x.y.z-x64.msi` from the [latest release](https://github.com/Flybrow/rust-desktop-icons/releases/latest).
