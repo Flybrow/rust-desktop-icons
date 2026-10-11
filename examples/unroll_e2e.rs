@@ -156,7 +156,7 @@ fn main() {
     let cases = [
         Case { name: "horizontal, room below", at: (w.left + 300, w.top + 100), vertical: false, far: false },
         Case { name: "horizontal, screen bottom", at: (w.left + 300, w.bottom - 120), vertical: false, far: true },
-        Case { name: "vertical, room on the right", at: (w.left + 900, w.top + 250), vertical: true, far: false },
+        Case { name: "vertical, room on the right", at: (w.left + 60, w.top + 250), vertical: true, far: false },
         Case { name: "vertical, screen right edge", at: (w.right - 60, w.top + 250), vertical: true, far: true },
     ];
     let mut cfg_fences = vec![];
