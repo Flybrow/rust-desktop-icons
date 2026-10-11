@@ -20,6 +20,7 @@ pub enum Act {
     Chameleon,
     AutoHeight,
     Speed,
+    KeepOnDesktop,
     ApplyAll,
     AutoSort,
     Rule(u64, u64),
@@ -72,6 +73,7 @@ pub fn build(a: &App) -> Vec<Row> {
         row(a.t(T::Chameleon), Ctl::Toggle(l.chameleon), Act::Chameleon, g::EYE),
         row(a.t(T::AutoHeight), Ctl::Toggle(l.auto_height), Act::AutoHeight, g::HEIGHT),
         row(a.t(T::RollSpeed), Ctl::Value(speed_label(a, c.roll_ms)), Act::Speed, g::SPEED),
+        row(a.t(T::KeepOnDesktop), Ctl::Toggle(c.keep_on_desktop), Act::KeepOnDesktop, g::FOLDER),
         header(a.t(T::Rules)),
         row(a.t(T::AutoSort), Ctl::Toggle(c.auto_sort), Act::AutoSort, g::SYNC),
     ];

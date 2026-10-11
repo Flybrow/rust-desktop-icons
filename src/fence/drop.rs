@@ -1,5 +1,5 @@
 use super::{arrange, fence_of, items, reload_all, tabs};
-use crate::{domain::Tab, i18n::T, report, shell, store};
+use crate::{domain::Tab, i18n::T, keep, report, shell, store};
 use std::path::{Path, PathBuf};
 use windows::Win32::Foundation::HWND;
 
@@ -19,8 +19,15 @@ pub(super) fn files(h: HWND, paths: Vec<PathBuf>, pt: (i32, i32)) {
     let Some(tab) = target_tab(h, pt) else { return };
     let (dir, fences, desks) = (store::tab_dir(&tab), store::root().join("fences"), shell::desktops());
     let is = |q: Option<&Path>, d: &Path| q.is_some_and(|q| shell::same_path(q, d));
-    if header.is_none() && !paths.is_empty() && paths.iter().all(|p| is(p.parent(), &dir)) {
+    if header.is_none() && !paths.is_empty() && paths.iter().all(|p| is(p.parent(), &dir) || tab.pinned(p)) {
         return arrange::move_within(h, &paths, items::item_at(h, pt));
+    }
+    if keep::on() && tab.portal.is_none() {
+        let Some(fence) = fence_of(h).map(|f| f.id) else { return };
+        let moving: Vec<PathBuf> = paths.into_iter().filter(|p| !tab.pinned(p)).collect();
+        let errors = keep::place(&moving, fence, tab.id);
+        reload_all();
+        return report::failures(T::ErrMove, &errors);
     }
     let mut errors = vec![];
     for p in paths.iter().filter(|p| !is(p.parent(), &dir)) {

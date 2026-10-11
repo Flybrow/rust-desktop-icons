@@ -1,6 +1,7 @@
 pub mod clip;
 mod data;
 mod dnd;
+pub mod hide;
 mod link;
 pub mod menu;
 mod ops;
@@ -19,9 +20,10 @@ pub use watch::{Watch, notify_moved};
 use windows::{
     Win32::{
         Foundation::COLORREF,
+        Foundation::CloseHandle,
         Globalization::GetUserDefaultLocaleName,
         Graphics::Gdi::HDC,
-        Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES,
+        Storage::FileSystem::*,
         System::Com::CoTaskMemFree,
         UI::{
             Controls::{CLR_NONE, HIMAGELIST, IImageList, ILD_SCALE, ILD_TRANSPARENT, IMAGELISTDRAWPARAMS},
@@ -44,6 +46,18 @@ fn known(id: &GUID) -> Option<PathBuf> {
         let s = p.to_string().ok();
         CoTaskMemFree(Some(p.0 as _));
         s.map(PathBuf::from)
+    }
+}
+
+pub fn file_id(p: &Path) -> u64 {
+    let w = wide_path(p);
+    unsafe {
+        let share = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
+        let Ok(h) = CreateFileW(PCWSTR(w.as_ptr()), 0, share, None, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, None) else { return 0 };
+        let mut i = BY_HANDLE_FILE_INFORMATION::default();
+        let ok = GetFileInformationByHandle(h, &mut i).is_ok();
+        let _ = CloseHandle(h);
+        if ok { (i.nFileIndexHigh as u64) << 32 | i.nFileIndexLow as u64 } else { 0 }
     }
 }
 

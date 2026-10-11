@@ -17,6 +17,8 @@ pub struct Config {
     pub look: Look,
     pub fences: Vec<Fence>,
     pub version: Option<String>,
+    pub keep_on_desktop: bool,
+    pub desk_flags: Option<u32>,
 }
 
 impl Default for Config {
@@ -30,6 +32,8 @@ impl Default for Config {
             look: Look::default(),
             fences: vec![],
             version: None,
+            keep_on_desktop: false,
+            desk_flags: None,
         }
     }
 }
@@ -118,7 +122,7 @@ mod tests {
             .unwrap()
             .sanitized();
         let f = &c.fences[0];
-        assert!(c.auto_update && c.autostart && c.auto_sort && f.look.auto_height);
+        assert!(c.auto_update && c.autostart && c.auto_sort && f.look.auto_height && !c.keep_on_desktop);
         assert_eq!((f.w, f.look.color, f.look.icon, f.tabs.len(), f.active().title.as_str()), (360, 255, 48, 1, "Jeux"));
         assert_eq!(c.roll_ms, 500);
     }

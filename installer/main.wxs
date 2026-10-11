@@ -1,11 +1,11 @@
 ﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
-  <Package Name="Rust Desktop Icons" Manufacturer="vincentxjoubert-lang" Version="$(Version)" UpgradeCode="EC06B7E9-B60A-4EFC-9A07-9FC0C215C3B2" Scope="perUser" Compressed="yes">
+  <Package Name="Rust Desktop Icons" Manufacturer="Flybrow" Version="$(Version)" UpgradeCode="EC06B7E9-B60A-4EFC-9A07-9FC0C215C3B2" Scope="perUser" Compressed="yes">
     <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of Rust Desktop Icons is already installed." />
     <MediaTemplate EmbedCab="yes" />
     <util:CloseApplication Id="CloseApp" Target="rust-desktop-icons.exe" CloseMessage="yes" TerminateProcess="0" Timeout="5" RebootPrompt="no" />
     <Icon Id="app.ico" SourceFile="assets\icon.ico" />
     <Property Id="ARPPRODUCTICON" Value="app.ico" />
-    <Property Id="ARPURLINFOABOUT" Value="https://github.com/vincentxjoubert-lang/rust-desktop-icons" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/Flybrow/rust-desktop-icons" />
     <Property Id="ARPNOMODIFY" Value="1" />
     <Property Id="SHORTCUTOFF">
       <RegistrySearch Id="ShortcutOff" Root="HKCU" Key="Software\RustDesktopIcons" Name="NoDesktopShortcut" Type="raw" />

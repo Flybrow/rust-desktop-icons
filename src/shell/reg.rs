@@ -26,6 +26,9 @@ fn reg_set(key: &str, name: &str, value: &str) {
 }
 
 pub fn set_autostart(on: bool) {
+    if cfg!(debug_assertions) {
+        return;
+    }
     if !on {
         let (k, n) = (wide(RUN), wide(NAME));
         let _ = unsafe { RegDeleteKeyValueW(HKEY_CURRENT_USER, PCWSTR(k.as_ptr()), PCWSTR(n.as_ptr())) };

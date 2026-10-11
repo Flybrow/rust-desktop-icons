@@ -3,32 +3,28 @@ use crate::{
     app::with,
     domain::{Tab, grid},
     i18n::T,
-    report, shell, store,
+    keep, report, shell, store,
     win::*,
 };
 use std::path::PathBuf;
 use windows::Win32::{Foundation::*, UI::Input::KeyboardAndMouse::DragDetect};
 
 pub fn bind(h: HWND) {
-    let Some(dirs) = with(|a| a.fence_of(h).map(|f| f.tabs.iter().map(store::tab_dir).collect::<Vec<_>>())).flatten() else { return };
+    let Some((tabs, keep)) = with(|a| Some((a.fence_of(h)?.tabs.clone(), a.cfg.keep_on_desktop))).flatten() else { return };
     view(h, |v| v.watches.clear());
-    let mut recycle_watch = None;
-    let mut watches: Vec<shell::Watch> = dirs
-        .iter()
-        .enumerate()
-        .take(TABS)
-        .filter_map(|(i, d)| {
-            let w = shell::Watch::new(h, d, WM_CHANGED + i as u32);
-            if with(|a| a.fence_of(h).and_then(|f| f.tabs.get(i).map(|t| t.recycle))).flatten() == Some(true) {
-                recycle_watch = shell::Watch::new(h, &shell::recycle::path(), WM_CHANGED + i as u32);
-            }
-            if w.is_none() {
-                report::log(&format!("cannot watch {}", d.display()));
-            }
-            w
-        })
-        .collect();
-    watches.extend(recycle_watch);
+    let mut watches = vec![];
+    for (i, t) in tabs.iter().enumerate().take(TABS) {
+        let msg = WM_CHANGED + i as u32;
+        let dir = store::tab_dir(t);
+        match shell::Watch::new(h, &dir, msg) {
+            Some(w) => watches.push(w),
+            None if !keep => report::log(&format!("cannot watch {}", dir.display())),
+            None => {}
+        }
+        let desks = if (keep && t.portal.is_none()) || !t.pins.is_empty() { shell::desktops() } else { vec![] };
+        let recycle = t.recycle.then(shell::recycle::path);
+        watches.extend(desks.iter().chain(recycle.as_ref()).filter_map(|d| shell::Watch::new(h, d, msg)));
+    }
     view(h, |v| (v.watches, v.scroll) = (watches, 0));
     reload(h);
 }
@@ -121,6 +117,7 @@ pub(super) fn remove(h: HWND) {
         f.tabs.retain(|t| t.id != tab.id);
         f.tab = f.tab.min(f.tabs.len() - 1);
     });
+    keep::release(&tab.pins.iter().map(|p| p.path.clone()).collect::<Vec<_>>());
     if tab.recycle {
         shell::recycle::show_on_desktop(true);
     }

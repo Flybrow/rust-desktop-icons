@@ -3,7 +3,7 @@ use crate::{
     app::{change, rebuild, with},
     domain::{Kind, Look, anim, icons},
     i18n::{self, T},
-    prefs, rules,
+    keep, prefs, rules,
     tray::{self, updates},
     win::*,
 };
@@ -84,6 +84,7 @@ fn perform(h: HWND, act: rows::Act) {
             });
             rebuild();
         }
+        KeepOnDesktop => keep::toggle(),
         AutoSort => change(|c| c.auto_sort ^= true),
         Rule(fence, tab) => rule(h, fence, tab),
         SortNow => rules::run(None, true),

@@ -29,6 +29,10 @@ Rust 2024 (1.98), `windows` 0.62 (raw Win32/GDI), serde/serde_json, ureq 3 (rust
   `report.rs` errors: `report::alert` (dialog + `errors.log`), `report::log`, panic hook -> `crash.log`;
   `uninstall.rs` (`--uninstall`, run by the MSI on real uninstall only: moves every `fences/*` folder found on disk back to the desktop, never trusting the config,
   and deletes the app folder only once they are gone).
+- `src/keep/` optional "keep files on the desktop" mode (`keep_on_desktop`, off by default): `mod.rs` toggle + migration both ways (`sync`) + `reconcile` (follows renames via file id),
+  `place.rs` drop/paste/rules place files on the Desktop and pin them to a tab, `keeper.rs` hides pinned icons (SetWinEventHook + 3 s timer, Explorer re-shows them on F5/restart) and restores desktop flags.
+  `domain/pins.rs` (pure, tested) holds `Pin` + reconcile + free slots; `shell/hide.rs` is the IFolderView2 wrapper. Debug builds only touch the real desktop with `RDI_REAL_DESKTOP=1`.
+  End-to-end test: `cargo build && cargo run --example keep_e2e [-- --restart-explorer]` (real Desktop, isolated `LOCALAPPDATA`, test files `*.rdie2e`).
 - `src/app/` global state: `mod.rs` App + `with` + startup, `view.rs` per-window state, `res.rs` fonts/glyphs/menu
   entries with icons, `fences.rs` create/rebuild fences; `src/tray/` tray icon/menu (`updates.rs` update scheduling).
 - `src/render/` pure pixel ops: `mod.rs` blending + `Canvas`, `pixels.rs` gray/tint/straight alpha, `blur.rs`.

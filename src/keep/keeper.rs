@@ -1,0 +1,118 @@
+use super::live;
+use crate::{
+    app::{change, with},
+    shell::hide::Desk,
+    tray,
+};
+use std::{cell::Cell, path::PathBuf};
+use windows::{
+    Win32::{
+        Foundation::HWND,
+        UI::{Accessibility::*, WindowsAndMessaging::*},
+    },
+    core::w,
+};
+
+pub const TICK: usize = 8;
+pub const SOON: usize = 9;
+const TICK_MS: u32 = 3000;
+const SOON_MS: u32 = 30;
+
+thread_local! {
+    static HOOK: Cell<(isize, isize)> = const { Cell::new((0, 0)) };
+}
+
+fn listview() -> Option<HWND> {
+    unsafe {
+        let progman = FindWindowW(w!("Progman"), None).ok()?;
+        let mut view = FindWindowExW(Some(progman), None, w!("SHELLDLL_DefView"), None).ok();
+        let mut worker = None;
+        while view.is_none() {
+            worker = Some(FindWindowExW(None, worker, w!("WorkerW"), None).ok()?);
+            view = FindWindowExW(worker, None, w!("SHELLDLL_DefView"), None).ok();
+        }
+        FindWindowExW(view, None, w!("SysListView32"), None).ok()
+    }
+}
+
+unsafe extern "system" fn event(_: HWINEVENTHOOK, _: u32, h: HWND, _: i32, _: i32, _: u32, _: u32) {
+    if h.0 as isize == HOOK.get().1 {
+        soon();
+    }
+}
+
+fn unhook() {
+    let (hook, _) = HOOK.replace((0, 0));
+    if hook != 0 {
+        let _ = unsafe { UnhookWinEvent(HWINEVENTHOOK(hook as _)) };
+    }
+}
+
+fn hook() {
+    let Some(lv) = listview() else { return unhook() };
+    let (cur, view) = HOOK.get();
+    if cur != 0 && view == lv.0 as isize {
+        return;
+    }
+    unhook();
+    let mut pid = 0;
+    unsafe { GetWindowThreadProcessId(lv, Some(&mut pid)) };
+    let flags = WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS;
+    let h = unsafe { SetWinEventHook(EVENT_OBJECT_CREATE, EVENT_OBJECT_LOCATIONCHANGE, None, Some(event), pid, 0, flags) };
+    HOOK.set((h.0 as isize, lv.0 as isize));
+}
+
+fn timer(id: usize, ms: Option<u32>) {
+    let Some(t) = tray::hwnd() else { return };
+    match ms {
+        Some(ms) => unsafe {
+            SetTimer(Some(t), id, ms, None);
+        },
+        None => {
+            let _ = unsafe { KillTimer(Some(t), id) };
+        }
+    }
+}
+
+pub fn soon() {
+    timer(SOON, Some(SOON_MS));
+}
+
+pub fn apply() {
+    timer(SOON, None);
+    let Some(paths) = with(|a| a.cfg.keep_on_desktop.then(|| a.cfg.pinned())).flatten().filter(|_| live()) else { return };
+    timer(TICK, Some(TICK_MS));
+    hook();
+    let Some(d) = Desk::open() else { return };
+    if with(|a| a.cfg.desk_flags.is_none()) == Some(true) {
+        let flags = d.flags();
+        change(|c| c.desk_flags = flags);
+    }
+    d.hide(&paths);
+}
+
+pub fn tick() {
+    super::reconcile();
+    apply();
+}
+
+pub fn release(paths: &[PathBuf]) {
+    if live() && !paths.is_empty() {
+        let _ = Desk::open().map(|d| d.show(paths));
+    }
+}
+
+pub fn restore() {
+    timer(TICK, None);
+    timer(SOON, None);
+    unhook();
+    if !live() {
+        return;
+    }
+    let Some(d) = Desk::open() else { return };
+    d.show(&[]);
+    if let Some(f) = with(|a| a.cfg.desk_flags.take()).flatten() {
+        d.set_flags(f);
+        change(|_| {});
+    }
+}

@@ -7,6 +7,7 @@ pub mod kind;
 mod model;
 pub mod names;
 pub mod order;
+pub mod pins;
 pub mod snap;
 mod zone;
 

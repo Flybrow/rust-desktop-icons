@@ -1,4 +1,5 @@
-## What's new in Rust Desktop Icons 0.7.14
+## What's new in Rust Desktop Icons 0.8.0
 
-- Ticking a sorting rule (fence right-click menu or settings) now turns automatic sorting on if it was off.
-- After an update, this window shows what changed.
+- New option "Keep files on the desktop" (Settings > Behavior, off by default): fenced files stay in your Desktop folder, so they remain visible in Explorer > Desktop while their icons are hidden from the desktop itself. Existing fences are migrated when you turn it on, and moved back when you turn it off.
+- Updates now come from the new project home: github.com/Flybrow/rust-desktop-icons.
+- Debug builds no longer touch the Windows startup entry.

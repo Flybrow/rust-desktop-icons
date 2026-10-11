@@ -1,5 +1,6 @@
 use super::{edit, fence_of, native, peek, reload, reload_all, select};
 use crate::{
+    keep,
     shell::{self, clip},
     store,
     win::{cursor_pos, key_down},
@@ -8,7 +9,13 @@ use windows::Win32::{Foundation::HWND, UI::Input::KeyboardAndMouse::*};
 
 fn paste(h: HWND) {
     let (Some((files, cut)), Some(f)) = (clip::get(), fence_of(h)) else { return };
-    if shell::transfer(h, &files, &store::tab_dir(f.active()), cut) {
+    let t = f.active();
+    let done = if keep::on() && t.portal.is_none() {
+        keep::paste(h, &files, cut, f.id, t.id)
+    } else {
+        shell::transfer(h, &files, &store::tab_dir(t), cut)
+    };
+    if done {
         reload_all();
     }
 }

@@ -3,6 +3,7 @@ pub mod updates;
 use crate::{
     app::{new_fence, rebuild, with},
     i18n::T,
+    keep,
     layered::glyph as g,
     prefs, rules, settings,
     win::*,
@@ -19,7 +20,7 @@ const WM_TRAY: u32 = WM_APP + 1;
 const WM_NEW: u32 = WM_APP + 3;
 const WM_SETTINGS: u32 = WM_APP + 4;
 const CLASS: PCWSTR = if cfg!(debug_assertions) { w!("RustDesktopIcons.Tray.dev") } else { w!("RustDesktopIcons.Tray") };
-const URL: &str = "https://github.com/vincentxjoubert-lang/rust-desktop-icons";
+const URL: &str = "https://github.com/Flybrow/rust-desktop-icons";
 
 pub fn hwnd() -> Option<HWND> {
     unsafe { FindWindowW(CLASS, None) }.ok()
@@ -67,10 +68,13 @@ unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESU
         WM_CLOSE => unsafe { PostQuitMessage(0) },
         rules::WM_DESK => rules::changed(h),
         WM_TIMER if wp.0 == rules::TIMER => rules::run(Some(h), false),
+        WM_TIMER if wp.0 == keep::TICK => keep::tick(),
+        WM_TIMER if wp.0 == keep::SOON => keep::apply(),
         updates::WM_UPDATE => updates::done(wp.0, lp.0 != 0),
         _ if with(|a| a.taskbar) == Some(m) => {
             icon(h, NIM_ADD);
             rebuild();
+            keep::apply();
         }
         _ => return unsafe { DefWindowProcW(h, m, wp, lp) },
     }

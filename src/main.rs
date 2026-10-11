@@ -4,6 +4,7 @@ mod app;
 mod domain;
 mod fence;
 mod i18n;
+mod keep;
 mod layered;
 mod prefs;
 mod render;

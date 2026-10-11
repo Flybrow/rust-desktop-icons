@@ -3,7 +3,7 @@ use crate::{
     domain::kind::{candidates, transient},
     fence,
     i18n::T,
-    report, shell, store,
+    keep, report, shell, store,
 };
 use std::{
     collections::HashSet,
@@ -56,19 +56,24 @@ pub fn run(tray: Option<HWND>, all: bool) {
     if let Some(t) = tray {
         let _ = unsafe { KillTimer(Some(t), TIMER) };
     }
+    keep::reconcile();
     let Some(desk) = shell::desktop() else { return };
     let Some((cfg, seen)) = with(|a| (a.cfg.clone(), a.seen.clone())) else { return };
     let (mut moved, mut errors, mut pending) = (0, vec![], HashSet::new());
     if all || cfg.auto_sort {
-        for p in entries(&desk).into_iter().filter(|p| (all || !seen.contains(p)) && movable(p)) {
+        let keep = cfg.keep_on_desktop && keep::live();
+        for p in entries(&desk).into_iter().filter(|p| (all || !seen.contains(p)) && movable(p) && !cfg.is_pinned(p)) {
             if !all && !settled(&p) {
                 pending.insert(p);
                 continue;
             }
             let target = shell::link_target(&p);
             let kinds = candidates(p.extension().and_then(|e| e.to_str()), p.is_dir(), target.as_deref());
-            let tab = kinds.into_iter().find_map(|k| cfg.rule_target(k)).and_then(|(f, t)| cfg.tab(f, t));
-            if let Some(tab) = tab {
+            let target = kinds.into_iter().find_map(|k| cfg.rule_target(k));
+            if let (Some((f, t)), true) = (target, keep) {
+                errors.extend(keep::place(std::slice::from_ref(&p), f, t));
+                moved += 1;
+            } else if let Some(tab) = target.and_then(|(f, t)| cfg.tab(f, t)) {
                 match store::move_into(&p, &store::tab_dir(tab)) {
                     Ok(_) => moved += 1,
                     Err(e) => errors.push(format!("{} ({e})", store::name(&p))),

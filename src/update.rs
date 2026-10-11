@@ -1,7 +1,7 @@
 use sha2::{Digest, Sha256};
 use std::{env, error::Error, fs, io::Write, os::windows::process::CommandExt, path::PathBuf, process::Command, time::Duration};
 
-const REPO: &str = "vincentxjoubert-lang/rust-desktop-icons";
+const REPO: &str = "Flybrow/rust-desktop-icons";
 const MAX_MSI: u64 = 64 << 20;
 
 #[derive(Clone, Copy, PartialEq, Debug)]

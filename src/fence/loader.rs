@@ -42,6 +42,7 @@ fn load(tab: &Tab) -> Vec<Item> {
                 .map(|e| e.path())
                 .filter(|p| !p.file_name().is_some_and(|n| n.eq_ignore_ascii_case("desktop.ini"))),
         )
+        .chain(tab.pins.iter().map(|p| p.path.clone()).filter(|p| p.exists()))
         .collect();
     let metas: Vec<Meta> = paths.iter().map(|p| meta(p)).collect();
     order::arrange(&metas, tab.sort, &tab.order)

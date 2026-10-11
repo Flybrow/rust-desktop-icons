@@ -61,6 +61,7 @@ pub static S: [[&str; N]; 25] = [
         "Lock position",
         "Games",
         "Recycle Bin in this tab",
+        "Keep files on the desktop (visible in Explorer)",
     ],
     [
         "新建分区",
@@ -122,6 +123,7 @@ pub static S: [[&str; N]; 25] = [
         "锁定位置",
         "游戏",
         "在此标签页显示回收站",
+        "文件保留在桌面上（在资源管理器中可见）",
     ],
     [
         "नया क्षेत्र",
@@ -183,6 +185,7 @@ pub static S: [[&str; N]; 25] = [
         "स्थिति लॉक करें",
         "गेम",
         "इस टैब में रीसायकल बिन",
+        "फ़ाइलें डेस्कटॉप पर रखें (एक्सप्लोरर में दिखेंगी)",
     ],
     [
         "Nueva zona",
@@ -244,6 +247,7 @@ pub static S: [[&str; N]; 25] = [
         "Bloquear posición",
         "Juegos",
         "Papelera en esta pestaña",
+        "Mantener los archivos en el escritorio (visibles en el Explorador)",
     ],
     [
         "Nouvelle zone",
@@ -305,6 +309,7 @@ pub static S: [[&str; N]; 25] = [
         "Verrouiller la position",
         "Jeux",
         "Corbeille dans cet onglet",
+        "Garder les fichiers sur le Bureau (visibles dans l'Explorateur)",
     ],
     [
         "منطقة جديدة",
@@ -366,6 +371,7 @@ pub static S: [[&str; N]; 25] = [
         "قفل الموضع",
         "الألعاب",
         "سلة المحذوفات في علامة التبويب هذه",
+        "إبقاء الملفات على سطح المكتب (مرئية في المستكشف)",
     ],
     [
         "নতুন অঞ্চল",
@@ -427,6 +433,7 @@ pub static S: [[&str; N]; 25] = [
         "অবস্থান লক করুন",
         "গেম",
         "এই ট্যাবে রিসাইকেল বিন",
+        "ফাইলগুলি ডেস্কটপে রাখুন (এক্সপ্লোরারে দৃশ্যমান)",
     ],
     [
         "Nova área",
@@ -488,6 +495,7 @@ pub static S: [[&str; N]; 25] = [
         "Bloquear posição",
         "Jogos",
         "Lixeira nesta aba",
+        "Manter os arquivos na área de trabalho (visíveis no Explorador)",
     ],
     [
         "Новая область",
@@ -549,6 +557,7 @@ pub static S: [[&str; N]; 25] = [
         "Закрепить положение",
         "Игры",
         "Корзина в этой вкладке",
+        "Хранить файлы на рабочем столе (видны в Проводнике)",
     ],
     [
         "نیا خطہ",
@@ -610,6 +619,7 @@ pub static S: [[&str; N]; 25] = [
         "مقام مقفل کریں",
         "گیمز",
         "اس ٹیب میں ری سائیکل بن",
+        "فائلیں ڈیسک ٹاپ پر رکھیں (ایکسپلورر میں نظر آئیں)",
     ],
     [
         "Area baru",
@@ -671,6 +681,7 @@ pub static S: [[&str; N]; 25] = [
         "Kunci posisi",
         "Game",
         "Recycle Bin di tab ini",
+        "Simpan file di desktop (terlihat di Explorer)",
     ],
     [
         "Neuer Bereich",
@@ -732,6 +743,7 @@ pub static S: [[&str; N]; 25] = [
         "Position sperren",
         "Spiele",
         "Papierkorb in diesem Tab",
+        "Dateien auf dem Desktop behalten (im Explorer sichtbar)",
     ],
     [
         "新しいフェンス",
@@ -793,6 +805,7 @@ pub static S: [[&str; N]; 25] = [
         "位置をロック",
         "ゲーム",
         "このタブにごみ箱を表示",
+        "ファイルをデスクトップに残す（エクスプローラーに表示）",
     ],
     [
         "Eneo jipya",
@@ -854,6 +867,7 @@ pub static S: [[&str; N]; 25] = [
         "Funga mahali",
         "Michezo",
         "Pipa la taka katika kichupo hiki",
+        "Weka faili kwenye eneo-kazi (zinaonekana kwenye Explorer)",
     ],
     [
         "नवीन क्षेत्र",
@@ -915,6 +929,7 @@ pub static S: [[&str; N]; 25] = [
         "स्थान लॉक करा",
         "खेळ",
         "या टॅबमध्ये रीसायकल बिन",
+        "फाइल्स डेस्कटॉपवर ठेवा (एक्सप्लोररमध्ये दिसतील)",
     ],
     [
         "కొత్త ప్రాంతం",
@@ -976,6 +991,7 @@ pub static S: [[&str; N]; 25] = [
         "స్థానాన్ని లాక్ చేయి",
         "ఆటలు",
         "ఈ ట్యాబ్‌లో రీసైకిల్ బిన్",
+        "ఫైళ్లను డెస్క్‌టాప్‌లోనే ఉంచండి (ఎక్స్‌ప్లోరర్‌లో కనిపిస్తాయి)",
     ],
     [
         "Yeni alan",
@@ -1037,6 +1053,7 @@ pub static S: [[&str; N]; 25] = [
         "Konumu kilitle",
         "Oyunlar",
         "Geri Dönüşüm Kutusu bu sekmede",
+        "Dosyaları masaüstünde tut (Gezgin'de görünür)",
     ],
     [
         "புதிய பகுதி",
@@ -1098,6 +1115,7 @@ pub static S: [[&str; N]; 25] = [
         "நிலையைப் பூட்டு",
         "விளையாட்டுகள்",
         "இந்தத் தாவலில் மறுசுழற்சித் தொட்டி",
+        "கோப்புகளை டெஸ்க்டாப்பிலேயே வைத்திரு (எக்ஸ்ப்ளோரரில் தெரியும்)",
     ],
     [
         "Vùng mới",
@@ -1159,6 +1177,7 @@ pub static S: [[&str; N]; 25] = [
         "Khóa vị trí",
         "Trò chơi",
         "Thùng rác trong thẻ này",
+        "Giữ tệp trên màn hình nền (hiển thị trong Explorer)",
     ],
     [
         "새 영역",
@@ -1220,6 +1239,7 @@ pub static S: [[&str; N]; 25] = [
         "위치 잠금",
         "게임",
         "이 탭에 휴지통 표시",
+        "파일을 바탕 화면에 유지 (탐색기에 표시)",
     ],
     [
         "Nuova area",
@@ -1281,6 +1301,7 @@ pub static S: [[&str; N]; 25] = [
         "Blocca posizione",
         "Giochi",
         "Cestino in questa scheda",
+        "Mantieni i file sul desktop (visibili in Esplora file)",
     ],
     [
         "พื้นที่ใหม่",
@@ -1342,6 +1363,7 @@ pub static S: [[&str; N]; 25] = [
         "ล็อกตำแหน่ง",
         "เกม",
         "ถังรีไซเคิลในแท็บนี้",
+        "เก็บไฟล์ไว้บนเดสก์ท็อป (มองเห็นได้ใน Explorer)",
     ],
     [
         "Nowy obszar",
@@ -1403,6 +1425,7 @@ pub static S: [[&str; N]; 25] = [
         "Zablokuj położenie",
         "Gry",
         "Kosz w tej karcie",
+        "Zachowaj pliki na pulpicie (widoczne w Eksploratorze)",
     ],
     [
         "Нова область",
@@ -1464,6 +1487,7 @@ pub static S: [[&str; N]; 25] = [
         "Закріпити положення",
         "Ігри",
         "Кошик у цій вкладці",
+        "Зберігати файли на робочому столі (видимі у Провіднику)",
     ],
     [
         "ناحیه جدید",
@@ -1525,5 +1549,6 @@ pub static S: [[&str; N]; 25] = [
         "قفل کردن موقعیت",
         "بازی‌ها",
         "سطل بازیافت در این زبانه",
+        "نگه داشتن فایل‌ها روی دسکتاپ (قابل مشاهده در اکسپلورر)",
     ],
 ];

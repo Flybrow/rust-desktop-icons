@@ -1,5 +1,5 @@
 use super::{fence_of, update, view};
-use crate::{app::with, i18n::T, report, rules, shell, store, win::*};
+use crate::{app::with, i18n::T, keep, report, rules, shell, store, win::*};
 use std::path::Path;
 use windows::Win32::{Foundation::HWND, UI::WindowsAndMessaging::*};
 
@@ -42,6 +42,7 @@ pub(super) fn delete(h: HWND) {
         a.cfg.fences.retain(|x| x.id != f.id);
         a.save();
     });
+    keep::release(&f.tabs.iter().flat_map(|t| &t.pins).map(|p| p.path.clone()).collect::<Vec<_>>());
     if f.tabs.iter().any(|t| t.recycle) {
         shell::recycle::show_on_desktop(true);
     }

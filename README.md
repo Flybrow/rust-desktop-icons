@@ -6,18 +6,18 @@
 Organize your Windows desktop into beautiful, translucent groups of icons. Tiny, fast, private.</p>
 
 <p align="center">
-  <a href="https://github.com/vincentxjoubert-lang/rust-desktop-icons/releases/latest"><img src="https://img.shields.io/github/v/release/vincentxjoubert-lang/rust-desktop-icons?style=for-the-badge&color=7c3aed" alt="Latest release"></a>
-  <a href="https://github.com/vincentxjoubert-lang/rust-desktop-icons/releases"><img src="https://img.shields.io/github/downloads/vincentxjoubert-lang/rust-desktop-icons/total?style=for-the-badge&color=2563eb&label=downloads" alt="Total downloads"></a>
-  <a href="https://github.com/vincentxjoubert-lang/rust-desktop-icons/stargazers"><img src="https://img.shields.io/github/stars/vincentxjoubert-lang/rust-desktop-icons?style=for-the-badge&color=eab308" alt="GitHub stars"></a>
+  <a href="https://github.com/Flybrow/rust-desktop-icons/releases/latest"><img src="https://img.shields.io/github/v/release/Flybrow/rust-desktop-icons?style=for-the-badge&color=7c3aed" alt="Latest release"></a>
+  <a href="https://github.com/Flybrow/rust-desktop-icons/releases"><img src="https://img.shields.io/github/downloads/Flybrow/rust-desktop-icons/total?style=for-the-badge&color=2563eb&label=downloads" alt="Total downloads"></a>
+  <a href="https://github.com/Flybrow/rust-desktop-icons/stargazers"><img src="https://img.shields.io/github/stars/Flybrow/rust-desktop-icons?style=for-the-badge&color=eab308" alt="GitHub stars"></a>
   <br>
-  <a href="https://github.com/vincentxjoubert-lang/rust-desktop-icons/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/vincentxjoubert-lang/rust-desktop-icons/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
+  <a href="https://github.com/Flybrow/rust-desktop-icons/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Flybrow/rust-desktop-icons/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?style=flat-square&logo=windows" alt="Windows 10 | 11">
   <img src="https://img.shields.io/badge/made%20with-Rust-orange?style=flat-square&logo=rust" alt="Made with Rust">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-16a34a?style=flat-square" alt="MIT license"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/vincentxjoubert-lang/rust-desktop-icons/releases/latest"><b>⬇ Download for Windows</b></a>
+  <a href="https://github.com/Flybrow/rust-desktop-icons/releases/latest"><b>⬇ Download for Windows</b></a>
 </p>
 
 <p align="center"><img src="docs/screenshot.png" alt="Rust Desktop Icons fences on a Windows desktop" width="880"></p>
@@ -37,7 +37,7 @@ Organize your Windows desktop into beautiful, translucent groups of icons. Tiny,
 
 ## Install
 
-1. Download `rust-desktop-icons-x.y.z-x64.msi` from the [latest release](https://github.com/vincentxjoubert-lang/rust-desktop-icons/releases/latest).
+1. Download `rust-desktop-icons-x.y.z-x64.msi` from the [latest release](https://github.com/Flybrow/rust-desktop-icons/releases/latest).
 2. Run it. The app starts right away and adds an icon next to the clock.
 
 > The installer is not code-signed yet, so SmartScreen may warn you: click **More info → Run anyway**.
