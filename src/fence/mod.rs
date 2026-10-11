@@ -143,7 +143,8 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
         }
         WM_GETMINMAXINFO => {
             let i = unsafe { &mut *(lp.0 as *mut MINMAXINFO) };
-            i.ptMinTrackSize = POINT { x: scale(h, Fence::MIN.0), y: scale(h, TITLE) };
+            let (len, bar) = (scale(h, Fence::MIN.0), scale(h, TITLE));
+            i.ptMinTrackSize = if read(h, |f| f.vertical) == Some(true) { POINT { x: bar, y: len } } else { POINT { x: len, y: bar } };
         }
         WM_ENTERSIZEMOVE => snap::begin(h),
         WM_EXITSIZEMOVE => {

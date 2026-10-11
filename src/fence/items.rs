@@ -1,5 +1,5 @@
-use super::{TITLE, fence_of, loader, metrics, render, update, view};
-use crate::{app::with, win::*};
+use super::{fence_of, layout, loader, metrics, render, update, view};
+use crate::app::with;
 use std::path::PathBuf;
 use windows::Win32::Foundation::HWND;
 
@@ -29,10 +29,13 @@ pub(super) fn set_icon(h: HWND, px: i32) {
 }
 
 pub(super) fn index_at(h: HWND, (x, y): (i32, i32)) -> Option<usize> {
-    let (w, t, cell) = (client_rect(h).right, scale(h, TITLE), metrics(h).0);
+    let (g, cell) = (layout::geo_now(h), metrics(h).0);
+    let (x0, y0, x1, y1) = g.body();
+    let (cx, cy) = g.to_content((x, y));
     with(|a| {
         let v = a.view(h)?;
-        (y >= t).then(|| crate::domain::grid::index_at((x, y - t - scale(h, 4) + v.scroll), w, cell, v.items.len()))?
+        ((x0..x1).contains(&x) && (y0..y1).contains(&y))
+            .then(|| crate::domain::grid::index_at((cx, cy + v.scroll), g.grid_w(), cell, v.items.len()))?
     })
     .flatten()
 }

@@ -1,4 +1,4 @@
-use super::{cell, label_font, metrics};
+use super::{cell, label_font, layout, metrics, view};
 use crate::{
     app::with,
     domain::grid,
@@ -29,7 +29,9 @@ pub(super) fn image(h: HWND, index: usize, (cx, cy): (i32, i32)) -> Option<DragI
     let px = icons.px().to_vec();
     frame.canvas().layer(&px, (0, 0), None, (0, cell));
     frame.text_layers(WHITE, 0, s(2), (0, cell));
-    let (x, y) = grid::origin(index, client_rect(h).right, cell);
+    let g = layout::geo_now(h);
+    let (x, y) = grid::origin(index, g.grid_w(), cell);
+    let (x, y) = g.cell((x, y - view(h, |v| v.scroll).unwrap_or(0)), cell);
     let offset = (cx - x, cy - y);
     straight(frame.canvas.px());
     Some(DragImage { bitmap: frame.export_bitmap()?, size: (cell, cell), offset })

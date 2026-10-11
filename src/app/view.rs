@@ -1,4 +1,8 @@
-use crate::{domain::Fence, layered::Frame, shell};
+use crate::{
+    domain::{Fence, side::Side},
+    layered::Frame,
+    shell,
+};
 use std::{collections::HashSet, path::PathBuf};
 use windows::Win32::{Foundation::HWND, UI::Shell::IContextMenu};
 
@@ -20,7 +24,7 @@ pub struct View {
     pub hold: bool,
     pub unroll: f32,
     pub opening: bool,
-    pub up: Option<i32>,
+    pub side: Side,
     pub glow: f32,
     pub tick: Option<f64>,
     pub frame: Option<Frame>,
@@ -51,7 +55,7 @@ impl View {
             hold: false,
             unroll,
             opening: false,
-            up: None,
+            side: Side::default(),
             glow,
             tick: None,
             frame: None,

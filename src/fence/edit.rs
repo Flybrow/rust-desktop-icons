@@ -1,4 +1,5 @@
-use super::{TITLE, cell, label_font, metrics, reload, title_font, update, view};
+use super::{cell, label_font, layout, metrics, reload, title_font, update, view};
+use crate::domain::side::Side;
 use crate::{
     app::with,
     domain::{grid, names},
@@ -65,8 +66,14 @@ fn open(h: HWND, r: RECT, text: &str, font: HFONT, target: Option<PathBuf>) {
 
 pub(super) fn title(h: HWND) {
     let Some((text, font)) = with(|a| Some((a.fence_of(h)?.active().title.clone(), title_font(a, h)))).flatten() else { return };
-    let (r, t, pad) = (client_rect(h), scale(h, TITLE), scale(h, 5));
-    open(h, RECT { left: pad, top: pad, right: r.right - pad, bottom: t - pad }, &text, font, None);
+    let (g, pad, wide) = (layout::geo_now(h), scale(h, 5), scale(h, 220));
+    let (x0, y0, x1, _) = g.bar_rect();
+    let (left, right) = match g.side {
+        Side::Left => (x0 + pad, x0 + wide),
+        Side::Right => (x1 - wide, x1 - pad),
+        _ => (x0 + pad, x1 - pad),
+    };
+    open(h, RECT { left, top: y0 + pad, right, bottom: y0 + g.bar - pad }, &text, font, None);
 }
 
 pub(super) fn item(h: HWND, path: &PathBuf) {
@@ -75,13 +82,13 @@ pub(super) fn item(h: HWND, path: &PathBuf) {
     }
     let s = |v| scale(h, v);
     let (cell, icon) = metrics(h);
-    let w = client_rect(h).right;
+    let g = layout::geo_now(h);
     let Some((text, font, origin)) = with(|a| {
         let font = label_font(a, h);
         let v = a.view(h)?;
         let i = v.items.iter().position(|it| &it.path == path)?;
-        let (x, y) = grid::origin(i, w, cell);
-        Some((String::from_utf16_lossy(&v.items[i].name), font, (x, y + s(TITLE) + s(4) - v.scroll)))
+        let (x, y) = grid::origin(i, g.grid_w(), cell);
+        Some((String::from_utf16_lossy(&v.items[i].name), font, g.cell((x, y - v.scroll), cell)))
     })
     .flatten() else {
         return;

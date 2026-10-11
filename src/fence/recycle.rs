@@ -18,9 +18,9 @@ pub(super) fn toggle(h: HWND) {
     }
 }
 
-pub(super) fn drag(h: HWND, at: (i32, i32), content: (i32, i32)) {
+pub(super) fn drag(h: HWND, at: (i32, i32)) {
     with(|a| a.recycle_drag = true);
-    let image = items::index_at(h, at).and_then(|i| ghost::image(h, i, content));
+    let image = items::index_at(h, at).and_then(|i| ghost::image(h, i, at));
     shell::drag_out(h, &[shell::recycle::path()], image, true);
     if with(|a| std::mem::take(&mut a.recycle_drag)) == Some(true) && desktop_at(cursor_pos()) {
         place(None);

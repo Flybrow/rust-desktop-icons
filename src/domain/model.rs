@@ -73,6 +73,7 @@ pub struct Fence {
     pub h: i32,
     pub rolled: bool,
     pub locked: bool,
+    pub vertical: bool,
     #[serde(flatten)]
     pub look: Look,
     pub tabs: Vec<Tab>,
@@ -90,6 +91,7 @@ impl Default for Fence {
             h: 240,
             rolled: false,
             locked: false,
+            vertical: false,
             look: Look::default(),
             tabs: vec![],
             tab: 0,

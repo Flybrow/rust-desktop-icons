@@ -1,4 +1,4 @@
-use super::{PREPARE, TITLE, anim, cell, fence_of, header, label_font, layout, metrics, title_font, view};
+use super::{PREPARE, anim, cell, fence_of, header, label_font, layout, metrics, title_font, view};
 use crate::{
     app::with,
     domain::{self, color, grid},
@@ -29,7 +29,7 @@ pub fn render(h: HWND) {
     let Some((frame, alpha)) = draw(h, size, false) else { return };
     frame.present(h, (wr.left, wr.top), alpha);
     let open = view(h, |v| v.unroll == 1.) == Some(true);
-    if open && fence_of(h).is_some_and(|f| layout::full(h, &f) == size.1) {
+    if open && fence_of(h).is_some_and(|f| layout::open_size(h, &f) == size) {
         store(h, Some(frame));
     } else {
         store(h, None);
@@ -45,30 +45,33 @@ pub(super) fn prepare(h: HWND) {
         return;
     }
     if let Some(f) = fence_of(h).filter(|f| anim::cached(h, f)) {
-        store(h, draw(h, (f.w, layout::full(h, &f)), true).map(|(fr, _)| fr));
+        store(h, draw(h, layout::open_size(h, &f), true).map(|(fr, _)| fr));
     }
 }
 
 pub(super) fn draw(h: HWND, (w, ht): (i32, i32), open: bool) -> Option<(Frame, u8)> {
     let s = |v| scale(h, v);
-    let ((cell, icon), t, top_gap) = (metrics(h), s(TITLE), s(4));
+    let (cell, icon) = metrics(h);
     let (mut frame, mut icons) = (Frame::new(w, ht)?, Dib::new(w, ht)?);
-    let full = fence_of(h).map_or(ht, |f| layout::full(h, &f));
+    let g = layout::geo(h, (w, ht));
+    let opened = fence_of(h).map_or(g, |f| layout::geo(h, layout::open_size(h, &f)));
+    let (bx0, by0, bx1, by1) = g.body();
+    let gw = g.grid_w();
     let alpha = with(|a| {
         let (ft, fi) = (title_font(a, h), label_font(a, h));
         let f = a.fence_of(h)?.clone();
         let v = a.view(h)?;
         let rolled = !open && v.unroll == 0.;
-        let body_h = if !open && v.unroll < 1. { full } else { ht };
-        header::text(&frame, ft, &f, t, s(8));
-        let max = if rolled { 0 } else { grid::max_scroll(v.items.len(), w, body_h - t - top_gap, cell) };
+        let view_h = if !open && v.unroll < 1. { opened.view_h() } else { g.view_h() };
+        let max = if rolled { 0 } else { grid::max_scroll(v.items.len(), gw, view_h, cell) };
         v.scroll = v.scroll.clamp(0, max);
         let cells: Vec<(usize, i32, i32)> = (0..if rolled { 0 } else { v.items.len() })
-            .map(|i| (i, grid::origin(i, w, cell)))
-            .map(|(i, (x, y))| (i, x, y + t + top_gap - v.scroll))
-            .filter(|&(_, _, y)| y + cell > t && y < ht)
+            .map(|i| (i, grid::origin(i, gw, cell)))
+            .map(|(i, (x, y))| (i, g.cell((x, y - v.scroll), cell)))
+            .map(|(i, (x, y))| (i, x, y))
+            .filter(|&(_, x, y)| y + cell > by0 && y < by1 && x + cell > bx0 && x < bx1)
             .collect();
-        frame.clip((0, t, w, ht));
+        frame.clip((bx0, by0, bx1, by1));
         for &(i, x, y) in &cells {
             frame.text_w(fi, &mut v.items[i].name, &mut cell::label_at((x, y), cell, icon, s), cell::LABEL);
         }
@@ -89,31 +92,31 @@ pub(super) fn draw(h: HWND, (w, ht): (i32, i32), open: bool) -> Option<(Frame, u
         let (full, rad, rows) = ((0, 0, w, ht), s(8) as f32, (0, ht));
         let tone = |k, a: u8| premul(color::shade(f.look.color, k), a);
         let mut c = frame.canvas();
-        c.rrect(full, rad, (tone(10, body), tone(-14, body.saturating_add(20))), (t, ht), false);
-        header::shapes(&mut c, &f, (!rolled).then_some(f.tab), t, s);
+        c.rrect(full, rad, (tone(10, body), tone(-14, body.saturating_add(20))), rows, false);
         for &(i, x, y) in &cells {
             let (sel, hot) = (v.selected.contains(&v.items[i].path), v.hover == Some(i));
             if sel || hot {
                 let r = (x + s(5), y + s(3), x + cell - s(5), y + cell - s(1));
                 let (fill, line) = if sel { (premul(ACCENT, 90), premul(ACCENT, 200)) } else { (premul(WHITE, 40), premul(WHITE, 60)) };
-                c.rrect(r, rad, flat(fill), (t, ht), false);
-                c.rrect(r, rad, flat(line), (t, ht), true);
+                c.rrect(r, rad, flat(fill), (by0, by1), false);
+                c.rrect(r, rad, flat(line), (by0, by1), true);
             }
         }
         if let Some(((x0, y0), (x1, y1))) = v.band {
-            let off = t + top_gap - v.scroll;
-            let r = (x0.min(x1), y0.min(y1) + off, x0.max(x1), y0.max(y1) + off);
-            c.rrect(r, s(2) as f32, flat(premul(ACCENT, 50)), (t, ht), false);
-            c.rrect(r, s(2) as f32, flat(premul(ACCENT, 200)), (t, ht), true);
+            let r = g.rect((x0.min(x1), y0.min(y1) - v.scroll, x0.max(x1), y0.max(y1) - v.scroll));
+            c.rrect(r, s(2) as f32, flat(premul(ACCENT, 50)), (by0, by1), false);
+            c.rrect(r, s(2) as f32, flat(premul(ACCENT, 200)), (by0, by1), true);
         }
-        c.layer(icons.px(), (0, 0), None, (t, ht));
+        c.layer(icons.px(), (0, 0), None, (by0, by1));
         if max > 0 {
-            let avail = ht - t;
+            let avail = g.view_h();
             let th = (avail * avail / (avail + max)).max(s(24));
-            let ty = t + v.scroll * (avail - th) / max;
-            c.rrect((w - s(7), ty + s(3), w - s(3), ty + th - s(3)), s(2) as f32, flat(premul(WHITE, 110)), (t, ht), false);
+            let ty = v.scroll * (avail - th) / max;
+            let r = g.rect((gw - s(7), ty + s(3), gw - s(3), ty + th - s(3)));
+            c.rrect(r, s(2) as f32, flat(premul(WHITE, 110)), (by0, by1), false);
         }
         frame.text_layers(fg, shade, s(2), rows);
+        header::paint(&mut frame, &g, ft, &f, (!rolled).then_some(f.tab), (fg, shade), s);
         frame.canvas().rrect(full, rad, flat(premul(WHITE, 48)), rows, true);
         #[cfg(debug_assertions)]
         frame.dump(&f.id.to_string());

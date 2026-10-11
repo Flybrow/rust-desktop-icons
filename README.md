@@ -28,7 +28,8 @@ Organize your Windows desktop into beautiful, translucent groups of icons. Tiny,
 | --- | --- |
 | 🪟 **Translucent fences** | Rounded, semi-transparent groups that sit on your desktop, behind every window |
 | 🎨 **Make it yours** | Any color, opacity, icon size and tint, chameleon mode, rename, resize, lock |
-| 📜 **Roll up** | A rolled fence shows only its title and unrolls on hover; near the bottom of the screen it unrolls upward |
+| 📜 **Roll up** | A rolled fence shows only its title and unrolls on hover, away from the screen edge (upward near the bottom) |
+| ↔️ **Vertical fences** | Put the title on the side and park the fence on a screen edge: it unrolls toward the middle |
 | 🗂️ **Tabs and portals** | Several tabs per fence; a portal tab shows any folder of your PC |
 | 🧹 **Sorting rules** | New desktop files go to the right fence automatically (apps, games, images, documents…) |
 | 🖥️ **Keep files on the desktop** | Optional: fenced files stay in your Desktop folder (visible in Explorer), only their icons are hidden |

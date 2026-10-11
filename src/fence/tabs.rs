@@ -1,16 +1,16 @@
-use super::{TABS, TITLE, WM_CHANGED, actions, fence_of, layout, reload, to_client, update, view};
+use super::{TABS, WM_CHANGED, actions, fence_of, layout, reload, to_client, update, view};
 use crate::{
     app::with,
     domain::{Tab, grid},
     i18n::T,
     keep, report, shell, store,
-    win::*,
 };
 use std::path::PathBuf;
 use windows::Win32::{Foundation::*, UI::Input::KeyboardAndMouse::DragDetect};
 
 pub fn bind(h: HWND) {
     let Some((tabs, keep)) = with(|a| Some((a.fence_of(h)?.tabs.clone(), a.cfg.keep_on_desktop))).flatten() else { return };
+    layout::orient(h);
     view(h, |v| v.watches.clear());
     let mut watches = vec![];
     for (i, t) in tabs.iter().enumerate().take(TABS) {
@@ -29,9 +29,9 @@ pub fn bind(h: HWND) {
     reload(h);
 }
 
-pub(super) fn at(h: HWND, (x, y): (i32, i32)) -> Option<usize> {
-    let n = fence_of(h)?.tabs.len();
-    (n > 1 && (0..scale(h, TITLE)).contains(&y)).then(|| grid::split(client_rect(h).right, n, x))?
+pub(super) fn at(h: HWND, p: (i32, i32)) -> Option<usize> {
+    let (n, g) = (fence_of(h)?.tabs.len(), layout::geo_now(h));
+    g.along_bar(p).filter(|_| n > 1).and_then(|a| grid::split(g.length(), n, a))
 }
 
 pub(super) fn click(h: HWND, screen: (i32, i32)) -> bool {

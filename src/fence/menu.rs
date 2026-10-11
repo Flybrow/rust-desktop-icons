@@ -1,4 +1,4 @@
-use super::{actions, arrange, cursor, edit, fence_of, items, native, peek, recycle, select, tabs, update};
+use super::{actions, arrange, cursor, edit, fence_of, items, layout, native, peek, recycle, select, tabs, update};
 use crate::{
     app::with,
     domain::{Look, icons},
@@ -40,6 +40,7 @@ pub(super) fn context(h: HWND) {
         a.entry(m, 18, T::AutoHeight, f.look.auto_height, g::HEIGHT);
         a.entry(m, 19, T::Lock, f.locked, g::LOCK);
         a.entry(m, 12, T::Roll, f.rolled, g::ROLL);
+        a.entry(m, 64, T::Vertical, f.vertical, g::TAB);
         separator(m);
         a.entry(m, 60, T::NewTab, false, g::TAB);
         a.entry(m, 61, T::NewPortal, false, g::PORTAL);
@@ -83,6 +84,11 @@ pub(super) fn context(h: HWND) {
         61 => tabs::new_portal(h),
         62 => tabs::remove(h),
         63 => recycle::toggle(h),
+        64 => {
+            update(h, |f| f.vertical ^= true);
+            layout::orient(h);
+            layout::apply(h);
+        }
         _ => {}
     }
 }

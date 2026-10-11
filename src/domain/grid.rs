@@ -30,6 +30,12 @@ pub fn fit(n: usize, w: i32, cell: i32, chrome: i32, (min, max): (i32, i32)) -> 
     (chrome + rows.max(1) * cell).clamp(min, max.max(min))
 }
 
+pub fn fit_cols(n: usize, len: i32, cell: i32, chrome: i32, (min, max): (i32, i32)) -> i32 {
+    let rows = (len / cell.max(1)).max(1);
+    let cols = (n as i32 + rows - 1) / rows;
+    (chrome + cols.max(1) * cell).clamp(min, max.max(min))
+}
+
 pub fn split(w: i32, n: usize, x: i32) -> Option<usize> {
     let n = n.max(1) as i32;
     (0..w).contains(&x).then(|| (x * n / w.max(1)) as usize)
@@ -67,6 +73,14 @@ mod tests {
         assert_eq!(fit(6, 250, 80, 50, (80, 1000)), 50 + 2 * 80);
         assert_eq!(fit(40, 250, 80, 50, (80, 500)), 500);
         assert_eq!(fit(1, 250, 10, 5, (80, 500)), 80);
+    }
+
+    #[test]
+    fn auto_width() {
+        assert_eq!(fit_cols(5, 250, 80, 40, (60, 1000)), 40 + 2 * 80);
+        assert_eq!(fit_cols(0, 250, 80, 40, (60, 1000)), 40 + 80);
+        assert_eq!(fit_cols(30, 250, 80, 40, (60, 500)), 500);
+        assert_eq!(fit_cols(3, 10, 80, 40, (60, 1000)), 40 + 3 * 80);
     }
 
     #[test]

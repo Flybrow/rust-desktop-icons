@@ -62,6 +62,7 @@ pub static S: [[&str; N]; 25] = [
         "Games",
         "Recycle Bin in this tab",
         "Keep files on the desktop (visible in Explorer)",
+        "Vertical title",
     ],
     [
         "新建分区",
@@ -124,6 +125,7 @@ pub static S: [[&str; N]; 25] = [
         "游戏",
         "在此标签页显示回收站",
         "文件保留在桌面上（在资源管理器中可见）",
+        "竖排标题",
     ],
     [
         "नया क्षेत्र",
@@ -186,6 +188,7 @@ pub static S: [[&str; N]; 25] = [
         "गेम",
         "इस टैब में रीसायकल बिन",
         "फ़ाइलें डेस्कटॉप पर रखें (एक्सप्लोरर में दिखेंगी)",
+        "लंबवत शीर्षक",
     ],
     [
         "Nueva zona",
@@ -248,6 +251,7 @@ pub static S: [[&str; N]; 25] = [
         "Juegos",
         "Papelera en esta pestaña",
         "Mantener los archivos en el escritorio (visibles en el Explorador)",
+        "Título vertical",
     ],
     [
         "Nouvelle zone",
@@ -310,6 +314,7 @@ pub static S: [[&str; N]; 25] = [
         "Jeux",
         "Corbeille dans cet onglet",
         "Garder les fichiers sur le Bureau (visibles dans l'Explorateur)",
+        "Titre vertical",
     ],
     [
         "منطقة جديدة",
@@ -372,6 +377,7 @@ pub static S: [[&str; N]; 25] = [
         "الألعاب",
         "سلة المحذوفات في علامة التبويب هذه",
         "إبقاء الملفات على سطح المكتب (مرئية في المستكشف)",
+        "عنوان عمودي",
     ],
     [
         "নতুন অঞ্চল",
@@ -434,6 +440,7 @@ pub static S: [[&str; N]; 25] = [
         "গেম",
         "এই ট্যাবে রিসাইকেল বিন",
         "ফাইলগুলি ডেস্কটপে রাখুন (এক্সপ্লোরারে দৃশ্যমান)",
+        "উল্লম্ব শিরোনাম",
     ],
     [
         "Nova área",
@@ -496,6 +503,7 @@ pub static S: [[&str; N]; 25] = [
         "Jogos",
         "Lixeira nesta aba",
         "Manter os arquivos na área de trabalho (visíveis no Explorador)",
+        "Título vertical",
     ],
     [
         "Новая область",
@@ -558,6 +566,7 @@ pub static S: [[&str; N]; 25] = [
         "Игры",
         "Корзина в этой вкладке",
         "Хранить файлы на рабочем столе (видны в Проводнике)",
+        "Вертикальный заголовок",
     ],
     [
         "نیا خطہ",
@@ -620,6 +629,7 @@ pub static S: [[&str; N]; 25] = [
         "گیمز",
         "اس ٹیب میں ری سائیکل بن",
         "فائلیں ڈیسک ٹاپ پر رکھیں (ایکسپلورر میں نظر آئیں)",
+        "عمودی عنوان",
     ],
     [
         "Area baru",
@@ -682,6 +692,7 @@ pub static S: [[&str; N]; 25] = [
         "Game",
         "Recycle Bin di tab ini",
         "Simpan file di desktop (terlihat di Explorer)",
+        "Judul vertikal",
     ],
     [
         "Neuer Bereich",
@@ -744,6 +755,7 @@ pub static S: [[&str; N]; 25] = [
         "Spiele",
         "Papierkorb in diesem Tab",
         "Dateien auf dem Desktop behalten (im Explorer sichtbar)",
+        "Vertikaler Titel",
     ],
     [
         "新しいフェンス",
@@ -806,6 +818,7 @@ pub static S: [[&str; N]; 25] = [
         "ゲーム",
         "このタブにごみ箱を表示",
         "ファイルをデスクトップに残す（エクスプローラーに表示）",
+        "縦向きのタイトル",
     ],
     [
         "Eneo jipya",
@@ -868,6 +881,7 @@ pub static S: [[&str; N]; 25] = [
         "Michezo",
         "Pipa la taka katika kichupo hiki",
         "Weka faili kwenye eneo-kazi (zinaonekana kwenye Explorer)",
+        "Kichwa cha wima",
     ],
     [
         "नवीन क्षेत्र",
@@ -930,6 +944,7 @@ pub static S: [[&str; N]; 25] = [
         "खेळ",
         "या टॅबमध्ये रीसायकल बिन",
         "फाइल्स डेस्कटॉपवर ठेवा (एक्सप्लोररमध्ये दिसतील)",
+        "उभे शीर्षक",
     ],
     [
         "కొత్త ప్రాంతం",
@@ -992,6 +1007,7 @@ pub static S: [[&str; N]; 25] = [
         "ఆటలు",
         "ఈ ట్యాబ్‌లో రీసైకిల్ బిన్",
         "ఫైళ్లను డెస్క్‌టాప్‌లోనే ఉంచండి (ఎక్స్‌ప్లోరర్‌లో కనిపిస్తాయి)",
+        "నిలువు శీర్షిక",
     ],
     [
         "Yeni alan",
@@ -1054,6 +1070,7 @@ pub static S: [[&str; N]; 25] = [
         "Oyunlar",
         "Geri Dönüşüm Kutusu bu sekmede",
         "Dosyaları masaüstünde tut (Gezgin'de görünür)",
+        "Dikey başlık",
     ],
     [
         "புதிய பகுதி",
@@ -1116,6 +1133,7 @@ pub static S: [[&str; N]; 25] = [
         "விளையாட்டுகள்",
         "இந்தத் தாவலில் மறுசுழற்சித் தொட்டி",
         "கோப்புகளை டெஸ்க்டாப்பிலேயே வைத்திரு (எக்ஸ்ப்ளோரரில் தெரியும்)",
+        "செங்குத்து தலைப்பு",
     ],
     [
         "Vùng mới",
@@ -1178,6 +1196,7 @@ pub static S: [[&str; N]; 25] = [
         "Trò chơi",
         "Thùng rác trong thẻ này",
         "Giữ tệp trên màn hình nền (hiển thị trong Explorer)",
+        "Tiêu đề dọc",
     ],
     [
         "새 영역",
@@ -1240,6 +1259,7 @@ pub static S: [[&str; N]; 25] = [
         "게임",
         "이 탭에 휴지통 표시",
         "파일을 바탕 화면에 유지 (탐색기에 표시)",
+        "세로 제목",
     ],
     [
         "Nuova area",
@@ -1302,6 +1322,7 @@ pub static S: [[&str; N]; 25] = [
         "Giochi",
         "Cestino in questa scheda",
         "Mantieni i file sul desktop (visibili in Esplora file)",
+        "Titolo verticale",
     ],
     [
         "พื้นที่ใหม่",
@@ -1364,6 +1385,7 @@ pub static S: [[&str; N]; 25] = [
         "เกม",
         "ถังรีไซเคิลในแท็บนี้",
         "เก็บไฟล์ไว้บนเดสก์ท็อป (มองเห็นได้ใน Explorer)",
+        "ชื่อแนวตั้ง",
     ],
     [
         "Nowy obszar",
@@ -1426,6 +1448,7 @@ pub static S: [[&str; N]; 25] = [
         "Gry",
         "Kosz w tej karcie",
         "Zachowaj pliki na pulpicie (widoczne w Eksploratorze)",
+        "Pionowy tytuł",
     ],
     [
         "Нова область",
@@ -1488,6 +1511,7 @@ pub static S: [[&str; N]; 25] = [
         "Ігри",
         "Кошик у цій вкладці",
         "Зберігати файли на робочому столі (видимі у Провіднику)",
+        "Вертикальний заголовок",
     ],
     [
         "ناحیه جدید",
@@ -1550,5 +1574,6 @@ pub static S: [[&str; N]; 25] = [
         "بازی‌ها",
         "سطل بازیافت در این زبانه",
         "نگه داشتن فایل‌ها روی دسکتاپ (قابل مشاهده در اکسپلورر)",
+        "عنوان عمودی",
     ],
 ];

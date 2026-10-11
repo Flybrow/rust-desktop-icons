@@ -1,4 +1,5 @@
-use super::{PEEK, anim, flagged, update, view};
+use super::{PEEK, anim, flagged, layout, update, view};
+use crate::domain::side::Side;
 use crate::win::{cursor_pos, window_rect};
 use windows::Win32::{
     Foundation::*,
@@ -29,15 +30,11 @@ pub(super) fn check(h: HWND) {
 }
 
 pub(super) fn toggle(h: HWND) {
-    let top = window_rect(h).top;
-    let up = view(h, |v| {
-        v.hold = true;
-        v.up.take()
-    })
-    .flatten();
+    let (top, bottom) = (window_rect(h).top, layout::side(h) == Side::Bottom);
+    view(h, |v| v.hold = true);
     update(h, |f| {
         f.rolled ^= true;
-        if up.is_some() && !f.rolled {
+        if bottom && !f.rolled {
             f.y = top;
         }
     });

@@ -98,26 +98,17 @@ impl Frame {
     }
 
     pub fn present(&self, h: HWND, pos: (i32, i32), alpha: u8) {
-        self.present_top(h, pos, self.h, alpha);
+        self.present_part(h, pos, (0, 0), (self.w, self.h), alpha);
     }
 
-    pub fn present_top(&self, h: HWND, (x, y): (i32, i32), height: i32, alpha: u8) {
+    pub fn present_part(&self, h: HWND, (x, y): (i32, i32), (sx, sy): (i32, i32), (w, ht): (i32, i32), alpha: u8) {
         let blend =
             BLENDFUNCTION { BlendOp: AC_SRC_OVER as u8, BlendFlags: 0, SourceConstantAlpha: alpha, AlphaFormat: AC_SRC_ALPHA as u8 };
-        let (pos, size) = (POINT { x, y }, SIZE { cx: self.w, cy: height.clamp(1, self.h) });
+        let (pos, size) = (POINT { x, y }, SIZE { cx: w.clamp(1, self.w), cy: ht.clamp(1, self.h) });
+        let src = POINT { x: sx.clamp(0, self.w - size.cx), y: sy.clamp(0, self.h - size.cy) };
         unsafe {
             SelectObject(self.dc, self.canvas.bmp.into());
-            let _ = UpdateLayeredWindow(
-                h,
-                None,
-                Some(&pos),
-                Some(&size),
-                Some(self.dc),
-                Some(&POINT::default()),
-                COLORREF(0),
-                Some(&blend),
-                ULW_ALPHA,
-            );
+            let _ = UpdateLayeredWindow(h, None, Some(&pos), Some(&size), Some(self.dc), Some(&src), COLORREF(0), Some(&blend), ULW_ALPHA);
         }
     }
 }

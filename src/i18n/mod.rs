@@ -62,13 +62,14 @@ pub enum T {
     KGames,
     RecycleHere,
     KeepOnDesktop,
+    Vertical,
 }
 
 mod table;
 
 use table::S;
 
-const N: usize = 60;
+const N: usize = 61;
 
 pub const LANGS: [(&str, &str); 25] = [
     ("en", "English"),
@@ -143,7 +144,7 @@ mod tests {
     #[test]
     fn complete_tables() {
         assert!(S.iter().flatten().all(|s| !s.trim().is_empty()));
-        assert_eq!(T::KeepOnDesktop as usize, N - 1);
+        assert_eq!(T::Vertical as usize, N - 1);
     }
 
     #[test]

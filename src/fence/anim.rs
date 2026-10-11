@@ -1,10 +1,6 @@
 use super::{ANIM, layout, paint, view};
 use crate::domain::Fence;
-use crate::{
-    app::with,
-    domain::anim,
-    win::{now_ms, window_rect},
-};
+use crate::{app::with, domain::anim, win::now_ms};
 use windows::Win32::{
     Foundation::HWND,
     UI::WindowsAndMessaging::{KillTimer, SetTimer},
@@ -53,24 +49,18 @@ pub(super) fn tick(h: HWND) {
     .flatten() else {
         return;
     };
-    let full = (f.w, layout::full(h, &f));
-    let height = layout::height(h, &f);
+    let (open, size) = (layout::open_size(h, &f), layout::size(h, &f));
     if done {
         let _ = unsafe { KillTimer(Some(h), ANIM) };
     }
-    let cached = with(|a| a.view(h)?.frame.take()).flatten().filter(|fr| (fr.w, fr.h) == full);
-    if done && height != full.1 {
-        layout::apply(h);
-        return layout::settle(h);
+    let cached = with(|a| a.view(h)?.frame.take()).flatten().filter(|fr| (fr.w, fr.h) == open);
+    if done && size != open {
+        return layout::apply(h);
     }
-    let Some(frame) = cached.or_else(|| paint::draw(h, full, true).map(|(fr, _)| fr)) else {
+    let Some(frame) = cached.or_else(|| paint::draw(h, open, true).map(|(fr, _)| fr)) else {
         return;
     };
-    let r = window_rect(h);
-    let y = layout::up(h).map_or(r.top, |a| a - height);
-    layout::self_sized(h, || frame.present_top(h, (r.left, y), height, alpha));
+    let (pos, src) = (layout::origin(h, &f, size), layout::crop(h, open, size));
+    layout::self_sized(h, || frame.present_part(h, pos, src, size, alpha));
     paint::store(h, Some(frame));
-    if done {
-        layout::settle(h);
-    }
 }

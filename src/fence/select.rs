@@ -1,5 +1,5 @@
-use super::{TITLE, ghost, items, metrics, recycle, render, view};
-use crate::{app::with, domain::grid, rules, shell, win::*};
+use super::{ghost, items, layout, metrics, recycle, render, view};
+use crate::{app::with, domain::grid, rules, shell};
 use std::{collections::HashSet, path::PathBuf};
 use windows::Win32::{
     Foundation::*,
@@ -7,11 +7,10 @@ use windows::Win32::{
     UI::Input::KeyboardAndMouse::{DragDetect, ReleaseCapture, SetCapture},
 };
 
-const GAP: i32 = 4;
-
-fn content(h: HWND, (x, y): (i32, i32)) -> (i32, i32) {
+fn content(h: HWND, p: (i32, i32)) -> (i32, i32) {
     let scroll = view(h, |v| v.scroll).unwrap_or(0);
-    (x, y - scale(h, TITLE) - scale(h, GAP) + scroll)
+    let (x, y) = layout::geo_now(h).to_content(p);
+    (x, y + scroll)
 }
 
 pub(super) fn all(h: HWND) {
@@ -37,12 +36,12 @@ pub(super) fn focus(h: HWND, p: &PathBuf) -> Vec<PathBuf> {
 
 fn drag(h: HWND, paths: &[PathBuf], at: (i32, i32)) {
     if paths.iter().any(|p| shell::recycle::is(p)) {
-        return recycle::drag(h, at, content(h, at));
+        return recycle::drag(h, at);
     }
     if let Some(desk) = shell::desktop() {
         paths.iter().filter_map(|p| p.file_name()).for_each(|n| rules::ignore(desk.join(n)));
     }
-    let image = items::index_at(h, at).and_then(|i| ghost::image(h, i, content(h, at)));
+    let image = items::index_at(h, at).and_then(|i| ghost::image(h, i, at));
     shell::drag_out(h, paths, image, false);
 }
 
@@ -76,7 +75,7 @@ pub(super) fn down(h: HWND, p: (i32, i32), ctrl: bool) {
 
 pub(super) fn track(h: HWND, p: (i32, i32)) -> bool {
     let c = content(h, p);
-    let (w, cell) = (client_rect(h).right, metrics(h).0);
+    let (w, cell) = (layout::geo_now(h).grid_w(), metrics(h).0);
     let done = with(|a| {
         let v = a.view(h)?;
         let (start, _) = v.band?;
