@@ -1,6 +1,6 @@
 use super::{pin_of, soon};
 use crate::{app::change, domain::pins::Pin, rules, shell, store};
-use std::{collections::HashSet, fs, path::PathBuf};
+use std::path::PathBuf;
 use windows::Win32::Foundation::HWND;
 
 fn commit(fence: u64, tab: u64, paths: Vec<PathBuf>) {
@@ -39,11 +39,15 @@ pub fn paste(h: HWND, files: &[PathBuf], cut: bool, fence: u64, tab: u64) -> boo
     if other.is_empty() {
         return true;
     }
-    let list = || fs::read_dir(&desk).into_iter().flatten().flatten().map(|e| e.path()).collect::<HashSet<_>>();
-    let before = list();
-    if !shell::transfer(h, &other, &desk, cut) {
+    let mut dests: Vec<PathBuf> = vec![];
+    for p in &other {
+        let name = p.file_name().unwrap_or_default();
+        let dst = store::unique_by(&desk, name, |d| d.exists() || dests.iter().any(|x| x == d));
+        dests.push(dst);
+    }
+    if !shell::transfer_to(h, &other, &dests, cut) {
         return false;
     }
-    commit(fence, tab, list().difference(&before).cloned().collect());
+    commit(fence, tab, dests.into_iter().filter(|d| d.exists()).collect());
     true
 }

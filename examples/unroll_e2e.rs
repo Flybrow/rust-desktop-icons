@@ -6,6 +6,7 @@ use std::{
     time::{Duration, Instant},
 };
 use windows::Win32::Foundation::{HWND, LPARAM, POINT, RECT, WPARAM};
+use windows::Win32::UI::Input::KeyboardAndMouse::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::{BOOL, w};
 
@@ -43,6 +44,10 @@ fn fences(pid: u32) -> Vec<RECT> {
 }
 
 fn settle(pid: u32) -> Vec<RECT> {
+    let (start, t) = (fences(pid), Instant::now());
+    while fences(pid) == start && t.elapsed() < Duration::from_millis(1500) {
+        thread::sleep(Duration::from_millis(20));
+    }
     let mut last = fences(pid);
     let t = Instant::now();
     while t.elapsed() < Duration::from_secs(3) {
@@ -62,6 +67,24 @@ fn hover(r: &RECT) {
         unsafe { SetCursorPos(x + d, y).unwrap() };
         thread::sleep(Duration::from_millis(30));
     }
+}
+
+fn button(flag: MOUSE_EVENT_FLAGS) {
+    let input = INPUT { r#type: INPUT_MOUSE, Anonymous: INPUT_0 { mi: MOUSEINPUT { dwFlags: flag, ..Default::default() } } };
+    unsafe { SendInput(&[input], size_of::<INPUT>() as i32) };
+    thread::sleep(Duration::from_millis(60));
+}
+
+fn drag(r: &RECT, dx: i32) {
+    let (x, y) = (r.left + 40, r.top + 10);
+    unsafe { SetCursorPos(x, y).unwrap() };
+    thread::sleep(Duration::from_millis(100));
+    button(MOUSEEVENTF_LEFTDOWN);
+    for k in 1..=10 {
+        unsafe { SetCursorPos(x + dx * k / 10, y).unwrap() };
+        thread::sleep(Duration::from_millis(30));
+    }
+    button(MOUSEEVENTF_LEFTUP);
 }
 
 fn main() {
@@ -121,6 +144,21 @@ fn main() {
             let back = settle(pid)[i];
             check(back == r0, format!("{name} fence rolls back to the same place {:?}", (back.top, back.bottom)));
         }
+        let r0 = rolled[1];
+        hover(&r0);
+        let open = settle(pid)[1];
+        drag(&open, 200);
+        let moved = settle(pid)[1];
+        check(moved.left != open.left && moved.bottom == open.bottom, format!("upward fence can be dragged while open {moved:?}"));
+        unsafe { SetCursorPos(w.left + 5, (w.top + w.bottom) / 2).unwrap() };
+        let back = settle(pid)[1];
+        check(
+            back.left == moved.left && back.top == r0.top && back.bottom == r0.bottom,
+            format!("dragged upward fence rolls back onto its bar {back:?}"),
+        );
+        let saved_y =
+            serde_json::from_slice::<serde_json::Value>(&fs::read(data.join("config.json")).unwrap()).unwrap()["fences"][1]["y"].as_i64();
+        check(saved_y == Some(r0.top as i64), format!("saved position is the rolled bar ({saved_y:?})"));
     }
     unsafe { SetCursorPos(saved.x, saved.y).unwrap() };
     if let Ok(t) = unsafe { FindWindowW(w!("RustDesktopIcons.Tray.dev"), None) } {

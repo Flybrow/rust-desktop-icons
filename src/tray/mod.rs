@@ -68,7 +68,8 @@ unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESU
         WM_CLOSE => unsafe { PostQuitMessage(0) },
         rules::WM_DESK => rules::changed(h),
         WM_TIMER if wp.0 == rules::TIMER => rules::run(Some(h), false),
-        WM_TIMER if wp.0 == keep::TICK => keep::tick(),
+        keep::WM_KEEP => keep::finish(lp),
+        WM_TIMER if wp.0 == keep::TICK => keep::apply(),
         WM_TIMER if wp.0 == keep::SOON => keep::apply(),
         updates::WM_UPDATE => updates::done(wp.0, lp.0 != 0),
         _ if with(|a| a.taskbar) == Some(m) => {

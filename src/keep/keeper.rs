@@ -81,6 +81,9 @@ pub fn soon() {
 
 pub fn apply() {
     timer(SOON, None);
+    if with(|a| a.cfg.keep_on_desktop) == Some(true) {
+        super::reconcile();
+    }
     let Some(paths) = with(|a| a.cfg.keep_on_desktop.then(|| a.cfg.pinned())).flatten().filter(|_| live()) else { return };
     timer(TICK, Some(TICK_MS));
     hook();
@@ -89,11 +92,6 @@ pub fn apply() {
         change(|c| c.desk_flags = Some(f));
     }
     d.sync(&paths);
-}
-
-pub fn tick() {
-    super::reconcile();
-    apply();
 }
 
 pub fn restore() {

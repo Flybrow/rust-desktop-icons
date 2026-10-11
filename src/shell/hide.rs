@@ -12,7 +12,10 @@ use windows::{
                 Common::{ITEMIDLIST, STRRET},
                 *,
             },
-            WindowsAndMessaging::{SPI_GETWORKAREA, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, SystemParametersInfoW},
+            WindowsAndMessaging::{
+                GetSystemMetrics, SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN, SPI_GETWORKAREA, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS,
+                SystemParametersInfoW,
+            },
         },
     },
     core::*,
@@ -114,8 +117,9 @@ impl Desk {
             let _ = unsafe {
                 SystemParametersInfoW(SPI_GETWORKAREA, 0, Some(&mut area as *mut _ as _), SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0))
             };
-            let size = (area.right - area.left, area.bottom - area.top);
-            let slots = free_slots(&taken, (cell.x.max(75), cell.y.max(75)), size, show.len());
+            let (vx, vy) = unsafe { (GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN)) };
+            let rect = (area.left - vx, area.top - vy, area.right - area.left, area.bottom - area.top);
+            let slots = free_slots(&taken, (cell.x.max(75), cell.y.max(75)), rect, show.len());
             self.place(&show, &slots.into_iter().map(|(x, y)| POINT { x, y }).collect::<Vec<_>>());
         }
         hide.len() + show.len()

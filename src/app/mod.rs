@@ -142,7 +142,7 @@ pub fn run() {
         if let Some(bad) = damaged {
             report::alert(T::ErrConfig, &bad.display().to_string());
         }
-        crate::keep::sync();
+        crate::keep::sync(false);
         rebuild();
         hide_recycle_if_placed();
         rules::watch(tray);

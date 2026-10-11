@@ -55,14 +55,18 @@ fn save_to(dir: &Path, c: &Config) -> io::Result<()> {
 }
 
 pub fn unique(dir: &Path, name: &OsStr) -> PathBuf {
+    unique_by(dir, name, |p| p.exists())
+}
+
+pub fn unique_by(dir: &Path, name: &OsStr, taken: impl Fn(&Path) -> bool) -> PathBuf {
     let first = dir.join(name);
-    if !first.exists() {
+    if !taken(&first) {
         return first;
     }
     let p = Path::new(name);
     let stem = p.file_stem().unwrap_or(name).to_string_lossy();
     let ext = p.extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
-    (2..).map(|n| dir.join(format!("{stem} ({n}){ext}"))).find(|p| !p.exists()).unwrap_or(first)
+    (2..).map(|n| dir.join(format!("{stem} ({n}){ext}"))).find(|p| !taken(p)).unwrap_or(first)
 }
 
 fn copy_all(src: &Path, dst: &Path) -> io::Result<()> {
@@ -194,6 +198,17 @@ mod tests {
         assert_eq!(dst, b.join("x (2).txt"));
         assert_eq!(fs::read_to_string(dst).unwrap(), "1");
         assert!(!a.join("x.txt").exists());
+        fs::remove_dir_all(d).unwrap();
+    }
+
+    #[test]
+    fn unique_names_skip_reserved_paths() {
+        let d = tmp("uniq");
+        fs::write(d.join("a.txt"), "").unwrap();
+        let reserved = [d.join("a (2).txt")];
+        let pick = unique_by(&d, OsStr::new("a.txt"), |p| p.exists() || reserved.contains(&p.to_path_buf()));
+        assert_eq!(pick, d.join("a (3).txt"));
+        assert_eq!(unique(&d, OsStr::new("b.txt")), d.join("b.txt"));
         fs::remove_dir_all(d).unwrap();
     }
 
