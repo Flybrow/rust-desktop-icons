@@ -62,6 +62,8 @@ Rust 2024 (1.98), `windows` 0.62 (raw Win32/GDI), serde/serde_json, ureq 3 (rust
   `shell::draw_icon`. Folder reads + icon lookups run on a thread (`fence/loader.rs`, per-tab generations);
   each tab has its own change message (`WM_CHANGED + tab index`, `WM_LOADED` sits after that range).
 - Present layered windows outside `app::with` (UpdateLayeredWindow re-enters the window proc).
+- Rolled fences unroll upward when there is no room below (`anim::upward`, decided in `layout::orient` when unrolling
+  starts): `View.up` holds the anchored bottom edge, `layout::persist` stores the bar top. E2E: `cargo run --example unroll_e2e`.
 - Roll/fade animation never re-renders per frame: `paint::draw(.., open=true)` once into `View.frame`, then
   `Frame::present_top` crops it; ticks use the QPC clock (`win::now_ms`; DWM vblank timing goes stale on an idle desktop, never use it), WM_SIZE skips render
   while animating (`View.sizing` marks self-caused resizes). RAM first: the open frame is cached (canvas only,

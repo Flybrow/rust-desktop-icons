@@ -1,15 +1,7 @@
 use super::{pin_of, soon};
 use crate::{app::change, domain::pins::Pin, rules, shell, store};
-use std::{
-    collections::HashSet,
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashSet, fs, path::PathBuf};
 use windows::Win32::Foundation::HWND;
-
-fn on_desktop(p: &Path) -> bool {
-    shell::desktops().iter().any(|d| p.parent().is_some_and(|q| shell::same_path(q, d)))
-}
 
 fn commit(fence: u64, tab: u64, paths: Vec<PathBuf>) {
     paths.iter().cloned().for_each(rules::ignore);
@@ -20,12 +12,11 @@ fn commit(fence: u64, tab: u64, paths: Vec<PathBuf>) {
 
 pub fn place(paths: &[PathBuf], fence: u64, tab: u64) -> Vec<String> {
     let Some(desk) = shell::desktop() else { return vec!["Desktop".into()] };
-    let fences = store::root().join("fences");
     let (mut done, mut errors) = (vec![], vec![]);
     for p in paths {
-        let result = if on_desktop(p) {
+        let result = if shell::on_desktop(p).is_some() {
             Ok(p.clone())
-        } else if p.parent().and_then(Path::parent).is_some_and(|q| shell::same_path(q, &fences)) {
+        } else if store::in_fences(p) {
             store::move_into(p, &desk).map_err(|e| e.to_string())
         } else {
             shell::link_into(p, &desk).map_err(|e| e.to_string())
@@ -41,7 +32,7 @@ pub fn place(paths: &[PathBuf], fence: u64, tab: u64) -> Vec<String> {
 
 pub fn paste(h: HWND, files: &[PathBuf], cut: bool, fence: u64, tab: u64) -> bool {
     let Some(desk) = shell::desktop() else { return false };
-    let (local, other): (Vec<PathBuf>, Vec<PathBuf>) = files.iter().cloned().partition(|p| cut && on_desktop(p));
+    let (local, other): (Vec<PathBuf>, Vec<PathBuf>) = files.iter().cloned().partition(|p| cut && shell::on_desktop(p).is_some());
     if !local.is_empty() {
         commit(fence, tab, local);
     }

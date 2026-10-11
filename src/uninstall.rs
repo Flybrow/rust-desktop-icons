@@ -16,9 +16,14 @@ pub fn run() {
     if cfg.has_recycle() {
         shell::recycle::show_on_desktop(true);
     }
-    if let Some(d) = Desk::open().filter(|_| cfg.keep_on_desktop || !cfg.pinned().is_empty()) {
-        d.show(&cfg.pinned());
-        cfg.desk_flags.iter().for_each(|f| d.set_flags(*f));
+    if cfg.desk_flags.is_some() {
+        match Desk::open() {
+            Some(d) => {
+                d.sync(&[]);
+                cfg.desk_flags.iter().for_each(|f| d.set_flags(*f));
+            }
+            None => report::log("uninstall: cannot reach the desktop view to show hidden icons"),
+        }
     }
     let Some(desk) = shell::desktop() else { return };
     let errors: Vec<String> = store::tab_dirs().iter().flat_map(|d| store::evacuate(d, &desk).1).collect();

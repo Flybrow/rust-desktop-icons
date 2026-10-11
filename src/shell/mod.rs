@@ -69,6 +69,10 @@ pub fn desktops() -> Vec<PathBuf> {
     [known(&FOLDERID_Desktop), known(&FOLDERID_PublicDesktop)].into_iter().flatten().collect()
 }
 
+pub fn on_desktop(p: &Path) -> Option<usize> {
+    desktops().iter().position(|d| p.parent().is_some_and(|q| same_path(q, d)))
+}
+
 pub fn same_path(a: &Path, b: &Path) -> bool {
     let text = |p: &Path| p.to_string_lossy().trim_end_matches('\\').to_lowercase();
     text(a) == text(b) || matches!((std::fs::canonicalize(a), std::fs::canonicalize(b)), (Ok(x), Ok(y)) if text(&x) == text(&y))

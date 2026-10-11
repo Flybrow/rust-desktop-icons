@@ -1,10 +1,11 @@
 use super::live;
 use crate::{
     app::{change, with},
+    report,
     shell::hide::Desk,
     tray,
 };
-use std::{cell::Cell, path::PathBuf};
+use std::cell::Cell;
 use windows::{
     Win32::{
         Foundation::HWND,
@@ -84,11 +85,10 @@ pub fn apply() {
     timer(TICK, Some(TICK_MS));
     hook();
     let Some(d) = Desk::open() else { return };
-    if with(|a| a.cfg.desk_flags.is_none()) == Some(true) {
-        let flags = d.flags();
-        change(|c| c.desk_flags = flags);
+    if let Some(f) = d.flags().filter(|_| with(|a| a.cfg.desk_flags.is_none()) == Some(true)) {
+        change(|c| c.desk_flags = Some(f));
     }
-    d.hide(&paths);
+    d.sync(&paths);
 }
 
 pub fn tick() {
@@ -96,23 +96,13 @@ pub fn tick() {
     apply();
 }
 
-pub fn release(paths: &[PathBuf]) {
-    if live() && !paths.is_empty() {
-        let _ = Desk::open().map(|d| d.show(paths));
-    }
-}
-
 pub fn restore() {
     timer(TICK, None);
     timer(SOON, None);
     unhook();
-    if !live() {
-        return;
-    }
-    let Some(d) = Desk::open() else { return };
-    d.show(&[]);
-    if let Some(f) = with(|a| a.cfg.desk_flags.take()).flatten() {
-        d.set_flags(f);
-        change(|_| {});
-    }
+    let Some(flags) = with(|a| a.cfg.desk_flags).flatten().filter(|_| live()) else { return };
+    let Some(d) = Desk::open() else { return report::log("cannot reach the desktop view to show hidden icons") };
+    d.sync(&[]);
+    d.set_flags(flags);
+    change(|c| c.desk_flags = None);
 }

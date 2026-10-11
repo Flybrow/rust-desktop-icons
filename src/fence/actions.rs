@@ -42,7 +42,7 @@ pub(super) fn delete(h: HWND) {
         a.cfg.fences.retain(|x| x.id != f.id);
         a.save();
     });
-    keep::release(&f.tabs.iter().flat_map(|t| &t.pins).map(|p| p.path.clone()).collect::<Vec<_>>());
+    keep::soon();
     if f.tabs.iter().any(|t| t.recycle) {
         shell::recycle::show_on_desktop(true);
     }

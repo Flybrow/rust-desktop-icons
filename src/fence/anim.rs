@@ -11,6 +11,7 @@ use windows::Win32::{
 };
 
 pub(super) fn start(h: HWND) {
+    layout::orient(h);
     let idle = view(h, |v| v.tick.replace(v.tick.unwrap_or_else(now_ms)).is_none());
     if idle == Some(true) {
         unsafe { SetTimer(Some(h), ANIM, 10, None) };
@@ -59,12 +60,17 @@ pub(super) fn tick(h: HWND) {
     }
     let cached = with(|a| a.view(h)?.frame.take()).flatten().filter(|fr| (fr.w, fr.h) == full);
     if done && height != full.1 {
-        return layout::apply(h);
+        layout::apply(h);
+        return layout::settle(h);
     }
     let Some(frame) = cached.or_else(|| paint::draw(h, full, true).map(|(fr, _)| fr)) else {
         return;
     };
     let r = window_rect(h);
-    layout::self_sized(h, || frame.present_top(h, (r.left, r.top), height, alpha));
+    let y = layout::up(h).map_or(r.top, |a| a - height);
+    layout::self_sized(h, || frame.present_top(h, (r.left, y), height, alpha));
     paint::store(h, Some(frame));
+    if done {
+        layout::settle(h);
+    }
 }

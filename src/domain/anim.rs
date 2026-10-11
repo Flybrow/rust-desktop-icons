@@ -36,6 +36,12 @@ pub fn height(title: i32, full: i32, p: f32, opening: bool) -> i32 {
     title + ((full - title).max(0) as f32 * curve(p, opening)).round() as i32
 }
 
+pub fn upward(top: i32, bar: i32, natural: i32, (work_top, work_bottom): (i32, i32), margin: i32) -> bool {
+    let below = work_bottom - top - margin;
+    let above = top + bar - work_top - margin;
+    natural > below && above > below
+}
+
 pub fn opacity(glow: f32) -> u8 {
     ((REST + (1. - REST) * ease(glow)) * 255.).round() as u8
 }
@@ -63,6 +69,15 @@ mod tests {
             assert!((curve(p, true) - curve(q, false)).abs() < 1e-4, "p={p}");
             assert!((retarget(q, false, true) - p).abs() < 1e-3);
         }
+    }
+
+    #[test]
+    fn unrolls_up_only_without_room_below() {
+        assert!(!upward(100, 34, 400, (0, 1040), 16));
+        assert!(upward(900, 34, 400, (0, 1040), 16));
+        assert!(!upward(900, 34, 100, (0, 1040), 16));
+        assert!(!upward(500, 34, 900, (0, 1040), 16));
+        assert!(upward(600, 34, 900, (0, 1040), 16));
     }
 
     #[test]

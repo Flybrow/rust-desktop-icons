@@ -11,13 +11,42 @@ fn progress(h: HWND, f: &Fence) -> (f32, bool) {
     view(h, |v| (v.unroll, v.opening)).unwrap_or((if f.rolled { 0. } else { 1. }, false))
 }
 
-pub(super) fn full(h: HWND, f: &Fence) -> i32 {
+fn fit(h: HWND, f: &Fence, max: i32) -> i32 {
     if !f.look.auto_height {
         return f.h;
     }
     let n = view(h, |v| v.items.len()).unwrap_or(0);
-    let floor = work_area(&window_rect(h)).bottom - window_rect(h).top - scale(h, MARGIN);
-    grid::fit(n, f.w, metrics(h).0, scale(h, TITLE + 4 + 8), (scale(h, Fence::MIN.1), floor))
+    grid::fit(n, f.w, metrics(h).0, scale(h, TITLE + 4 + 8), (scale(h, Fence::MIN.1), max))
+}
+
+pub(super) fn up(h: HWND) -> Option<i32> {
+    view(h, |v| v.up).flatten()
+}
+
+pub(super) fn full(h: HWND, f: &Fence) -> i32 {
+    let (r, m) = (window_rect(h), scale(h, MARGIN));
+    let w = work_area(&r);
+    fit(h, f, up(h).map_or(w.bottom - r.top, |a| a - w.top) - m)
+}
+
+pub(super) fn orient(h: HWND) {
+    let Some(f) = fence_of(h).filter(|f| f.rolled) else { return };
+    if view(h, |v| v.unroll > 0. || v.up.is_some()) != Some(false) {
+        return;
+    }
+    let (r, bar) = (window_rect(h), scale(h, TITLE));
+    let w = work_area(&r);
+    if anim::upward(r.top, bar, fit(h, &f, i32::MAX), (w.top, w.bottom), scale(h, MARGIN)) {
+        view(h, |v| v.up = Some(r.top + bar));
+    }
+}
+
+pub(super) fn settle(h: HWND) {
+    view(h, |v| {
+        if v.unroll == 0. {
+            v.up = None;
+        }
+    });
 }
 
 pub(super) fn height(h: HWND, f: &Fence) -> i32 {
@@ -35,8 +64,10 @@ pub(super) fn sizing(h: HWND) -> bool {
 
 pub(super) fn resize(h: HWND, f: &Fence) {
     let height = height(h, f);
+    let (r, flags) = (window_rect(h), SWP_NOZORDER | SWP_NOACTIVATE);
+    let (y, flags) = up(h).map_or((0, flags | SWP_NOMOVE), |a| (a - height, flags));
     self_sized(h, || {
-        let _ = unsafe { SetWindowPos(h, None, 0, 0, f.w, height, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE) };
+        let _ = unsafe { SetWindowPos(h, None, r.left, y, f.w, height, flags) };
     });
 }
 
@@ -47,9 +78,13 @@ pub(super) fn apply(h: HWND) {
 }
 
 pub(super) fn persist(h: HWND) {
-    let r = window_rect(h);
+    let (r, up) = (window_rect(h), up(h));
+    let top = up.map_or(r.top, |_| r.bottom - scale(h, TITLE));
+    if up.is_some() {
+        view(h, |v| v.up = Some(r.bottom));
+    }
     update(h, |f| {
-        (f.x, f.y, f.w) = (r.left, r.top, r.right - r.left);
+        (f.x, f.y, f.w) = (r.left, top, r.right - r.left);
         if !f.rolled && !f.look.auto_height {
             f.h = r.bottom - r.top;
         }

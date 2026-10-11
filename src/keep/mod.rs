@@ -11,7 +11,7 @@ use crate::{
     i18n::T,
     report, rules, shell, store,
 };
-pub use keeper::{SOON, TICK, apply, release, restore, soon, tick};
+pub use keeper::{SOON, TICK, apply, restore, soon, tick};
 pub use place::{paste, place};
 use std::{fs, path::PathBuf};
 

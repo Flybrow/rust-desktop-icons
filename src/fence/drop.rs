@@ -17,7 +17,7 @@ pub(super) fn files(h: HWND, paths: Vec<PathBuf>, pt: (i32, i32)) {
     }
     let header = tabs::at(h, pt);
     let Some(tab) = target_tab(h, pt) else { return };
-    let (dir, fences, desks) = (store::tab_dir(&tab), store::root().join("fences"), shell::desktops());
+    let dir = store::tab_dir(&tab);
     let is = |q: Option<&Path>, d: &Path| q.is_some_and(|q| shell::same_path(q, d));
     if header.is_none() && !paths.is_empty() && paths.iter().all(|p| is(p.parent(), &dir) || tab.pinned(p)) {
         return arrange::move_within(h, &paths, items::item_at(h, pt));
@@ -31,8 +31,8 @@ pub(super) fn files(h: HWND, paths: Vec<PathBuf>, pt: (i32, i32)) {
     }
     let mut errors = vec![];
     for p in paths.iter().filter(|p| !is(p.parent(), &dir)) {
-        let own = desks.first().is_some_and(|d| is(p.parent(), d)) || is(p.parent().and_then(|q| q.parent()), &fences);
-        let public = desks.get(1).is_some_and(|d| is(p.parent(), d));
+        let desk = shell::on_desktop(p);
+        let (own, public) = (desk == Some(0) || store::in_fences(p), desk == Some(1));
         let result = if own {
             store::move_into(p, &dir).map(|_| ()).map_err(|e| e.to_string())
         } else if public {

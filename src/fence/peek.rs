@@ -29,7 +29,17 @@ pub(super) fn check(h: HWND) {
 }
 
 pub(super) fn toggle(h: HWND) {
-    view(h, |v| v.hold = true);
-    update(h, |f| f.rolled ^= true);
+    let top = window_rect(h).top;
+    let up = view(h, |v| {
+        v.hold = true;
+        v.up.take()
+    })
+    .flatten();
+    update(h, |f| {
+        f.rolled ^= true;
+        if up.is_some() && !f.rolled {
+            f.y = top;
+        }
+    });
     anim::start(h);
 }

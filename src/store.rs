@@ -120,6 +120,10 @@ pub fn evacuate(dir: &Path, to: &Path) -> (Vec<PathBuf>, Vec<String>) {
     (moved, errors)
 }
 
+pub fn in_fences(p: &Path) -> bool {
+    p.parent().and_then(Path::parent).is_some_and(|q| crate::shell::same_path(q, &root().join("fences")))
+}
+
 pub fn ensure(dirs: &[PathBuf]) -> Vec<String> {
     dirs.iter().filter_map(|d| fs::create_dir_all(d).err().map(|e| format!("{} ({e})", d.display()))).collect()
 }

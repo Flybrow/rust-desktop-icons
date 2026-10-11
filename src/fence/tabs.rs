@@ -117,7 +117,7 @@ pub(super) fn remove(h: HWND) {
         f.tabs.retain(|t| t.id != tab.id);
         f.tab = f.tab.min(f.tabs.len() - 1);
     });
-    keep::release(&tab.pins.iter().map(|p| p.path.clone()).collect::<Vec<_>>());
+    keep::soon();
     if tab.recycle {
         shell::recycle::show_on_desktop(true);
     }

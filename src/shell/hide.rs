@@ -95,35 +95,29 @@ impl Desk {
         let _ = unsafe { self.0.SelectAndPositionItems(pidls.len() as u32, pidls.as_ptr(), Some(pts.as_ptr()), flags) };
     }
 
-    pub fn hide(&self, paths: &[PathBuf]) -> usize {
+    pub fn sync(&self, keep: &[PathBuf]) -> usize {
         let entries = self.entries();
-        let todo: Vec<&Entry> = entries.iter().filter(|e| !away(e.pos) && listed(paths, &e.path)).collect();
-        if !todo.is_empty() {
+        let hide: Vec<&Entry> = entries.iter().filter(|e| !away(e.pos) && listed(keep, &e.path)).collect();
+        let show: Vec<&Entry> = entries.iter().filter(|e| away(e.pos) && !listed(keep, &e.path)).collect();
+        if !hide.is_empty() {
             if self.flags().is_some_and(|f| f & MASK != 0) {
                 self.set_flags(0);
             }
-            let pts: Vec<POINT> = (0..todo.len() as i32).map(|i| POINT { x: AWAY - i % 500 * 16, y: AWAY }).collect();
-            self.place(&todo, &pts);
+            let pts: Vec<POINT> = (0..hide.len() as i32).map(|i| POINT { x: AWAY - i % 500 * 16, y: AWAY }).collect();
+            self.place(&hide, &pts);
         }
-        todo.len()
-    }
-
-    pub fn show(&self, paths: &[PathBuf]) -> usize {
-        let entries = self.entries();
-        let todo: Vec<&Entry> = entries.iter().filter(|e| away(e.pos) && (paths.is_empty() || listed(paths, &e.path))).collect();
-        if todo.is_empty() {
-            return 0;
+        if !show.is_empty() {
+            let taken: Vec<(i32, i32)> = entries.iter().filter(|e| !away(e.pos)).map(|e| (e.pos.x, e.pos.y)).collect();
+            let mut cell = POINT::default();
+            let _ = unsafe { self.0.GetSpacing(&mut cell) };
+            let mut area = RECT::default();
+            let _ = unsafe {
+                SystemParametersInfoW(SPI_GETWORKAREA, 0, Some(&mut area as *mut _ as _), SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0))
+            };
+            let size = (area.right - area.left, area.bottom - area.top);
+            let slots = free_slots(&taken, (cell.x.max(75), cell.y.max(75)), size, show.len());
+            self.place(&show, &slots.into_iter().map(|(x, y)| POINT { x, y }).collect::<Vec<_>>());
         }
-        let taken: Vec<(i32, i32)> = entries.iter().filter(|e| !away(e.pos)).map(|e| (e.pos.x, e.pos.y)).collect();
-        let mut cell = POINT::default();
-        let _ = unsafe { self.0.GetSpacing(&mut cell) };
-        let mut area = RECT::default();
-        let _ =
-            unsafe { SystemParametersInfoW(SPI_GETWORKAREA, 0, Some(&mut area as *mut _ as _), SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0)) };
-        let size = (area.right - area.left, area.bottom - area.top);
-        let pts: Vec<POINT> =
-            free_slots(&taken, (cell.x.max(75), cell.y.max(75)), size, todo.len()).into_iter().map(|(x, y)| POINT { x, y }).collect();
-        self.place(&todo, &pts);
-        todo.len()
+        hide.len() + show.len()
     }
 }
