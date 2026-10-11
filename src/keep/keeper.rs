@@ -18,6 +18,7 @@ pub const TICK: usize = 8;
 pub const SOON: usize = 9;
 const TICK_MS: u32 = 3000;
 const SOON_MS: u32 = 30;
+const RETRY_MS: u32 = 250;
 
 thread_local! {
     static HOOK: Cell<(isize, isize)> = const { Cell::new((0, 0)) };
@@ -87,7 +88,8 @@ pub fn apply() {
     let Some(paths) = with(|a| a.cfg.keep_on_desktop.then(|| a.cfg.pinned())).flatten().filter(|_| live()) else { return };
     timer(TICK, Some(TICK_MS));
     hook();
-    let Some(d) = Desk::open() else { return };
+    let ready = Desk::open().filter(|_| HOOK.get().0 != 0);
+    let Some(d) = ready else { return timer(SOON, Some(RETRY_MS)) };
     if let Some(f) = d.flags().filter(|_| with(|a| a.cfg.desk_flags.is_none()) == Some(true)) {
         change(|c| c.desk_flags = Some(f));
     }

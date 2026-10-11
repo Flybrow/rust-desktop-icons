@@ -1,6 +1,7 @@
-## What's new in Rust Desktop Icons 0.8.0
+## What's new in Rust Desktop Icons 0.8.1
 
-- New option "Keep files on the desktop" (Settings > Behavior, off by default): fenced files stay in your Desktop folder, so they remain visible in Explorer > Desktop while their icons are hidden from the desktop itself. Existing fences are migrated when you turn it on, and moved back when you turn it off.
-- A rolled fence near the bottom of the screen now unrolls upward instead of being squeezed.
-- Updates now come from the new project home: github.com/Flybrow/rust-desktop-icons.
-- Debug builds no longer touch the Windows startup entry.
+- "Keep files on the desktop": turning the option on or off no longer freezes the app while large folders move.
+- Files from the Public Desktop can go back into their fence (Windows asks for permission).
+- Icons shown again after leaving a fence land on the main screen, also with several monitors.
+- A renamed file stays hidden while its fence follows it, and hidden icons come back faster after Explorer restarts.
+- Pasting into a fence only adds the pasted files.

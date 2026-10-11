@@ -14,3 +14,15 @@ jobs:
       - run: cargo fmt --check
       - run: cargo clippy --all-targets --locked -- -D warnings
       - run: cargo test --locked
+  e2e:
+    runs-on: windows-latest
+    continue-on-error: true
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: rustup toolchain install stable --profile minimal && rustup default stable
+      - run: cargo build --locked --bins --examples
+      - name: Keep files on the desktop (real desktop)
+        run: target/debug/examples/keep_e2e.exe
+      - name: Unroll direction (real desktop)
+        run: target/debug/examples/unroll_e2e.exe
