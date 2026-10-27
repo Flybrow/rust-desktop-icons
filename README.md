@@ -33,7 +33,7 @@ Organize your Windows desktop into beautiful, translucent groups of icons. Tiny,
 | 🗂️ **Tabs and portals** | Several tabs per fence; a portal tab shows any folder of your PC |
 | 🧹 **Sorting rules** | New desktop files go to the right fence automatically (apps, games, images, documents…) |
 | 🖥️ **Keep files on the desktop** | Optional: fenced files stay in your Desktop folder (visible in Explorer), only their icons are hidden |
-| 🗑️ **Recycle Bin** | Put the Recycle Bin in a fence instead of the desktop |
+| 🗑️ **System icons** | Put the Recycle Bin, This PC, your user folder, Network or Control Panel in a fence instead of the desktop |
 | 🖱️ **Drag & drop anything** | In, out and between fences; apps from the Start menu or anywhere else become shortcuts |
 | ⚡ **Smooth and light** | Native Win32 + Rust, no runtime, no web view |
 | 🌍 **25 languages** | Auto-detected from Windows, switchable from the tray menu |

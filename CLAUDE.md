@@ -40,12 +40,18 @@ Rust 2024 (1.98), `windows` 0.62 (raw Win32/GDI), serde/serde_json, ureq 3 (rust
 - `src/layered/` shared per-pixel window painting (`Frame`: text mask, compositing, present; `Dib`; `glyph.rs`
   Segoe MDL2 icon glyphs, also rendered to menu bitmaps via `App::entry`/`App::sub`).
 - `src/shell/` Win32 shell wrappers: `mod.rs` paths/icons/open, `reg.rs` registry, `link.rs`, `watch.rs` (+ `notify_moved` after every move), `dnd.rs`,
-  `recycle.rs` (virtual Recycle Bin item `::{645FF040-...}`, desktop visibility via HideDesktopIcons)
-  (folder picker, `drag_out` = OLE drag via SHDoDragDrop; the app calls OleInitialize).
+  `system.rs` (system icons: Recycle Bin, This PC, User's Files, Network, Control Panel as `::{CLSID}` items,
+  name/icon from the shell, desktop visibility via HideDesktopIcons)
+  (folder picker, `drag_out` = OLE drag via SHDoDragDrop with our IDropSource: a drop on the desktop can be cancelled
+  for Explorer and handled by the app; the app calls OleInitialize). The keeper never calls Explorer while a mouse button is down.
+  E2E helpers shared by the examples live in `examples/support`.
 - `src/fence/` fence window: `mod.rs` proc, `layout.rs` geometry, `items.rs` icons, `paint.rs` + `header.rs` rendering,
   `tabs.rs` tabs/portals, `anim.rs` unroll + chameleon fade, `peek.rs` hover, `menu.rs`, `actions.rs`, `title.rs` rename,
   `drop.rs` (from outside / onto a tab header / reorder inside a tab), `select.rs` (click, Ctrl+click, rubber band,
-  drag out), `arrange.rs` (per-tab sort and rules submenus), `recycle.rs` (Recycle Bin placement: menu, drag, drop), `snap.rs`.
+  drag out), `arrange.rs` (per-tab sort and rules submenus), `system.rs` (system icons placement: menu, drag, drop), `snap.rs`.
+- System icons: `domain/system.rs` (`Sys`, pure) lives in `Tab.system` (legacy `recycle: true` migrates in `Config::sanitized`);
+  `app/desk_icons.rs` hides them on the desktop while placed and restores the original HideDesktopIcons value
+  (`Config.desk_icons`) when removed; dropping one on the desktop shows it. E2E: `cargo run --example system_e2e`.
 - `src/settings/` settings window (custom drawn): `rows.rs` content/layout, `paint.rs`, `act.rs`, `mod.rs` window.
 - `installer/main.wxs` per-user MSI (installs to `%LOCALAPPDATA%\Programs`, owns the HKCU Run value).
 
@@ -94,6 +100,6 @@ Rust 2024 (1.98), `windows` 0.62 (raw Win32/GDI), serde/serde_json, ureq 3 (rust
 - `store::move_into` refuses to move a folder into itself and only falls back to copy+delete across volumes (never deletes a
   complete copy). Use `fence::view(h, ..)` for per-window state, `Config::tab` for fence/tab lookups.
 - Desktop files are always moved, never copied: public-desktop items go through `shell::transfer` (UAC), only files
-  from other folders become shortcuts. Debug builds never touch the real desktop (verb, Recycle Bin visibility).
+  from other folders become shortcuts. Debug builds never touch the real desktop (verb, system icon visibility).
 - MSI desktop shortcut: created on first install (checkbox, default on). On upgrades it is only recreated if it still
   exists on the desktop (`SHORTCUTEXISTS` FileSearch), so a shortcut the user deleted never comes back.
