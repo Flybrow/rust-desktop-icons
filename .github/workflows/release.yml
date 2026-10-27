@@ -18,6 +18,8 @@ jobs:
           "VERSION=$v" >> $env:GITHUB_ENV
       - run: cargo clippy --all-targets --locked -- -D warnings
       - run: cargo test --locked
+      - run: cargo install cargo-audit --locked
+      - run: cargo audit
       - run: cargo build --release --locked
       - run: dotnet tool install --global wix --version 5.0.2
       - run: wix extension add -g WixToolset.UI.wixext/5.0.2 WixToolset.Util.wixext/5.0.2

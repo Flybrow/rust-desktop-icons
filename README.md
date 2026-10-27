@@ -66,6 +66,8 @@ updates are automatic again afterwards.
 | Rename a fence | Right-click its title |
 | Move / resize | Drag the title bar / drag an edge |
 | Roll up / down | Double-click the title bar |
+| Vertical fence | Right-click a fence → **Vertical title**, then park it on a screen edge |
+| System icons | Right-click a fence → **System icons** (This PC, Recycle Bin, Network…) |
 | Icon size | **Ctrl + mouse wheel** over a fence |
 | Color, tabs, rules, delete | Right-click inside the fence |
 | Global options | Tray icon → **Settings** |
@@ -90,7 +92,7 @@ Native speakers: corrections are welcome in [`src/i18n/table.rs`](src/i18n/table
 - A newer `.msi` and its `.sha256` are downloaded **only** from this repository's release URLs over HTTPS; the hash
   must match before `msiexec /qn` runs. The installer then restarts the app.
 - Disable it from the tray menu (**Automatic updates**).
-- Only documented Windows APIs are used. Dependencies are scanned with `cargo audit` before each release.
+- Only documented Windows APIs are used. Dependencies are scanned with `cargo audit` on every push and before each release.
 
 ## Build from source
 
@@ -99,11 +101,12 @@ cargo test
 cargo build --release
 dotnet tool install --global wix --version 5.0.2
 wix extension add -g WixToolset.UI.wixext/5.0.2 WixToolset.Util.wixext/5.0.2
-wix build installer/main.wxs -d Version=0.8.0 -arch x64 -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext -o rust-desktop-icons.msi
+wix build installer/main.wxs -d Version=X.Y.Z -arch x64 -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext -o rust-desktop-icons.msi
 ```
 
 End-to-end checks on a real desktop (isolated data, test files only): `cargo build` then
-`cargo run --example keep_e2e` and `cargo run --example unroll_e2e` (moves the mouse for a few seconds).
+`cargo run --example keep_e2e`, `cargo run --example unroll_e2e` and `cargo run --example system_e2e` (they move the mouse
+for a few seconds). CI runs them on every push.
 
 Pushing a `vX.Y.Z` tag builds and publishes the MSI with [GitHub Actions](.github/workflows/release.yml).
 
@@ -111,11 +114,11 @@ Pushing a `vX.Y.Z` tag builds and publishes the MSI with [GitHub Actions](.githu
 
 | Module | Role |
 | --- | --- |
-| `domain/` | Pure, unit-tested logic: model, config, layout grid, sorting, rules, animation, pins |
+| `domain/` | Pure, unit-tested logic: model, config, layout grid, title bar side, sorting, rules, animation, pins, system icons |
 | `render/`, `layered/` | Pixel compositing (alpha, rounded rectangles, blur) and layered-window painting |
 | `fence/` | Fence window: layout, painting, tabs, drag & drop, selection, menus, roll animation |
 | `keep/` | "Keep files on the desktop" mode: migration, placement, hiding desktop icons |
-| `shell/` | Windows Shell wrappers: icons, shortcuts, folder watch, drag & drop, Recycle Bin, desktop view |
+| `shell/` | Windows Shell wrappers: icons, shortcuts, folder watch, drag & drop, system icons, desktop view |
 | `app/`, `tray/`, `settings/` | Global state, tray icon and update scheduling, settings window |
 | `store.rs`, `rules.rs`, `update.rs` | Persistence and safe moves, desktop auto-sort, release check and silent install |
 
