@@ -1,5 +1,11 @@
-use super::{ghost, items, layout, metrics, recycle, render, view};
-use crate::{app::with, domain::grid, i18n::T, keep, report, rules, shell, win::cursor_pos};
+use super::{ghost, items, layout, metrics, render, system, view};
+use crate::{
+    app::with,
+    domain::{grid, system::Sys},
+    i18n::T,
+    keep, report, rules, shell,
+    win::cursor_pos,
+};
 use std::{collections::HashSet, path::PathBuf};
 use windows::Win32::{
     Foundation::*,
@@ -35,8 +41,9 @@ pub(super) fn focus(h: HWND, p: &PathBuf) -> Vec<PathBuf> {
 }
 
 fn drag(h: HWND, paths: &[PathBuf], at: (i32, i32)) {
-    if paths.iter().any(|p| shell::recycle::is(p)) {
-        return recycle::drag(h, at);
+    let sys: Vec<Sys> = paths.iter().filter_map(|p| Sys::of(p)).collect();
+    if !sys.is_empty() {
+        return system::drag(h, at, sys);
     }
     if let Some(desk) = shell::desktop() {
         paths.iter().filter_map(|p| p.file_name()).for_each(|n| rules::ignore(desk.join(n)));

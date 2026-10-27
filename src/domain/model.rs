@@ -1,4 +1,4 @@
-use super::{icons, kind::Kind, order::Sort, pins::Pin};
+use super::{icons, kind::Kind, order::Sort, pins::Pin, system::Sys};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -56,7 +56,10 @@ pub struct Tab {
     pub kinds: Vec<Kind>,
     pub sort: Sort,
     pub order: Vec<String>,
+    #[serde(skip_serializing)]
     pub recycle: bool,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub system: Vec<Sys>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub pins: Vec<Pin>,
 }

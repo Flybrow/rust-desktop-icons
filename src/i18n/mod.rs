@@ -60,7 +60,7 @@ pub enum T {
     ErrInstall,
     Lock,
     KGames,
-    RecycleHere,
+    SystemIcons,
     KeepOnDesktop,
     Vertical,
 }

@@ -26,3 +26,5 @@ jobs:
         run: target/debug/examples/keep_e2e.exe
       - name: Unroll direction (real desktop)
         run: target/debug/examples/unroll_e2e.exe
+      - name: System icons (real desktop)
+        run: target/debug/examples/system_e2e.exe

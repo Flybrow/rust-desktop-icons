@@ -5,8 +5,8 @@ pub mod hide;
 mod link;
 pub mod menu;
 mod ops;
-pub mod recycle;
 mod reg;
+pub mod system;
 mod watch;
 
 use crate::win::wide_path;
@@ -118,6 +118,6 @@ pub fn draw_icon(dc: HDC, index: i32, (x, y): (i32, i32), px: i32) {
 }
 
 pub fn open(p: &Path) {
-    let w = if recycle::is(p) { wide_path(Path::new("shell:RecycleBinFolder")) } else { wide_path(p) };
+    let w = crate::domain::system::Sys::of(p).map_or_else(|| wide_path(p), |s| wide_path(Path::new(s.folder())));
     unsafe { ShellExecuteW(None, w!("open"), PCWSTR(w.as_ptr()), None, None, SW_SHOWNORMAL) };
 }

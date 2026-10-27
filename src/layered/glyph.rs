@@ -30,6 +30,7 @@ pub const CHECK: char = '\u{E73E}';
 pub const DOWNLOAD: char = '\u{E896}';
 pub const HEIGHT: char = '\u{E75F}';
 pub const LOCK: char = '\u{E72E}';
+pub const PC: char = '\u{E7F4}';
 
 pub fn bitmap(font: HFONT, ch: char, px: i32, color: u32) -> Option<HBITMAP> {
     let mut f = Frame::new(px, px)?;

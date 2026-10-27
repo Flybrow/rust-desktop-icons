@@ -4,6 +4,7 @@ use crate::{
     domain::{
         Tab,
         order::{self, Meta},
+        system::Sys,
     },
     shell, store,
 };
@@ -31,9 +32,9 @@ fn meta(p: &Path) -> Meta {
 
 fn load(tab: &Tab) -> Vec<Item> {
     let paths: Vec<PathBuf> = tab
-        .recycle
-        .then(shell::recycle::path)
-        .into_iter()
+        .system
+        .iter()
+        .map(|s| s.path())
         .chain(
             fs::read_dir(store::tab_dir(tab))
                 .into_iter()
@@ -48,7 +49,7 @@ fn load(tab: &Tab) -> Vec<Item> {
     order::arrange(&metas, tab.sort, &tab.order)
         .into_iter()
         .map(|i| {
-            let (icon, name) = if shell::recycle::is(&paths[i]) { shell::recycle::info() } else { shell::info(&paths[i]) };
+            let (icon, name) = Sys::of(&paths[i]).map_or_else(|| shell::info(&paths[i]), shell::system::info);
             Item { path: paths[i].clone(), name, icon }
         })
         .collect()

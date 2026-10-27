@@ -1,7 +1,7 @@
-use super::{actions, arrange, cursor, edit, fence_of, items, layout, native, peek, recycle, select, tabs, update};
+use super::{actions, arrange, cursor, edit, fence_of, items, layout, native, peek, select, system, tabs, update};
 use crate::{
     app::with,
-    domain::{Look, icons},
+    domain::{Look, icons, system::Sys},
     i18n::T,
     keep,
     layered::glyph as g,
@@ -9,6 +9,9 @@ use crate::{
     win::*,
 };
 use windows::Win32::Foundation::HWND;
+
+const SYS: usize = 90;
+const SYS_END: usize = SYS + Sys::ALL.len() - 1;
 
 pub(super) fn context(h: HWND) {
     let p = cursor(h);
@@ -47,7 +50,11 @@ pub(super) fn context(h: HWND) {
         if f.tabs.len() > 1 {
             a.entry(m, 62, T::DeleteTab, false, g::CLOSE);
         }
-        a.entry(m, 63, T::RecycleHere, f.active().recycle, g::DELETE);
+        let sys = menu();
+        for (k, s) in Sys::ALL.iter().enumerate() {
+            item(sys, SYS + k, &shell::system::name(*s), f.active().system.contains(s));
+        }
+        a.sub(m, T::SystemIcons, sys, g::PC);
         a.entry(m, 13, T::OpenFolder, false, g::FOLDER);
         separator(m);
         a.entry(m, 14, T::DeleteFence, false, g::DELETE);
@@ -83,7 +90,7 @@ pub(super) fn context(h: HWND) {
         60 => tabs::new_tab(h),
         61 => tabs::new_portal(h),
         62 => tabs::remove(h),
-        63 => recycle::toggle(h),
+        k @ SYS..=SYS_END => system::toggle(h, Sys::ALL[k - SYS]),
         64 => {
             update(h, |f| f.vertical ^= true);
             layout::orient(h);

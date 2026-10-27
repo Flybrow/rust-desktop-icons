@@ -1,7 +1,7 @@
 use super::{TABS, WM_CHANGED, actions, fence_of, layout, reload, to_client, update, view};
 use crate::{
     app::with,
-    domain::{Tab, grid},
+    domain::{Tab, grid, system::Sys},
     i18n::T,
     keep, report, shell, store,
 };
@@ -22,7 +22,7 @@ pub fn bind(h: HWND) {
             None => {}
         }
         let desks = if (keep && t.portal.is_none()) || !t.pins.is_empty() { shell::desktops() } else { vec![] };
-        let recycle = t.recycle.then(shell::recycle::path);
+        let recycle = t.system.contains(&Sys::RecycleBin).then(|| Sys::RecycleBin.path());
         watches.extend(desks.iter().chain(recycle.as_ref()).filter_map(|d| shell::Watch::new(h, d, msg)));
     }
     view(h, |v| (v.watches, v.scroll) = (watches, 0));
@@ -118,8 +118,6 @@ pub(super) fn remove(h: HWND) {
         f.tab = f.tab.min(f.tabs.len() - 1);
     });
     keep::soon();
-    if tab.recycle {
-        shell::recycle::show_on_desktop(true);
-    }
+    super::system::released(std::slice::from_ref(&tab));
     bind(h);
 }

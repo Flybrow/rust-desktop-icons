@@ -14,9 +14,9 @@ mod menu;
 mod native;
 mod paint;
 mod peek;
-mod recycle;
 mod select;
 mod snap;
+mod system;
 mod tabs;
 mod target;
 

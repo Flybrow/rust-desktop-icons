@@ -33,7 +33,7 @@ pub fn place(paths: &[PathBuf], fence: u64, tab: u64) -> Vec<String> {
 pub fn release(paths: &[PathBuf], at: (i32, i32)) -> Vec<String> {
     let Some(desk) = shell::desktop() else { return vec!["Desktop".into()] };
     let (mut out, mut errors) = (vec![], vec![]);
-    for p in paths.iter().filter(|p| !shell::recycle::is(p)) {
+    for p in paths.iter().filter(|p| crate::domain::system::Sys::of(p).is_none()) {
         match if shell::on_desktop(p).is_some() { Ok(p.clone()) } else { store::move_into(p, &desk).map_err(|e| e.to_string()) } {
             Ok(d) => out.push(d),
             Err(e) => errors.push(format!("{} ({e})", store::name(p))),

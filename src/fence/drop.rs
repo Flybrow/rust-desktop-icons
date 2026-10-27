@@ -1,5 +1,9 @@
 use super::{arrange, fence_of, items, reload_all, tabs};
-use crate::{domain::Tab, i18n::T, keep, report, shell, store};
+use crate::{
+    domain::{Tab, system::Sys},
+    i18n::T,
+    keep, report, shell, store,
+};
 use std::path::{Path, PathBuf};
 use windows::Win32::Foundation::HWND;
 
@@ -9,7 +13,7 @@ pub(super) fn target_tab(h: HWND, pt: (i32, i32)) -> Option<Tab> {
 }
 
 pub(super) fn files(h: HWND, paths: Vec<PathBuf>, pt: (i32, i32)) {
-    if items::item_at(h, pt).is_some_and(|p| shell::recycle::is(&p)) {
+    if items::item_at(h, pt).is_some_and(|p| Sys::of(&p) == Some(Sys::RecycleBin)) {
         if shell::delete(h, &paths, false) {
             reload_all();
         }

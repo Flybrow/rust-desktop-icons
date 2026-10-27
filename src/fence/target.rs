@@ -1,4 +1,4 @@
-use super::{drop, peek, recycle, tabs, to_client};
+use super::{drop, peek, system, tabs, to_client};
 use crate::shell;
 use windows::{
     Win32::{
@@ -72,7 +72,7 @@ impl IDropTarget_Impl for Target_Impl {
         }
         unsafe { *effect = DROPEFFECT_NONE };
         let at = to_client(self.h(), (pt.x, pt.y));
-        if !recycle::dropped(self.h(), data.as_ref(), at) {
+        if !system::dropped(self.h(), data.as_ref(), at) {
             drop::files(self.h(), data.as_ref().map(shell::files).unwrap_or_default(), at);
         }
         Ok(())

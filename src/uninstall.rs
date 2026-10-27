@@ -13,9 +13,7 @@ use windows::Win32::{
 pub fn run() {
     let _ = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED) };
     let (cfg, _) = store::load();
-    if cfg.has_recycle() {
-        shell::recycle::show_on_desktop(true);
-    }
+    crate::app::desk_icons::restore_all(&cfg);
     if cfg.desk_flags.is_some() {
         match Desk::open() {
             Some(d) => {

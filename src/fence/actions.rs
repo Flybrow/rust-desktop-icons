@@ -43,8 +43,6 @@ pub(super) fn delete(h: HWND) {
         a.save();
     });
     keep::soon();
-    if f.tabs.iter().any(|t| t.recycle) {
-        shell::recycle::show_on_desktop(true);
-    }
+    super::system::released(&f.tabs);
     unsafe { DestroyWindow(h).ok() };
 }

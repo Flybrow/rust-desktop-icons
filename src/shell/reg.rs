@@ -20,6 +20,22 @@ pub(super) fn reg_write(key: &str, name: &str, kind: REG_VALUE_TYPE, data: &[u8]
     .is_ok()
 }
 
+pub(super) fn reg_delete(key: &str, name: &str) -> bool {
+    let (k, n) = (wide(key), wide(name));
+    unsafe { RegDeleteKeyValueW(HKEY_CURRENT_USER, PCWSTR(k.as_ptr()), PCWSTR(n.as_ptr())) }.is_ok()
+}
+
+pub(super) fn reg_dword(key: &str, name: &str) -> Option<u32> {
+    let (k, n) = (wide(key), wide(name));
+    let (mut v, mut size) = (0u32, 4u32);
+    let flags = RRF_RT_REG_DWORD;
+    unsafe {
+        RegGetValueW(HKEY_CURRENT_USER, PCWSTR(k.as_ptr()), PCWSTR(n.as_ptr()), flags, None, Some(&mut v as *mut u32 as _), Some(&mut size))
+    }
+    .is_ok()
+    .then_some(v)
+}
+
 fn reg_set(key: &str, name: &str, value: &str) {
     let bytes: Vec<u8> = wide(value).iter().flat_map(|c| c.to_le_bytes()).collect();
     reg_write(key, name, REG_SZ, &bytes);
@@ -30,8 +46,7 @@ pub fn set_autostart(on: bool) {
         return;
     }
     if !on {
-        let (k, n) = (wide(RUN), wide(NAME));
-        let _ = unsafe { RegDeleteKeyValueW(HKEY_CURRENT_USER, PCWSTR(k.as_ptr()), PCWSTR(n.as_ptr())) };
+        reg_delete(RUN, NAME);
     } else if let Some(exe) = exe() {
         reg_set(RUN, NAME, &format!("\"{exe}\""));
     }

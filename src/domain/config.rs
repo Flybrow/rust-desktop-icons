@@ -2,6 +2,7 @@ use super::{
     anim,
     kind::Kind,
     model::{Fence, Look, Tab},
+    system::Sys,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -19,6 +20,8 @@ pub struct Config {
     pub version: Option<String>,
     pub keep_on_desktop: bool,
     pub desk_flags: Option<u32>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub desk_icons: Vec<(Sys, Option<u32>)>,
 }
 
 impl Default for Config {
@@ -34,6 +37,7 @@ impl Default for Config {
             version: None,
             keep_on_desktop: false,
             desk_flags: None,
+            desk_icons: vec![],
         }
     }
 }
@@ -43,12 +47,17 @@ impl Config {
         self.fences.iter().flat_map(|f| f.tabs.iter().map(|t| t.id).chain([f.id])).max().map_or(1, |m| m + 1)
     }
 
-    pub fn has_recycle(&self) -> bool {
-        self.fences.iter().any(|f| f.tabs.iter().any(|t| t.recycle))
+    pub fn placed(&self) -> Vec<Sys> {
+        Sys::ALL.into_iter().filter(|s| self.fences.iter().flat_map(|f| &f.tabs).any(|t| t.system.contains(s))).collect()
     }
 
-    pub fn place_recycle(&mut self, tab: Option<u64>) {
-        self.fences.iter_mut().flat_map(|f| f.tabs.iter_mut()).for_each(|t| t.recycle = Some(t.id) == tab);
+    pub fn place(&mut self, s: Sys, tab: Option<u64>) {
+        for t in self.fences.iter_mut().flat_map(|f| f.tabs.iter_mut()) {
+            t.system.retain(|x| *x != s);
+            if Some(t.id) == tab {
+                t.system.push(s);
+            }
+        }
     }
 
     pub fn tab(&self, fence: u64, tab: u64) -> Option<&Tab> {
@@ -84,8 +93,13 @@ impl Config {
             }
             f.tab = f.tab.min(f.tabs.len() - 1);
         }
-        let first = self.fences.iter().flat_map(|f| &f.tabs).find(|t| t.recycle).map(|t| t.id);
-        self.place_recycle(first);
+        let mut seen = HashSet::new();
+        for t in self.fences.iter_mut().flat_map(|f| f.tabs.iter_mut()) {
+            if std::mem::take(&mut t.recycle) {
+                t.system.insert(0, Sys::RecycleBin);
+            }
+            t.system.retain(|s| seen.insert(*s));
+        }
         self.look = self.look.sanitized();
         self.roll_ms = *anim::SPEEDS.iter().min_by_key(|s| s.abs_diff(self.roll_ms)).unwrap_or(&anim::DEFAULT_MS);
         self
@@ -128,18 +142,21 @@ mod tests {
     }
 
     #[test]
-    fn recycle_bin_lives_in_one_tab() {
-        let mut a = Fence::new(1, "A", (0, 0, 200, 200), Look::default());
-        a.tabs.push(Tab { id: 5, recycle: true, ..Tab::default() });
-        let mut b = Fence::new(2, "B", (0, 0, 200, 200), Look::default());
-        b.tabs[0].recycle = true;
-        let mut c = Config { fences: vec![a, b], ..Config::default() }.sanitized();
-        let holders: Vec<u64> = c.fences.iter().flat_map(|f| &f.tabs).filter(|t| t.recycle).map(|t| t.id).collect();
-        assert_eq!(holders, vec![5]);
-        c.place_recycle(Some(2));
-        assert!(c.fences[1].tabs[0].recycle && !c.fences[0].tabs[1].recycle && c.has_recycle());
-        c.place_recycle(None);
-        assert!(!c.has_recycle());
+    fn system_icons_live_in_one_tab() {
+        let c: Config = serde_json::from_str::<Config>(
+            r#"{"fences":[{"id":1,"tabs":[{"id":1},{"id":5,"recycle":true}]},{"id":2,"tabs":[{"id":2,"recycle":true,"system":["ThisPc"]}]}]}"#,
+        )
+        .unwrap();
+        let mut c = c.sanitized();
+        let holders =
+            |c: &Config, s: Sys| c.fences.iter().flat_map(|f| &f.tabs).filter(|t| t.system.contains(&s)).map(|t| t.id).collect::<Vec<_>>();
+        assert_eq!((holders(&c, Sys::RecycleBin), holders(&c, Sys::ThisPc)), (vec![5], vec![2]));
+        assert!(!serde_json::to_string(&c).unwrap().contains("recycle"));
+        c.place(Sys::RecycleBin, Some(2));
+        assert_eq!(c.tab(2, 2).unwrap().system, vec![Sys::ThisPc, Sys::RecycleBin]);
+        assert!(c.tab(1, 5).unwrap().system.is_empty());
+        c.place(Sys::ThisPc, None);
+        assert_eq!(c.placed(), vec![Sys::RecycleBin]);
     }
 
     #[test]
