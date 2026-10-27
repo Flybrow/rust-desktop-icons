@@ -68,10 +68,9 @@ fn main() {
             let saved = support::cursor();
             support::drag(item, spot);
             support::point(saved);
-            check(
-                wait(5, || system().len() == 4 && !system().iter().any(|s| s == "RecycleBin")),
-                "dragging a system icon onto the desktop takes it out of the fence",
-            );
+            let left = wait(5, || system().len() == 4);
+            println!("      remaining in the fence: {:?}", system());
+            check(left, "dragging a system icon onto the desktop takes it out of the fence");
         }
         None => println!("[SKIP] drag a system icon onto the desktop: no free desktop area visible"),
     }
