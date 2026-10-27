@@ -2,7 +2,6 @@ use super::{arrange, bind, drop, fence_of, ghost, items, tabs};
 use crate::{
     app::{change, with},
     shell,
-    win::{cursor_pos, desktop_at},
 };
 use windows::Win32::{Foundation::HWND, System::Com::IDataObject};
 
@@ -21,8 +20,8 @@ pub(super) fn toggle(h: HWND) {
 pub(super) fn drag(h: HWND, at: (i32, i32)) {
     with(|a| a.recycle_drag = true);
     let image = items::index_at(h, at).and_then(|i| ghost::image(h, i, at));
-    shell::drag_out(h, &[shell::recycle::path()], image, true);
-    if with(|a| std::mem::take(&mut a.recycle_drag)) == Some(true) && desktop_at(cursor_pos()) {
+    let landed = shell::drag_out(h, &[shell::recycle::path()], image, true, true);
+    if with(|a| std::mem::take(&mut a.recycle_drag)) == Some(true) && landed {
         place(None);
     }
 }

@@ -2,16 +2,14 @@ use super::live;
 use crate::{
     app::{change, with},
     report,
-    shell::hide::Desk,
+    shell::hide::{Desk, listview},
     tray,
+    win::buttons_down,
 };
 use std::cell::Cell;
-use windows::{
-    Win32::{
-        Foundation::HWND,
-        UI::{Accessibility::*, WindowsAndMessaging::*},
-    },
-    core::w,
+use windows::Win32::{
+    Foundation::HWND,
+    UI::{Accessibility::*, WindowsAndMessaging::*},
 };
 
 pub const TICK: usize = 8;
@@ -22,19 +20,6 @@ const RETRY_MS: u32 = 250;
 
 thread_local! {
     static HOOK: Cell<(isize, isize)> = const { Cell::new((0, 0)) };
-}
-
-fn listview() -> Option<HWND> {
-    unsafe {
-        let progman = FindWindowW(w!("Progman"), None).ok()?;
-        let mut view = FindWindowExW(Some(progman), None, w!("SHELLDLL_DefView"), None).ok();
-        let mut worker = None;
-        while view.is_none() {
-            worker = Some(FindWindowExW(None, worker, w!("WorkerW"), None).ok()?);
-            view = FindWindowExW(worker, None, w!("SHELLDLL_DefView"), None).ok();
-        }
-        FindWindowExW(view, None, w!("SysListView32"), None).ok()
-    }
 }
 
 unsafe extern "system" fn event(_: HWINEVENTHOOK, _: u32, h: HWND, _: i32, _: i32, _: u32, _: u32) {
@@ -82,6 +67,9 @@ pub fn soon() {
 
 pub fn apply() {
     timer(SOON, None);
+    if buttons_down() {
+        return timer(SOON, Some(RETRY_MS));
+    }
     if with(|a| a.cfg.keep_on_desktop) == Some(true) {
         super::reconcile();
     }

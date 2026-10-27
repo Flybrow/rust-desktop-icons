@@ -10,7 +10,9 @@ use windows::{
         UI::{
             Controls::Dialogs::*,
             HiDpi::{GetDpiForSystem, GetDpiForWindow},
-            Input::KeyboardAndMouse::{GetKeyState, TME_LEAVE, TRACKMOUSEEVENT, TrackMouseEvent, VIRTUAL_KEY},
+            Input::KeyboardAndMouse::{
+                GetAsyncKeyState, GetKeyState, TME_LEAVE, TRACKMOUSEEVENT, TrackMouseEvent, VIRTUAL_KEY, VK_LBUTTON, VK_RBUTTON,
+            },
             WindowsAndMessaging::*,
         },
     },
@@ -70,6 +72,10 @@ pub fn cursor_pos() -> (i32, i32) {
 
 pub fn key_down(k: VIRTUAL_KEY) -> bool {
     (unsafe { GetKeyState(k.0 as i32) }) < 0
+}
+
+pub fn buttons_down() -> bool {
+    [VK_LBUTTON, VK_RBUTTON].iter().any(|k| unsafe { GetAsyncKeyState(k.0 as i32) } < 0)
 }
 
 fn qpc_ms(ticks: i64) -> f64 {

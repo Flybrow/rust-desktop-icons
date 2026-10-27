@@ -1,4 +1,4 @@
-## What's new in Rust Desktop Icons 0.9.0
+## What's new in Rust Desktop Icons 0.9.1
 
-- Vertical fences: right-click a fence → **Vertical title**. The title and tabs run down the side, so the fence can sit on the left or right screen edge and unroll toward the middle.
-- A fence that unrolls upward keeps its title at the bottom, with its icons growing up from the title.
+- "Keep files on the desktop": dragging an item from a fence onto the desktop now takes it out of the fence and shows its icon where you dropped it, instead of failing with "The source and destination file names are the same" (#1).
+- Fixed an intermittent freeze while dragging items in, out of or between fences with "Keep files on the desktop" on (#1).

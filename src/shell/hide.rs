@@ -2,7 +2,8 @@ use crate::domain::pins::free_slots;
 use std::path::{Path, PathBuf};
 use windows::{
     Win32::{
-        Foundation::{POINT, RECT},
+        Foundation::{HWND, POINT, RECT},
+        Graphics::Gdi::ScreenToClient,
         System::{
             Com::{CLSCTX_ALL, CoCreateInstance, CoTaskMemFree, IServiceProvider},
             Variant::VARIANT,
@@ -13,8 +14,8 @@ use windows::{
                 *,
             },
             WindowsAndMessaging::{
-                GetSystemMetrics, SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN, SPI_GETWORKAREA, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS,
-                SystemParametersInfoW,
+                FindWindowExW, FindWindowW, GetSystemMetrics, SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN, SPI_GETWORKAREA,
+                SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, SystemParametersInfoW,
             },
         },
     },
@@ -42,6 +43,19 @@ fn away(p: POINT) -> bool {
 
 fn listed(paths: &[PathBuf], p: &Path) -> bool {
     paths.iter().any(|q| q.as_os_str().eq_ignore_ascii_case(p.as_os_str()))
+}
+
+pub fn listview() -> Option<HWND> {
+    unsafe {
+        let progman = FindWindowW(w!("Progman"), None).ok()?;
+        let mut view = FindWindowExW(Some(progman), None, w!("SHELLDLL_DefView"), None).ok();
+        let mut worker = None;
+        while view.is_none() {
+            worker = Some(FindWindowExW(None, worker, w!("WorkerW"), None).ok()?);
+            view = FindWindowExW(worker, None, w!("SHELLDLL_DefView"), None).ok();
+        }
+        FindWindowExW(view, None, w!("SysListView32"), None).ok()
+    }
 }
 
 pub struct Desk(IFolderView2);
@@ -98,6 +112,23 @@ impl Desk {
         let _ = unsafe { self.0.SelectAndPositionItems(pidls.len() as u32, pidls.as_ptr(), Some(pts.as_ptr()), flags) };
     }
 
+    fn spacing(&self) -> POINT {
+        let mut cell = POINT::default();
+        let _ = unsafe { self.0.GetSpacing(&mut cell) };
+        POINT { x: cell.x.max(75), y: cell.y.max(75) }
+    }
+
+    pub fn show_at(&self, paths: &[PathBuf], (x, y): (i32, i32)) {
+        let Some(lv) = listview() else { return };
+        let mut at = POINT { x, y };
+        let _ = unsafe { ScreenToClient(lv, &mut at) };
+        let entries = self.entries();
+        let todo: Vec<&Entry> = entries.iter().filter(|e| listed(paths, &e.path)).collect();
+        let cell = self.spacing();
+        let pts: Vec<POINT> = (0..todo.len() as i32).map(|i| POINT { x: at.x - cell.x / 2 + i * cell.x, y: at.y - cell.y / 2 }).collect();
+        self.place(&todo, &pts);
+    }
+
     pub fn sync(&self, keep: &[PathBuf]) -> usize {
         let entries = self.entries();
         let hide: Vec<&Entry> = entries.iter().filter(|e| !away(e.pos) && listed(keep, &e.path)).collect();
@@ -111,15 +142,14 @@ impl Desk {
         }
         if !show.is_empty() {
             let taken: Vec<(i32, i32)> = entries.iter().filter(|e| !away(e.pos)).map(|e| (e.pos.x, e.pos.y)).collect();
-            let mut cell = POINT::default();
-            let _ = unsafe { self.0.GetSpacing(&mut cell) };
+            let cell = self.spacing();
             let mut area = RECT::default();
             let _ = unsafe {
                 SystemParametersInfoW(SPI_GETWORKAREA, 0, Some(&mut area as *mut _ as _), SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0))
             };
             let (vx, vy) = unsafe { (GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN)) };
             let rect = (area.left - vx, area.top - vy, area.right - area.left, area.bottom - area.top);
-            let slots = free_slots(&taken, (cell.x.max(75), cell.y.max(75)), rect, show.len());
+            let slots = free_slots(&taken, (cell.x, cell.y), rect, show.len());
             self.place(&show, &slots.into_iter().map(|(x, y)| POINT { x, y }).collect::<Vec<_>>());
         }
         hide.len() + show.len()

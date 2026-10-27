@@ -9,7 +9,7 @@ use crate::{
 };
 pub use keeper::{SOON, TICK, apply, restore, soon};
 pub use migrate::{WM_KEEP, finish, sync};
-pub use place::{paste, place};
+pub use place::{paste, place, release};
 use std::{fs, path::PathBuf};
 
 pub fn live() -> bool {

@@ -1,3 +1,5 @@
+mod support;
+
 use serde_json::json;
 use std::{
     env, fs,
@@ -6,41 +8,11 @@ use std::{
     thread,
     time::{Duration, Instant},
 };
-use windows::Win32::Foundation::{HWND, LPARAM, POINT, RECT, WPARAM};
+use support::{drag, fences, point, work};
+use windows::Win32::Foundation::{LPARAM, POINT, RECT, WPARAM};
 use windows::Win32::Graphics::Gdi::*;
-use windows::Win32::UI::Input::KeyboardAndMouse::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
-use windows::core::{BOOL, w};
-
-fn work() -> RECT {
-    let mut r = RECT::default();
-    unsafe { SystemParametersInfoW(SPI_GETWORKAREA, 0, Some(&mut r as *mut _ as _), SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0)).unwrap() };
-    r
-}
-
-unsafe extern "system" fn collect(h: HWND, lp: LPARAM) -> BOOL {
-    let (pid, out) = unsafe { &mut *(lp.0 as *mut (u32, Vec<HWND>)) };
-    let mut p = 0;
-    unsafe { GetWindowThreadProcessId(h, Some(&mut p)) };
-    let mut class = [0u16; 64];
-    let n = unsafe { GetClassNameW(h, &mut class) } as usize;
-    if p == *pid && String::from_utf16_lossy(&class[..n]) == "RustDesktopIcons.Fence" {
-        out.push(h);
-    }
-    true.into()
-}
-
-fn fences(pid: u32) -> Vec<RECT> {
-    let mut st = (pid, Vec::<HWND>::new());
-    let _ = unsafe { EnumWindows(Some(collect), LPARAM(&mut st as *mut _ as isize)) };
-    st.1.iter()
-        .map(|h| {
-            let mut r = RECT::default();
-            let _ = unsafe { GetWindowRect(*h, &mut r) };
-            r
-        })
-        .collect()
-}
+use windows::core::w;
 
 fn nearest(rects: &[RECT], (x, y): (i32, i32)) -> RECT {
     *rects.iter().min_by_key(|r| (r.left - x).abs() + (r.top - y).abs()).unwrap_or(&RECT::default())
@@ -71,32 +43,11 @@ fn settle(pid: u32, at: (i32, i32)) -> RECT {
     best
 }
 
-fn point(p: (i32, i32)) {
-    unsafe { SetCursorPos(p.0, p.1).unwrap() };
-}
-
 fn hover(p: (i32, i32)) {
     for d in 0..4 {
         point((p.0 + d, p.1));
         thread::sleep(Duration::from_millis(30));
     }
-}
-
-fn button(flag: MOUSE_EVENT_FLAGS) {
-    let input = INPUT { r#type: INPUT_MOUSE, Anonymous: INPUT_0 { mi: MOUSEINPUT { dwFlags: flag, ..Default::default() } } };
-    unsafe { SendInput(&[input], size_of::<INPUT>() as i32) };
-    thread::sleep(Duration::from_millis(60));
-}
-
-fn drag(from: (i32, i32), (dx, dy): (i32, i32)) {
-    point(from);
-    thread::sleep(Duration::from_millis(100));
-    button(MOUSEEVENTF_LEFTDOWN);
-    for k in 1..=10 {
-        point((from.0 + dx * k / 10, from.1 + dy * k / 10));
-        thread::sleep(Duration::from_millis(30));
-    }
-    button(MOUSEEVENTF_LEFTUP);
 }
 
 fn capture(r: &RECT, path: &Path) {
@@ -236,7 +187,7 @@ fn main() {
             let open = settle(pid, grip);
             let bar_at = if c.vertical { (open.right - bar / 2, open.top + 60) } else { (open.left + 60, open.bottom - bar / 2) };
             let shift = if c.vertical { (0, 120) } else { (200, 0) };
-            drag(bar_at, shift);
+            drag(bar_at, (bar_at.0 + shift.0, bar_at.1 + shift.1));
             let moved = settle(pid, (bar_at.0 + shift.0, bar_at.1 + shift.1));
             let anchored = if c.vertical {
                 moved.right == open.right && moved.top != open.top

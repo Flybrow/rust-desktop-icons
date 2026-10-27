@@ -1,5 +1,5 @@
 use super::{ghost, items, layout, metrics, recycle, render, view};
-use crate::{app::with, domain::grid, rules, shell};
+use crate::{app::with, domain::grid, i18n::T, keep, report, rules, shell, win::cursor_pos};
 use std::{collections::HashSet, path::PathBuf};
 use windows::Win32::{
     Foundation::*,
@@ -42,7 +42,12 @@ fn drag(h: HWND, paths: &[PathBuf], at: (i32, i32)) {
         paths.iter().filter_map(|p| p.file_name()).for_each(|n| rules::ignore(desk.join(n)));
     }
     let image = items::index_at(h, at).and_then(|i| ghost::image(h, i, at));
-    shell::drag_out(h, paths, image, false);
+    let pinned = keep::on() && with(|a| paths.iter().any(|p| a.cfg.is_pinned(p))) == Some(true);
+    if shell::drag_out(h, paths, image, false, pinned) {
+        let errors = keep::release(paths, cursor_pos());
+        items::reload_all();
+        report::failures(T::ErrMove, &errors);
+    }
 }
 
 pub(super) fn down(h: HWND, p: (i32, i32), ctrl: bool) {

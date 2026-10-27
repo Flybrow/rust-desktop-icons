@@ -1,3 +1,5 @@
+mod support;
+
 use serde_json::{Value, json};
 use std::{
     env, fs,
@@ -122,6 +124,7 @@ impl Run {
         Command::new(exe)
             .env("LOCALAPPDATA", &self.root)
             .env("RDI_REAL_DESKTOP", "1")
+            .env("RDI_TOP", "1")
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -162,6 +165,7 @@ fn main() {
     let mut names: Vec<String> = NAMES.iter().map(|n| file(n)).collect();
 
     let app = r.start();
+    thread::sleep(Duration::from_millis(500));
     let migrated = wait(15, || names.iter().all(|n| desk.join(n).exists()) && r.pins().len() == 3);
     r.check(migrated.is_some(), "enable: fence files moved to the Desktop folder and pinned");
     r.check(fs::read_dir(r.tab_dir()).map_or(true, |mut d| d.next().is_none()), "enable: fence folder emptied");
@@ -181,9 +185,47 @@ fn main() {
     r.check(followed.is_some(), "rename in Explorer: fence follows the file");
     r.check(wait(10, || hidden(&names) == 3).is_some(), "rename in Explorer: renamed icon stays hidden");
 
+    match support::fences(app.id()).first().copied() {
+        Some(f) => {
+            let k = unsafe { windows::Win32::UI::HiDpi::GetDpiForSystem() } as i32;
+            let (cell, cols) = (104 * k / 96, ((f.right - f.left) / (104 * k / 96)).max(1));
+            let item = (f.left + ((f.right - f.left) - cols * cell) / 2 + cell / 2, f.top + (34 + 4) * k / 96 + cell / 2);
+            match support::free_desktop_spot(&[f]) {
+                Some(spot) => {
+                    let saved = support::cursor();
+                    let before: Vec<String> = r.pins();
+                    support::drag(item, spot);
+                    support::point(saved);
+                    let left = wait(5, || r.pins().len() == 2);
+                    let gone: Vec<String> = before.iter().filter(|p| !r.pins().contains(p)).cloned().collect();
+                    let out = gone
+                        .first()
+                        .map(|p| std::path::Path::new(p).file_name().unwrap_or_default().to_string_lossy().into_owned())
+                        .unwrap_or_default();
+                    r.check(left.is_some(), "drag out to the desktop: the item leaves the fence");
+                    r.check(!out.is_empty() && desk.join(&out).exists(), "drag out to the desktop: the file stays on the Desktop");
+                    let dupes = fs::read_dir(&desk)
+                        .into_iter()
+                        .flatten()
+                        .flatten()
+                        .filter(|e| e.file_name().to_string_lossy().contains("rdi-e2e") && e.file_name().to_string_lossy().contains(" ("))
+                        .count();
+                    r.check(dupes == 0, "drag out to the desktop: no duplicate file");
+                    r.check(support::windows(0, "OperationStatusWindow").is_empty(), "drag out to the desktop: no Explorer error dialog");
+                    let shown = wait(5, || positions().iter().any(|(p, pt)| p.ends_with(&out) && pt.x > -10_000));
+                    r.check(shown.is_some(), "drag out to the desktop: its icon is shown again");
+                    names.retain(|n| *n != out);
+                    let _ = fs::remove_file(desk.join(&out));
+                }
+                None => println!("[SKIP] drag out to the desktop: no free desktop area visible"),
+            }
+        }
+        None => r.check(false, "fence window found for drag test"),
+    }
+
     if explorer {
         restart_explorer();
-        let t = wait(60, || hidden(&names) == 3);
+        let t = wait(60, || hidden(&names) == names.len());
         println!("      explorer restart: hidden again after {} ms", t.map_or(-1, |m| m as i64));
         r.check(t.is_some(), "icons hidden again after Explorer restart");
     }
