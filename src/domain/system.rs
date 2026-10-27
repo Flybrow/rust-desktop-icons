@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
+pub const HIDDEN: u32 = 1;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Sys {
     RecycleBin,
@@ -37,6 +39,10 @@ impl Sys {
         PathBuf::from(format!("::{}", self.clsid()))
     }
 
+    pub fn original(self, now: Option<u32>) -> Option<u32> {
+        if self == Sys::RecycleBin && now == Some(HIDDEN) { None } else { now }
+    }
+
     pub fn of(p: &Path) -> Option<Sys> {
         let s = p.to_str()?.strip_prefix("::")?;
         Sys::ALL.into_iter().find(|x| x.clsid().eq_ignore_ascii_case(s))
@@ -56,5 +62,14 @@ mod tests {
         assert_eq!(Sys::of(Path::new("C:\\Users")), None);
         assert_eq!(Sys::of(Path::new("::{00000000-0000-0000-0000-000000000000}")), None);
         assert_eq!(serde_json::to_string(&Sys::ThisPc).unwrap(), "\"ThisPc\"");
+    }
+
+    #[test]
+    fn original_visibility() {
+        assert_eq!(Sys::ThisPc.original(None), None);
+        assert_eq!(Sys::ThisPc.original(Some(0)), Some(0));
+        assert_eq!(Sys::ThisPc.original(Some(HIDDEN)), Some(HIDDEN));
+        assert_eq!(Sys::RecycleBin.original(Some(HIDDEN)), None);
+        assert_eq!(Sys::RecycleBin.original(Some(0)), Some(0));
     }
 }

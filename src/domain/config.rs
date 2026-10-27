@@ -51,6 +51,22 @@ impl Config {
         Sys::ALL.into_iter().filter(|s| self.fences.iter().flat_map(|f| &f.tabs).any(|t| t.system.contains(s))).collect()
     }
 
+    pub fn remember(&mut self, s: Sys, prev: Option<u32>) -> bool {
+        let fresh = !self.desk_icons.iter().any(|(x, _)| *x == s);
+        if fresh {
+            self.desk_icons.push((s, prev));
+        }
+        fresh
+    }
+
+    pub fn forget(&mut self, s: Sys) -> Option<Option<u32>> {
+        self.desk_icons.iter().position(|(x, _)| *x == s).map(|i| self.desk_icons.remove(i).1)
+    }
+
+    pub fn original(&self, s: Sys) -> Option<u32> {
+        self.desk_icons.iter().find(|(x, _)| *x == s).and_then(|(_, p)| *p)
+    }
+
     pub fn place(&mut self, s: Sys, tab: Option<u64>) {
         for t in self.fences.iter_mut().flat_map(|f| f.tabs.iter_mut()) {
             t.system.retain(|x| *x != s);
@@ -157,6 +173,20 @@ mod tests {
         assert!(c.tab(1, 5).unwrap().system.is_empty());
         c.place(Sys::ThisPc, None);
         assert_eq!(c.placed(), vec![Sys::RecycleBin]);
+    }
+
+    #[test]
+    fn desktop_visibility_is_remembered_once() {
+        let mut c = Config::default();
+        assert!(c.remember(Sys::ThisPc, Some(0)));
+        assert!(!c.remember(Sys::ThisPc, Some(1)));
+        assert!(c.remember(Sys::Network, None));
+        assert_eq!((c.original(Sys::ThisPc), c.original(Sys::Network), c.original(Sys::UserFiles)), (Some(0), None, None));
+        let back: Config = serde_json::from_str(&serde_json::to_string(&c).unwrap()).unwrap();
+        assert_eq!(back.desk_icons, c.desk_icons);
+        assert_eq!(c.forget(Sys::ThisPc), Some(Some(0)));
+        assert_eq!((c.forget(Sys::ThisPc), c.forget(Sys::Network)), (None, Some(None)));
+        assert!(c.desk_icons.is_empty());
     }
 
     #[test]

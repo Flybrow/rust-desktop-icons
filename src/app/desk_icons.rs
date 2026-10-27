@@ -1,35 +1,30 @@
 use super::{change, with};
 use crate::{
-    domain::{Config, system::Sys},
+    domain::{
+        Config,
+        system::{HIDDEN, Sys},
+    },
     shell::system::{set_visibility, visibility},
 };
 
-const HIDDEN: u32 = 1;
-
-fn before(s: Sys) -> Option<u32> {
-    let now = visibility(s);
-    if s == Sys::RecycleBin && now == Some(HIDDEN) { None } else { now }
-}
-
 pub fn hide(s: Sys) {
     if with(|a| a.cfg.desk_icons.iter().any(|(x, _)| *x == s)) == Some(false) {
-        let prev = before(s);
-        change(|c| c.desk_icons.push((s, prev)));
+        let prev = s.original(visibility(s));
+        change(|c| {
+            c.remember(s, prev);
+        });
     }
     set_visibility(s, Some(HIDDEN));
 }
 
 fn forget(s: Sys) -> Option<Option<u32>> {
     let mut out = None;
-    change(|c| {
-        out = c.desk_icons.iter().position(|(x, _)| *x == s).map(|i| c.desk_icons.remove(i).1);
-    });
+    change(|c| out = c.forget(s));
     out
 }
 
 pub fn restore(s: Sys) {
-    let prev = forget(s).unwrap_or(None);
-    set_visibility(s, prev);
+    set_visibility(s, forget(s).flatten());
 }
 
 pub fn show(s: Sys) {
@@ -42,8 +37,5 @@ pub fn hide_placed() {
 }
 
 pub fn restore_all(cfg: &Config) {
-    for s in cfg.placed() {
-        let prev = cfg.desk_icons.iter().find(|(x, _)| *x == s).and_then(|(_, p)| *p);
-        set_visibility(s, prev);
-    }
+    cfg.placed().into_iter().for_each(|s| set_visibility(s, cfg.original(s)));
 }
