@@ -1,5 +1,6 @@
 pub mod desk_icons;
 mod fences;
+mod instance;
 mod res;
 mod view;
 
@@ -17,7 +18,7 @@ use windows::{
     Win32::{
         Foundation::*,
         Graphics::Gdi::{HBITMAP, HFONT},
-        System::{Ole::OleInitialize, Threading::CreateMutexW},
+        System::Ole::OleInitialize,
         UI::{HiDpi::*, Shell::*, WindowsAndMessaging::*},
     },
     core::*,
@@ -104,15 +105,15 @@ pub fn run() {
     }
     unsafe {
         let _ = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-        let name = if cfg!(debug_assertions) { w!("Local\\RustDesktopIcons.dev") } else { w!("Local\\RustDesktopIcons") };
-        let _mutex = CreateMutexW(None, true, name);
-        let running = GetLastError() == ERROR_ALREADY_EXISTS;
-        let new = std::env::args().any(|a| a == shell::NEW_ARG);
-        if running {
-            tray::request(new);
+        let (new, relaunch) = (std::env::args().any(|a| a == shell::NEW_ARG), std::env::args().any(|a| a == shell::RELAUNCH_ARG));
+        let Some(_mutex) = instance::claim(relaunch) else {
+            if !relaunch {
+                tray::request(new);
+            }
             return;
-        }
+        };
         report::install_panic_hook();
+        report::log(if relaunch { "started after an update" } else { "started" });
         let _ = OleInitialize(None);
         register(fence::CLASS, Some(fence::proc));
         settings::register_class();

@@ -105,7 +105,7 @@ wix build installer/main.wxs -d Version=X.Y.Z -arch x64 -ext WixToolset.UI.wixex
 ```
 
 End-to-end checks on a real desktop (isolated data, test files only): `cargo build` then
-`cargo run --example keep_e2e`, `cargo run --example unroll_e2e` and `cargo run --example system_e2e` (they move the mouse
+`cargo run --example keep_e2e`, `cargo run --example unroll_e2e`, `cargo run --example system_e2e` and `cargo run --example relaunch_e2e` (they move the mouse
 for a few seconds). CI runs them on every push.
 
 Pushing a `vX.Y.Z` tag builds and publishes the MSI with [GitHub Actions](.github/workflows/release.yml).

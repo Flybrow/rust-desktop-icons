@@ -14,7 +14,7 @@ pub use data::files;
 pub use dnd::{DragImage, drag_out, pick_folder};
 pub use link::{link_into, link_target};
 pub use ops::{delete, transfer, transfer_to};
-pub use reg::{NEW_ARG, UNINSTALL_ARG, set_autostart, set_desktop_verb};
+pub use reg::{NEW_ARG, RELAUNCH_ARG, UNINSTALL_ARG, set_autostart, set_desktop_verb};
 use std::path::{Path, PathBuf};
 pub use watch::{Watch, notify_moved};
 use windows::{

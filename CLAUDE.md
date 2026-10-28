@@ -92,8 +92,11 @@ Rust 2024 (1.98), `windows` 0.62 (raw Win32/GDI), serde/serde_json, ureq 3 (rust
 - Fence windows are owned by `Progman` and forced to `HWND_BOTTOM`; Explorer restart → `TaskbarCreated` → `rebuild()`.
 - The updater only accepts URLs under this repo's releases; the MSI asset must have a matching `<name>.msi.sha256`.
 - MSI `UpgradeCode` and component GUIDs must never change.
-- The MSI closes the running app first (`util:CloseApplication` → WM_CLOSE, handled by the tray window; killed after 5 s),
-  otherwise the old process keeps its mutex and the relaunched new version exits silently.
+- The MSI closes the running app first (`util:CloseApplication` → WM_CLOSE; Restart Manager → WM_QUERYENDSESSION/WM_ENDSESSION,
+  both handled by the tray window, which saves and quits). Relaunch after an update: the updater runs msiexec through
+  `cmd /c ... & start exe --relaunch` (`update::chain`, tested) and the MSI `Launch` action also passes `--relaunch`;
+  with that flag `app::instance::claim` waits up to 15 s for the old instance's mutex, then exits quietly if one still runs.
+  Start and close reasons go to `errors.log`. E2E: `cargo run --example relaunch_e2e`.
 - The desktop right-click verb (`HKCU\Software\Classes\DesktopBackground\Shell\RustDesktopIcons`) is written by the
   release app at startup (localized, runs `exe --new`), removed by the MSI on uninstall. On Windows 11 it only shows under
   "Show more options" (the modern menu needs a packaged IExplorerCommand).

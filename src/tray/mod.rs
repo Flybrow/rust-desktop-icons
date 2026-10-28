@@ -1,11 +1,11 @@
 pub mod updates;
 
 use crate::{
-    app::{new_fence, rebuild, with},
+    app::{new_fence, rebuild, save_now, with},
     i18n::T,
     keep,
     layered::glyph as g,
-    prefs, rules, settings,
+    prefs, report, rules, settings,
     win::*,
 };
 use windows::{
@@ -65,7 +65,16 @@ unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESU
         WM_TRAY if lp.0 as u32 == WM_LBUTTONDBLCLK => settings::open(),
         WM_NEW => new_fence(),
         WM_SETTINGS => settings::open(),
-        WM_CLOSE => unsafe { PostQuitMessage(0) },
+        WM_QUERYENDSESSION => return LRESULT(1),
+        WM_ENDSESSION if wp.0 != 0 => {
+            report::log("closed by Windows (session end or installer)");
+            save_now();
+            unsafe { PostQuitMessage(0) }
+        }
+        WM_CLOSE => {
+            report::log("closed on request");
+            unsafe { PostQuitMessage(0) }
+        }
         rules::WM_DESK => rules::changed(h),
         WM_TIMER if wp.0 == rules::TIMER => rules::run(Some(h), false),
         keep::WM_KEEP => keep::finish(lp),

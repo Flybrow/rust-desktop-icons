@@ -1,4 +1,4 @@
-## What's new in Rust Desktop Icons 0.9.2
+## What's new in Rust Desktop Icons 0.9.3
 
-- Security: updated the TLS libraries used by the update check (rustls, webpki) to fix several published vulnerabilities.
-- Dependencies are now scanned for known vulnerabilities on every change and before each release.
+- The app now always comes back after an automatic update. Previously it could stay closed until you started it again.
+- The app closes cleanly when Windows asks it to (sign-out, shutdown, installer), saving your fences first.
