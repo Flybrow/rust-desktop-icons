@@ -63,13 +63,20 @@ pub enum T {
     SystemIcons,
     KeepOnDesktop,
     Vertical,
+    UpdateAvailable,
+    UpdateVersion,
+    Install,
+    Later,
+    Downloading,
+    Installing,
+    GotIt,
 }
 
 mod table;
 
 use table::S;
 
-const N: usize = 61;
+const N: usize = 68;
 
 pub const LANGS: [(&str, &str); 25] = [
     ("en", "English"),
@@ -144,7 +151,7 @@ mod tests {
     #[test]
     fn complete_tables() {
         assert!(S.iter().flatten().all(|s| !s.trim().is_empty()));
-        assert_eq!(T::Vertical as usize, N - 1);
+        assert_eq!(T::GotIt as usize, N - 1);
     }
 
     #[test]

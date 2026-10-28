@@ -37,7 +37,7 @@ Organize your Windows desktop into beautiful, translucent groups of icons. Tiny,
 | 🖱️ **Drag & drop anything** | In, out and between fences; apps from the Start menu or anywhere else become shortcuts |
 | ⚡ **Smooth and light** | Native Win32 + Rust, no runtime, no web view |
 | 🌍 **25 languages** | Auto-detected from Windows, switchable from the tray menu |
-| 🔄 **Silent updates** | Checks GitHub Releases, verifies SHA-256, installs in the background |
+| 🔄 **Updates** | Checks GitHub Releases, shows what's new and installs in one click (SHA-256 verified) |
 | 🔒 **Private** | No account, no telemetry, no ads; the only network call is the update check |
 | 👤 **No admin needed** | Per-user installer, optional start with Windows |
 
@@ -88,7 +88,8 @@ Native speakers: corrections are welcome in [`src/i18n/table.rs`](src/i18n/table
 
 ## Updates and security
 
-- Every 6 hours (first check 30 s after start) the app asks the GitHub API for the latest release.
+- Every 6 hours (first check 30 s after start) the app asks the GitHub API for the latest release and shows what's new;
+  **Install** downloads it with a progress bar, **Later** skips it until the next start.
 - A newer `.msi` and its `.sha256` are downloaded **only** from this repository's release URLs over HTTPS; the hash
   must match before `msiexec /qn` runs. The installer then restarts the app.
 - Disable it from the tray menu (**Automatic updates**).
@@ -105,7 +106,7 @@ wix build installer/main.wxs -d Version=X.Y.Z -arch x64 -ext WixToolset.UI.wixex
 ```
 
 End-to-end checks on a real desktop (isolated data, test files only): `cargo build` then
-`cargo run --example keep_e2e`, `cargo run --example unroll_e2e`, `cargo run --example system_e2e` and `cargo run --example relaunch_e2e` (they move the mouse
+`cargo run --example keep_e2e`, `cargo run --example unroll_e2e`, `cargo run --example system_e2e`, `cargo run --example relaunch_e2e` and `cargo run --example update_e2e` (they move the mouse
 for a few seconds). CI runs them on every push.
 
 Pushing a `vX.Y.Z` tag builds and publishes the MSI with [GitHub Actions](.github/workflows/release.yml).

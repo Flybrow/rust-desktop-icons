@@ -32,3 +32,5 @@ jobs:
         run: target/debug/examples/system_e2e.exe
       - name: Relaunch after an update
         run: target/debug/examples/relaunch_e2e.exe
+      - name: Update and what's new popups
+        run: target/debug/examples/update_e2e.exe

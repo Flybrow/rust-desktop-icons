@@ -1,21 +1,23 @@
-use crate::{app::change, win::msgbox};
-use windows::Win32::UI::WindowsAndMessaging::{MB_ICONINFORMATION, MB_OK};
+use crate::{
+    app::{change, with},
+    dialog::{self, Button, Spec},
+    i18n::T,
+    update::plain,
+};
 
 const NOTES: &str = include_str!("../.github/release-notes.md");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-fn plain(md: &str) -> String {
-    md.lines()
-        .map(|l| l.trim_start_matches('#').trim_start().replace("**", "").replace('`', ""))
-        .map(|l| l.strip_prefix("- ").map_or(l.clone(), |r| format!("•  {r}")))
-        .collect::<Vec<_>>()
-        .join("\n")
-        .trim()
-        .to_string()
-}
-
 pub fn upgraded(previous: Option<&str>, existed: bool) -> bool {
     existed && previous != Some(VERSION)
+}
+
+fn split(notes: &str) -> (String, String) {
+    let text = plain(notes);
+    match text.split_once('\n') {
+        Some((title, body)) => (title.trim().to_string(), body.trim().to_string()),
+        None => (text, String::new()),
+    }
 }
 
 pub fn show(existed: bool) {
@@ -25,7 +27,9 @@ pub fn show(existed: bool) {
         c.version = Some(VERSION.into());
     });
     if shown {
-        msgbox(None, &plain(NOTES), MB_OK | MB_ICONINFORMATION, false);
+        let (title, body) = split(NOTES);
+        let buttons = vec![Button { label: with(|a| a.t(T::GotIt).to_string()).unwrap_or_default(), act: dialog::close }];
+        dialog::show(Spec { title, body, buttons, progress: None, dismiss: dialog::close });
     }
 }
 
@@ -35,9 +39,10 @@ mod tests {
 
     #[test]
     fn notes() {
-        assert_eq!(plain("## What's new\n\n### Fixes\n- **Safe** `x`"), "What's new\n\nFixes\n•  Safe x");
         assert!(upgraded(None, true) && upgraded(Some("0.1.0"), true));
         assert!(!upgraded(Some(VERSION), true) && !upgraded(None, false));
-        assert!(!NOTES.trim().is_empty());
+        assert_eq!(split("## What's new in X\n\n- **A**\n- B"), ("What's new in X".into(), "•  A\n•  B".into()));
+        assert_eq!(split("Only"), ("Only".into(), String::new()));
+        assert!(!split(NOTES).0.is_empty() && !split(NOTES).1.is_empty());
     }
 }

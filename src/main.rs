@@ -1,6 +1,7 @@
 #![windows_subsystem = "windows"]
 
 mod app;
+mod dialog;
 mod domain;
 mod fence;
 mod i18n;

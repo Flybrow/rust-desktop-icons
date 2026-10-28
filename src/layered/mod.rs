@@ -1,3 +1,4 @@
+pub mod chrome;
 mod dib;
 pub mod glyph;
 

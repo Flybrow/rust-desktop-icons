@@ -24,7 +24,12 @@ Rust 2024 (1.98), `windows` 0.62 (raw Win32/GDI), serde/serde_json, ureq 3 (rust
   shortcut detection for rules),
   `order.rs` (per-tab sort + custom order), `anim.rs`, `grid.rs`, `snap.rs`, `icons.rs`, `color.rs`, `zone.rs`.
 - `store.rs` persistence (`tab_dir`: portal path or `fences/<tab id>`); `i18n/` (`mod.rs` logic, `table.rs` 25 languages);
-  `update.rs` updater (30 s network timeout, waits for msiexec; the MSI closes/relaunches the app);
+  `update/` updater: `release.rs` (pure, tested: GitHub release JSON, versions, notes, checksum, progress), `net.rs` (trusted
+  URLs only, streamed download with progress), `install.rs` (msiexec + relaunch chain; debug builds never install), `mod.rs` check/download.
+  `tray/updates.rs` drives it: auto (6 h) and manual checks open the themed popup (notes, Install / Later), download progress is
+  coalesced (`LATEST` + `QUEUED`, never one message per chunk). Debug `RDI_FAKE_VERSION=0.0.1` pretends to be old (E2E: `update_e2e`).
+- `dialog/` themed popup (what's new, update available/progress, notices): `layout.rs` pure + tested, `paint.rs`, `mod.rs` window;
+  shares the settings look through `layered/chrome.rs` (background, close button, outline, colors).
   `rules.rs` desktop watcher + auto-sort (files younger than 10 s are retried later); `prefs.rs` global prefs;
   `report.rs` errors: `report::alert` (dialog + `errors.log`), `report::log`, panic hook -> `crash.log`;
   `uninstall.rs` (`--uninstall`, run by the MSI on real uninstall only: moves every `fences/*` folder found on disk back to the desktop, never trusting the config,

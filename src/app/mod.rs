@@ -33,6 +33,7 @@ pub struct App {
     pub seen: HashSet<PathBuf>,
     pub desk: Option<shell::Watch>,
     pub panel: Option<settings::Panel>,
+    pub dialog: Option<crate::dialog::Dialog>,
     pub sys_drag: Vec<crate::domain::system::Sys>,
     save_error: Option<String>,
     save_reported: bool,
@@ -117,6 +118,7 @@ pub fn run() {
         let _ = OleInitialize(None);
         register(fence::CLASS, Some(fence::proc));
         settings::register_class();
+        crate::dialog::register_class();
         let Some(tray) = tray::create() else { return };
         let existed = store::root().join("config.json").exists();
         let (cfg, damaged) = store::load();
@@ -135,6 +137,7 @@ pub fn run() {
                 seen: HashSet::new(),
                 desk: None,
                 panel: None,
+                dialog: None,
                 sys_drag: vec![],
                 save_error: None,
                 save_reported: false,

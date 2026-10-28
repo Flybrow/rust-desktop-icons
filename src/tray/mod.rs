@@ -80,7 +80,7 @@ unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESU
         keep::WM_KEEP => keep::finish(lp),
         WM_TIMER if wp.0 == keep::TICK => keep::apply(),
         WM_TIMER if wp.0 == keep::SOON => keep::apply(),
-        updates::WM_UPDATE => updates::done(wp.0, lp.0 != 0),
+        updates::WM_UPDATE => updates::received(lp),
         _ if with(|a| a.taskbar) == Some(m) => {
             icon(h, NIM_ADD);
             rebuild();

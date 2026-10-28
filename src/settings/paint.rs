@@ -2,14 +2,11 @@ use super::{close_rect, rows};
 use crate::{
     app::with,
     i18n::T,
-    layered::{ACCENT, Frame, WHITE, glyph as g},
+    layered::{ACCENT, Frame, WHITE, chrome, glyph as g},
     render::{Canvas, flat, premul},
     win::*,
 };
 use windows::Win32::{Foundation::*, Graphics::Gdi::*};
-
-const BG: u32 = 0x24_2220;
-const LINK: u32 = 0xFF_CD60;
 
 fn toggle(c: &mut Canvas, (x1, cy): (i32, i32), on: bool, s: &impl Fn(i32) -> i32, clip: (i32, i32)) {
     let track = (x1 - s(40), cy - s(10), x1, cy + s(10));
@@ -60,12 +57,8 @@ pub(super) fn render(h: HWND) {
             }
         }
         frame.flush();
+        chrome::background(&mut frame, p.close_hot, s);
         let mut c = frame.canvas();
-        c.rrect((0, 0, w, ht), s(12) as f32, (premul(BG, 252), premul(0x1A_1817, 252)), (0, ht), false);
-        c.rrect((0, top - 1, w, top), 0., flat(premul(WHITE, 26)), (0, ht), false);
-        if p.close_hot {
-            c.rrect((close.left, close.top, close.right, close.bottom), s(6) as f32, flat(premul(0x2B_11E8, 230)), (0, top), false);
-        }
         for (first, last) in rows::cards(&rows) {
             let (y0, y1) = (layout[first].0, layout[last].0 + layout[last].1);
             c.rrect((pad, y0, w - pad, y1), s(8) as f32, flat(premul(WHITE, 12)), body, false);
@@ -85,7 +78,7 @@ pub(super) fn render(h: HWND) {
                 _ => {}
             }
         }
-        frame.text_layers(0xF2_F2F2, 0, s(1), (0, ht));
+        frame.text_layers(chrome::TEXT, 0, s(1), (0, ht));
         frame.clear_mask();
         for (r, &(y, hh)) in rows.iter().zip(&layout) {
             if r.ctl == rows::Ctl::Header {
@@ -97,8 +90,8 @@ pub(super) fn render(h: HWND) {
             }
         }
         frame.flush();
-        frame.text_layers(LINK, 0, s(1), body);
-        frame.canvas().rrect((0, 0, w, ht), s(12) as f32, flat(premul(WHITE, 40)), (0, ht), true);
+        frame.text_layers(chrome::LINK, 0, s(1), body);
+        chrome::outline(&mut frame, s);
         #[cfg(debug_assertions)]
         frame.dump("settings");
         Some(())

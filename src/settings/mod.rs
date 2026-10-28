@@ -2,7 +2,11 @@ mod act;
 mod paint;
 mod rows;
 
-use crate::{app::with, win::*};
+use crate::{
+    app::with,
+    layered::chrome::{self, inside},
+    win::*,
+};
 use windows::{
     Win32::{
         Foundation::*,
@@ -30,12 +34,7 @@ fn hwnd() -> Option<HWND> {
 }
 
 fn close_rect(h: HWND) -> RECT {
-    let (w, s) = (client_rect(h).right, |v| scale(h, v));
-    RECT { left: w - s(44), top: s(12), right: w - s(14), bottom: s(42) }
-}
-
-fn inside(r: &RECT, (x, y): (i32, i32)) -> bool {
-    (r.left..r.right).contains(&x) && (r.top..r.bottom).contains(&y)
+    chrome::close_rect(client_rect(h).right, |v| scale(h, v))
 }
 
 fn height(h: HWND) -> i32 {

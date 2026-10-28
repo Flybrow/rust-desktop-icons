@@ -6,7 +6,7 @@ use crate::{
     prefs,
 };
 
-pub const TOP: i32 = 56;
+pub const TOP: i32 = crate::layered::chrome::TOP;
 pub const WIDTH: i32 = 460;
 const HEADER: i32 = 46;
 const ROW: i32 = 44;
