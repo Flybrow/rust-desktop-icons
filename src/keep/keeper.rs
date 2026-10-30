@@ -8,7 +8,7 @@ use crate::{
 };
 use std::cell::Cell;
 use windows::Win32::{
-    Foundation::HWND,
+    Foundation::{HWND, LPARAM, WPARAM},
     UI::{Accessibility::*, WindowsAndMessaging::*},
 };
 
@@ -20,11 +20,13 @@ const RETRY_MS: u32 = 250;
 
 thread_local! {
     static HOOK: Cell<(isize, isize)> = const { Cell::new((0, 0)) };
+    static QUEUED: Cell<bool> = const { Cell::new(false) };
+    static STACK: Cell<Option<(i32, i32)>> = const { Cell::new(None) };
 }
 
 unsafe extern "system" fn event(_: HWINEVENTHOOK, _: u32, h: HWND, _: i32, _: i32, _: u32, _: u32) {
-    if h.0 as isize == HOOK.get().1 {
-        soon();
+    if h.0 as isize == HOOK.get().1 && !QUEUED.replace(true) {
+        let _ = tray::hwnd().map(|t| unsafe { PostMessageW(Some(t), WM_TIMER, WPARAM(SOON), LPARAM(0)) });
     }
 }
 
@@ -67,6 +69,7 @@ pub fn soon() {
 
 pub fn apply() {
     timer(SOON, None);
+    QUEUED.set(false);
     if buttons_down() {
         return timer(SOON, Some(RETRY_MS));
     }
@@ -81,16 +84,24 @@ pub fn apply() {
     if let Some(f) = d.flags().filter(|_| with(|a| a.cfg.desk_flags.is_none()) == Some(true)) {
         change(|c| c.desk_flags = Some(f));
     }
-    d.sync(&paths);
+    match d.sync(&paths, STACK.get()) {
+        Some((stack, r)) => {
+            STACK.set(Some(stack));
+            super::cover::show(r);
+        }
+        None => super::cover::hide(),
+    }
 }
 
 pub fn restore() {
     timer(TICK, None);
     timer(SOON, None);
     unhook();
+    super::cover::hide();
+    STACK.set(None);
     let Some(flags) = with(|a| a.cfg.desk_flags).flatten().filter(|_| live()) else { return };
     let Some(d) = Desk::open() else { return report::log("cannot reach the desktop view to show hidden icons") };
-    d.sync(&[]);
+    d.sync(&[], None);
     d.set_flags(flags);
     change(|c| c.desk_flags = None);
 }

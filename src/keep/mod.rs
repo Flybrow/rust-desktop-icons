@@ -1,3 +1,4 @@
+pub mod cover;
 mod keeper;
 mod migrate;
 mod place;

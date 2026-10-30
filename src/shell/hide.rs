@@ -1,9 +1,9 @@
-use crate::domain::pins::free_slots;
+use crate::domain::pins::{corner_slot, free_slots};
 use std::path::{Path, PathBuf};
 use windows::{
     Win32::{
         Foundation::{HWND, POINT, RECT},
-        Graphics::Gdi::ScreenToClient,
+        Graphics::Gdi::{ClientToScreen, ScreenToClient},
         System::{
             Com::{CLSCTX_ALL, CoCreateInstance, CoTaskMemFree, IServiceProvider},
             Variant::VARIANT,
@@ -129,29 +129,51 @@ impl Desk {
         self.place(&todo, &pts);
     }
 
-    pub fn sync(&self, keep: &[PathBuf]) -> usize {
+    fn area(&self) -> (i32, i32, i32, i32) {
+        let mut area = RECT::default();
+        let _ =
+            unsafe { SystemParametersInfoW(SPI_GETWORKAREA, 0, Some(&mut area as *mut _ as _), SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0)) };
+        let (vx, vy) = unsafe { (GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN)) };
+        (area.left - vx, area.top - vy, area.right - area.left, area.bottom - area.top)
+    }
+
+    pub fn sync(&self, keep: &[PathBuf], prev: Option<(i32, i32)>) -> Option<((i32, i32), RECT)> {
         let entries = self.entries();
-        let hide: Vec<&Entry> = entries.iter().filter(|e| !away(e.pos) && listed(keep, &e.path)).collect();
-        let show: Vec<&Entry> = entries.iter().filter(|e| away(e.pos) && !listed(keep, &e.path)).collect();
+        let (cell, area) = (self.spacing(), self.area());
+        let near = |p: POINT, (x, y): (i32, i32)| (p.x - x).abs() < cell.x && (p.y - y).abs() < cell.y;
+        let others: Vec<(i32, i32)> =
+            entries.iter().filter(|e| !away(e.pos) && !listed(keep, &e.path)).map(|e| (e.pos.x, e.pos.y)).collect();
+        let inside = |(x, y): (i32, i32)| x >= area.0 && y >= area.1 && x + cell.x <= area.0 + area.2 && y + cell.y <= area.1 + area.3;
+        let free = |p: (i32, i32)| inside(p) && !others.iter().any(|&o| near(POINT { x: o.0, y: o.1 }, p));
+        let stack = prev.filter(|&p| free(p)).unwrap_or_else(|| corner_slot(&others, (cell.x, cell.y), area));
+        let at = |e: &Entry| (e.pos.x, e.pos.y) == stack;
+        let hide: Vec<&Entry> = entries.iter().filter(|e| listed(keep, &e.path) && !at(e)).collect();
+        let show: Vec<&Entry> = entries.iter().filter(|e| !listed(keep, &e.path) && (away(e.pos) || at(e))).collect();
         if !hide.is_empty() {
             if self.flags().is_some_and(|f| f & MASK != 0) {
                 self.set_flags(0);
             }
-            let pts: Vec<POINT> = (0..hide.len() as i32).map(|i| POINT { x: AWAY - i % 500 * 16, y: AWAY }).collect();
-            self.place(&hide, &pts);
+            self.place(&hide, &vec![POINT { x: stack.0, y: stack.1 }; hide.len()]);
+        }
+        let picked: Vec<&Entry> = entries
+            .iter()
+            .filter(|e| at(e) && unsafe { self.0.GetSelectionState(e.pidl) }.is_ok_and(|s| s & SVSI_SELECT.0 as u32 != 0))
+            .collect();
+        if !picked.is_empty() {
+            let pidls: Vec<*const ITEMIDLIST> = picked.iter().map(|e| e.pidl as *const _).collect();
+            let _ = unsafe { self.0.SelectAndPositionItems(pidls.len() as u32, pidls.as_ptr(), None, SVSI_DESELECT.0 as u32) };
         }
         if !show.is_empty() {
-            let taken: Vec<(i32, i32)> = entries.iter().filter(|e| !away(e.pos)).map(|e| (e.pos.x, e.pos.y)).collect();
-            let cell = self.spacing();
-            let mut area = RECT::default();
-            let _ = unsafe {
-                SystemParametersInfoW(SPI_GETWORKAREA, 0, Some(&mut area as *mut _ as _), SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0))
-            };
-            let (vx, vy) = unsafe { (GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN)) };
-            let rect = (area.left - vx, area.top - vy, area.right - area.left, area.bottom - area.top);
-            let slots = free_slots(&taken, (cell.x, cell.y), rect, show.len());
+            let taken: Vec<(i32, i32)> = others.iter().copied().chain([stack]).collect();
+            let slots = free_slots(&taken, (cell.x, cell.y), area, show.len());
             self.place(&show, &slots.into_iter().map(|(x, y)| POINT { x, y }).collect::<Vec<_>>());
         }
-        hide.len() + show.len()
+        let lv = listview()?;
+        let mut p = POINT { x: stack.0, y: stack.1 };
+        let _ = unsafe { ClientToScreen(lv, &mut p) };
+        entries
+            .iter()
+            .any(|e| listed(keep, &e.path))
+            .then_some((stack, RECT { left: p.x - cell.x / 4, top: p.y, right: p.x + cell.x * 5 / 4, bottom: p.y + cell.y }))
     }
 }

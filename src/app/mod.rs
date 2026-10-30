@@ -119,6 +119,7 @@ pub fn run() {
         register(fence::CLASS, Some(fence::proc));
         settings::register_class();
         crate::dialog::register_class();
+        crate::keep::cover::register_class();
         let Some(tray) = tray::create() else { return };
         let existed = store::root().join("config.json").exists();
         let (cfg, damaged) = store::load();

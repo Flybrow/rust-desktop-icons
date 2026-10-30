@@ -17,7 +17,7 @@ pub fn run() {
     if cfg.desk_flags.is_some() {
         match Desk::open() {
             Some(d) => {
-                d.sync(&[]);
+                d.sync(&[], None);
                 cfg.desk_flags.iter().for_each(|f| d.set_flags(*f));
             }
             None => report::log("uninstall: cannot reach the desktop view to show hidden icons"),

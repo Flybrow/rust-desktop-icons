@@ -62,6 +62,16 @@ pub fn free_slots(taken: &[(i32, i32)], cell: (i32, i32), (ox, oy, _, h): (i32, 
     (0..).map(|i| (ox + i / rows * cw, oy + i % rows * ch)).filter(|&(x, y)| !busy(x, y)).take(n).collect()
 }
 
+pub fn corner_slot(taken: &[(i32, i32)], cell: (i32, i32), (ox, oy, w, h): (i32, i32, i32, i32)) -> (i32, i32) {
+    let (cw, ch) = (cell.0.max(1), cell.1.max(1));
+    let rows = (h / ch).max(1);
+    let busy = |x: i32, y: i32| taken.iter().any(|&(tx, ty)| (tx - x).abs() < cw && (ty - y).abs() < ch);
+    (0..rows * (w / cw).max(1))
+        .map(|i| (ox + w - (i / rows + 1) * cw, oy + h - (i % rows + 1) * ch))
+        .find(|&(x, y)| !busy(x, y))
+        .unwrap_or((ox + w - cw, oy + h - ch))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -100,5 +110,15 @@ mod tests {
         assert_eq!(free_slots(&[(0, 5), (0, 100)], (100, 100), (0, 0, 1000, 200), 2), vec![(100, 0), (100, 100)]);
         assert_eq!(free_slots(&[], (0, 0), (0, 0, 0, 0), 2), vec![(0, 0), (1, 0)]);
         assert_eq!(free_slots(&[(1920, 0)], (100, 100), (1920, 0, 1000, 200), 2), vec![(1920, 100), (2020, 0)]);
+    }
+
+    #[test]
+    fn hidden_stack_sits_in_the_bottom_right_free_cell() {
+        let area = (1920, 0, 1000, 1000);
+        assert_eq!(corner_slot(&[], (100, 100), area), (2820, 900));
+        assert_eq!(corner_slot(&[(2830, 905)], (100, 100), area), (2820, 800));
+        let full: Vec<(i32, i32)> = (0..10).map(|r| (2820, r * 100)).collect();
+        assert_eq!(corner_slot(&full, (100, 100), area), (2720, 900));
+        assert_eq!(corner_slot(&[], (0, 0), (0, 0, 0, 0)), (-1, -1));
     }
 }
