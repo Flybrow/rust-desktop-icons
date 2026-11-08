@@ -1,26 +1,11 @@
 mod support;
 
 use serde_json::{Value, json};
-use std::{
-    env, fs,
-    process::{Command, Stdio},
-    thread,
-    time::{Duration, Instant},
-};
+use std::{env, fs, thread, time::Duration};
+use support::wait;
 use windows::Win32::Foundation::{LPARAM, WPARAM};
 use windows::Win32::UI::WindowsAndMessaging::{FindWindowW, PostMessageW, WM_CLOSE};
 use windows::core::w;
-
-fn wait(secs: u64, mut f: impl FnMut() -> bool) -> bool {
-    let t = Instant::now();
-    while t.elapsed() < Duration::from_secs(secs) {
-        if f() {
-            return true;
-        }
-        thread::sleep(Duration::from_millis(50));
-    }
-    false
-}
 
 fn main() {
     let shot = env::args().skip_while(|a| a != "--shots").nth(1);
@@ -36,15 +21,7 @@ fn main() {
     fs::write(&file, serde_json::to_vec_pretty(&cfg).unwrap()).unwrap();
     let config = || fs::read(&file).ok().and_then(|b| serde_json::from_slice::<Value>(&b).ok()).unwrap_or(Value::Null);
     let system = || config()["fences"][0]["tabs"][0]["system"].as_array().cloned().unwrap_or_default();
-    let exe = env::current_exe().unwrap().parent().unwrap().parent().unwrap().join("rust-desktop-icons.exe");
-    let mut app = Command::new(exe)
-        .env("LOCALAPPDATA", &root)
-        .env("RDI_TOP", "1")
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .unwrap();
+    let mut app = support::app(&root, &[("RDI_TOP", "1")], &[]);
     let mut fails = vec![];
     let mut check = |ok: bool, what: &str| {
         println!("[{}] {what}", if ok { "PASS" } else { "FAIL" });

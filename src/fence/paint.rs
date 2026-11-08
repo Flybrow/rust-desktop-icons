@@ -60,25 +60,27 @@ pub(super) fn draw(h: HWND, (w, ht): (i32, i32), open: bool) -> Option<(Frame, u
     let alpha = with(|a| {
         let (ft, fi) = (title_font(a, h), label_font(a, h));
         let f = a.fence_of(h)?.clone();
+        let flow = layout::flow(a, h, gw, cell)?;
         let v = a.view(h)?;
         let rolled = !open && v.unroll == 0.;
         let view_h = if !open && v.unroll < 1. { opened.view_h() } else { g.view_h() };
         let max = if rolled { 0 } else { grid::max_scroll(v.items.len(), gw, view_h, cell) };
         v.scroll = v.scroll.clamp(0, max);
         let cells: Vec<(usize, i32, i32)> = (0..if rolled { 0 } else { v.items.len() })
-            .map(|i| (i, grid::origin(i, gw, cell)))
+            .map(|i| (i, flow.origin(i)))
             .map(|(i, (x, y))| (i, g.cell((x, y - v.scroll), cell)))
             .map(|(i, (x, y))| (i, x, y))
             .filter(|&(_, x, y)| y + cell > by0 && y < by1 && x + cell > bx0 && x < bx1)
             .collect();
         frame.clip((bx0, by0, bx1, by1));
-        for &(i, x, y) in &cells {
+        for &(i, x, y) in cells.iter().filter(|_| f.look.labels) {
             frame.text_w(fi, &mut v.items[i].name, &mut cell::label_at((x, y), cell, icon, s), cell::LABEL);
         }
         frame.target(&icons);
         for &(i, x, y) in &cells {
             shell::draw_icon(frame.dc(), v.items[i].icon, cell::icon_at((x, y), cell, icon, s), icon);
         }
+        frame.target(&frame.mask);
         frame.flush();
         for &(_, x, y) in &cells {
             let (ix, iy) = cell::icon_at((x, y), cell, icon, s);
@@ -116,7 +118,8 @@ pub(super) fn draw(h: HWND, (w, ht): (i32, i32), open: bool) -> Option<(Frame, u
             c.rrect(r, s(2) as f32, flat(premul(WHITE, 110)), (by0, by1), false);
         }
         frame.text_layers(fg, shade, s(2), rows);
-        header::paint(&mut frame, &g, ft, &f, (!rolled).then_some(f.tab), (fg, shade), s);
+        let hint = v.hover.filter(|_| !f.look.labels).and_then(|i| v.items.get(i)).map(|it| String::from_utf16_lossy(&it.name));
+        header::paint(&mut frame, &g, ft, (&f, hint.as_deref()), (!rolled).then_some(f.tab), (fg, shade), s);
         frame.canvas().rrect(full, rad, flat(premul(WHITE, 48)), rows, true);
         #[cfg(debug_assertions)]
         frame.dump(&f.id.to_string());

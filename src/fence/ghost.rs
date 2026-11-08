@@ -1,7 +1,6 @@
 use super::{cell, label_font, layout, metrics, view};
 use crate::{
     app::with,
-    domain::grid,
     layered::{Dib, Frame, WHITE},
     render::{opaque_if_flat, straight},
     shell::{self, DragImage},
@@ -20,6 +19,7 @@ pub(super) fn image(h: HWND, index: usize, (cx, cy): (i32, i32)) -> Option<DragI
         frame.text_w(font, &mut item.name, &mut cell::label_at((0, 0), cell, icon, s), cell::LABEL);
         frame.target(&icons);
         shell::draw_icon(frame.dc(), item.icon, cell::icon_at((0, 0), cell, icon, s), icon);
+        frame.target(&frame.mask);
         Some(())
     })
     .flatten()?;
@@ -30,7 +30,7 @@ pub(super) fn image(h: HWND, index: usize, (cx, cy): (i32, i32)) -> Option<DragI
     frame.canvas().layer(&px, (0, 0), None, (0, cell));
     frame.text_layers(WHITE, 0, s(2), (0, cell));
     let g = layout::geo_now(h);
-    let (x, y) = grid::origin(index, g.grid_w(), cell);
+    let (x, y) = with(|a| layout::flow(a, h, g.grid_w(), cell)).flatten()?.origin(index);
     let (x, y) = g.cell((x, y - view(h, |v| v.scroll).unwrap_or(0)), cell);
     let offset = (cx - x, cy - y);
     straight(frame.canvas.px());

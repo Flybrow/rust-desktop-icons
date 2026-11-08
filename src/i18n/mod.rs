@@ -1,4 +1,4 @@
-use crate::domain::{Kind, Sort};
+use crate::domain::{Kind, Sort, grid::Align};
 
 #[derive(Clone, Copy)]
 pub enum T {
@@ -70,13 +70,63 @@ pub enum T {
     Downloading,
     Installing,
     GotIt,
+    KOther,
+    Desktop,
+    ScreenChange,
+    ScreenKeep,
+    ScreenScale,
+    ScreenRemember,
+    SnapHint,
+    SortSize,
+    Labels,
+    DblClickHide,
+    PeekKey,
+    PressKeys,
+    Search,
+    SearchHint,
+    NoResults,
+    Layouts,
+    SaveLayout,
+    DeleteLayout,
+    LookMenu,
+    Tabs,
+    Restore,
+    ResetDefault,
+    DColor,
+    DOpacity,
+    DIconSize,
+    DTint,
+    DLabels,
+    DApplyAll,
+    DChameleon,
+    DAutoHeight,
+    DRollSpeed,
+    DPeekKey,
+    DSearchKey,
+    DKeep,
+    DScreens,
+    DDblClick,
+    DAutoSort,
+    DRule,
+    DSortNow,
+    DLanguage,
+    DAutostart,
+    DAutoUpdate,
+    DCheck,
+    ConfirmApplyAll,
+    LookNote,
+    Align,
+    AlignLeft,
+    AlignCenter,
+    AlignRight,
+    DAlign,
 }
 
 mod table;
 
 use table::S;
 
-const N: usize = 68;
+const N: usize = 118;
 
 pub const LANGS: [(&str, &str); 25] = [
     ("en", "English"),
@@ -116,6 +166,15 @@ pub fn kind(k: Kind) -> T {
         Kind::Music => T::KMusic,
         Kind::Archives => T::KArchives,
         Kind::Folders => T::KFolders,
+        Kind::Other => T::KOther,
+    }
+}
+
+pub fn align(a: Align) -> T {
+    match a {
+        Align::Left => T::AlignLeft,
+        Align::Center => T::AlignCenter,
+        Align::Right => T::AlignRight,
     }
 }
 
@@ -124,6 +183,7 @@ pub fn sort(s: Sort) -> T {
         Sort::Name => T::SortName,
         Sort::Type => T::SortType,
         Sort::Date => T::SortDate,
+        Sort::Size => T::SortSize,
         Sort::Custom => T::SortCustom,
     }
 }
@@ -151,7 +211,7 @@ mod tests {
     #[test]
     fn complete_tables() {
         assert!(S.iter().flatten().all(|s| !s.trim().is_empty()));
-        assert_eq!(T::GotIt as usize, N - 1);
+        assert_eq!(T::DAlign as usize, N - 1);
     }
 
     #[test]

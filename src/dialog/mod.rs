@@ -3,14 +3,16 @@ mod paint;
 
 use crate::{
     app::with,
-    layered::chrome::{self, inside},
+    layered::{
+        chrome::{self, inside},
+        popup,
+    },
     win::*,
 };
 use layout::{Layout, Metrics, hit, layout};
 use windows::{
     Win32::{
         Foundation::*,
-        Graphics::Gdi::ScreenToClient,
         UI::{Input::KeyboardAndMouse::VK_ESCAPE, WindowsAndMessaging::*},
     },
     core::*,
@@ -91,13 +93,13 @@ fn refresh(h: HWND) {
     let r = window_rect(h);
     if r.bottom - r.top != l.height {
         let area = work_area(&r);
-        let y = area.top + (area.bottom - area.top - l.height) / 2;
-        let _ = unsafe { SetWindowPos(h, None, r.left, y, r.right - r.left, l.height, SWP_NOZORDER | SWP_NOACTIVATE) };
+        popup::resize(h, (r.right - r.left, l.height), Some(area.top + (area.bottom - area.top - l.height) / 2));
     }
     paint::render(h, &l);
 }
 
 pub fn show(spec: Spec) {
+    crate::visibility::end_peek();
     if let Some(h) = hwnd() {
         with(|a| a.dialog.as_mut().map(|d| (d.spec, d.scroll, d.hover) = (spec, 0, None)));
         let _ = unsafe { KillTimer(Some(h), ANIM) };
@@ -105,23 +107,11 @@ pub fn show(spec: Spec) {
         let _ = unsafe { SetForegroundWindow(h) };
         return;
     }
-    let s = sys_scale;
-    let (cx, cy) = cursor_pos();
-    let area = work_area(&RECT { left: cx, top: cy, right: cx + 1, bottom: cy + 1 });
-    let w = s(WIDTH);
-    let x = area.left + (area.right - area.left - w) / 2;
     let ex = WS_EX_LAYERED | WS_EX_APPWINDOW | WS_EX_TOPMOST;
-    let Ok(h) = (unsafe {
-        CreateWindowExW(ex, CLASS, w!("Rust Desktop Icons"), WS_POPUP, x, area.top + s(120), w, s(200), None, None, Some(inst()), None)
-    }) else {
-        return;
-    };
+    let Some(h) = popup::open(CLASS, ex, WIDTH, |a| a.top + sys_scale(120)) else { return };
     with(|a| a.dialog = Some(Dialog { hwnd: h, spec, hover: None, close_hot: false, scroll: 0, phase: 0 }));
     refresh(h);
-    unsafe {
-        let _ = ShowWindow(h, SW_SHOW);
-        let _ = SetForegroundWindow(h);
-    }
+    popup::show(h);
 }
 
 pub fn progress(value: Option<f32>, text: String) {
@@ -144,7 +134,7 @@ pub fn progress(value: Option<f32>, text: String) {
 
 fn track(h: HWND, p: (i32, i32)) {
     track_leave(h);
-    let (buttons, close) = (current(h).buttons, chrome::close_rect(client_rect(h).right, |v| scale(h, v)));
+    let (buttons, close) = (current(h).buttons, popup::close_rect(h));
     let (over, hot) = (hit(&buttons, p), inside(&close, p));
     let changed = with(|a| {
         let d = a.dialog.as_mut()?;
@@ -158,7 +148,7 @@ fn track(h: HWND, p: (i32, i32)) {
 }
 
 fn click(h: HWND, p: (i32, i32)) {
-    let close = chrome::close_rect(client_rect(h).right, |v| scale(h, v));
+    let close = popup::close_rect(h);
     let act = if inside(&close, p) {
         with(|a| a.dialog.as_ref().map(|d| d.spec.dismiss)).flatten()
     } else {
@@ -172,14 +162,7 @@ fn click(h: HWND, p: (i32, i32)) {
 
 unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {
     match m {
-        WM_NCHITTEST => {
-            let (x, y) = xy(lp);
-            let mut p = POINT { x, y };
-            let _ = unsafe { ScreenToClient(h, &mut p) };
-            let close = chrome::close_rect(client_rect(h).right, |v| scale(h, v));
-            let caption = p.y < scale(h, chrome::TOP) && !inside(&close, (p.x, p.y));
-            return LRESULT(if caption { HTCAPTION } else { HTCLIENT } as isize);
-        }
+        WM_NCHITTEST => return popup::hit(h, lp),
         WM_MOUSEMOVE => track(h, xy(lp)),
         WM_MOUSELEAVE => {
             with(|a| a.dialog.as_mut().map(|d| (d.hover, d.close_hot) = (None, false)));
@@ -188,7 +171,7 @@ unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESU
         WM_LBUTTONUP => click(h, xy(lp)),
         WM_MOUSEWHEEL => {
             let l = current(h);
-            let step = (wp.0 >> 16) as i16 as i32 * scale(h, 60) / 120;
+            let step = wheel(wp) * scale(h, 60) / 120;
             let font = with(|a| a.font(scale(h, 13), 400)).unwrap_or_default();
             let full = with(|a| a.dialog.as_ref().map(|d| d.spec.body.clone())).flatten().unwrap_or_default();
             let max = (paint::measure(font, &full, l.body.2 - l.body.0) - (l.body.3 - l.body.1)).max(0);
@@ -204,7 +187,10 @@ unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESU
                 f();
             }
         }
-        WM_DPICHANGED => refresh(h),
+        WM_DPICHANGED => {
+            popup::follow_dpi(h, lp);
+            refresh(h);
+        }
         WM_DESTROY => {
             with(|a| a.dialog = None);
         }

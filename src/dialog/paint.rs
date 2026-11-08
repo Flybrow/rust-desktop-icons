@@ -1,7 +1,6 @@
 use super::layout::{Layout, fill};
 use crate::{
-    app::with,
-    layered::{ACCENT, Frame, WHITE, chrome, glyph as g},
+    layered::{ACCENT, WHITE, chrome, glyph as g, popup},
     render::{flat, premul},
     win::*,
 };
@@ -30,12 +29,10 @@ fn rect((x0, y0, x1, y1): (i32, i32, i32, i32)) -> RECT {
 }
 
 pub(super) fn render(h: HWND, l: &Layout) {
-    let wr = window_rect(h);
-    let (w, ht) = (wr.right - wr.left, wr.bottom - wr.top);
     let s = |v| scale(h, v);
-    let Some(mut frame) = Frame::new(w, ht) else { return };
-    let close = chrome::close_rect(w, s);
-    let drawn = with(|a| {
+    let close = popup::close_rect(h);
+    popup::paint(h, "dialog", |frame, a| {
+        let (w, ht) = (frame.w, frame.h);
         let (title, normal, bold, icons) =
             (a.font(s(18), FW_SEMIBOLD.0), a.font(s(13), FW_NORMAL.0), a.font(s(13), FW_SEMIBOLD.0), a.icon_font(s(15)));
         let d = a.dialog.as_ref()?;
@@ -52,7 +49,7 @@ pub(super) fn render(h: HWND, l: &Layout) {
         frame.clip((x0, y0, x1, y1));
         frame.text(normal, &d.spec.body, RECT { left: x0, top: y0 - d.scroll, right: x1, bottom: y0 - d.scroll + (1 << 20) }, WRAP);
         frame.flush();
-        chrome::background(&mut frame, d.close_hot, s);
+        chrome::background(frame, d.close_hot, s);
         let mut c = frame.canvas();
         if let (Some(p), Some(bar)) = (&d.spec.progress, l.bar) {
             let r = s(4) as f32;
@@ -68,12 +65,7 @@ pub(super) fn render(h: HWND, l: &Layout) {
             }
         }
         frame.text_layers(chrome::TEXT, 0, s(1), (0, ht));
-        chrome::outline(&mut frame, s);
-        #[cfg(debug_assertions)]
-        frame.dump("dialog");
+        chrome::outline(frame, s);
         Some(())
     });
-    if drawn.flatten().is_some() {
-        frame.present(h, (wr.left, wr.top), 255);
-    }
 }

@@ -27,21 +27,25 @@ Organize your Windows desktop into beautiful, translucent groups of icons. Tiny,
 |  |  |
 | --- | --- |
 | 🪟 **Translucent fences** | Rounded, semi-transparent groups that sit on your desktop, behind every window |
-| 🎨 **Make it yours** | Any color, opacity, icon size and tint, chameleon mode, rename, resize, lock |
+| 🎨 **Make it yours** | Any color, opacity, icon size and tint, icons aligned left, centered or right, chameleon mode, compact view without names, rename, resize, lock. Settings apply to every fence; any fence can override them from its right-click menu |
+| 🧲 **Snapping** | Fences line up with each other (with guide lines), keep equal spacing and resize to whole rows and columns of icons; hold **Alt** to move freely |
 | 📜 **Roll up** | A rolled fence shows only its title and unrolls on hover, away from the screen edge (upward near the bottom) |
 | ↔️ **Vertical fences** | Put the title on the side and park the fence on a screen edge: it unrolls toward the middle |
 | 🗂️ **Tabs and portals** | Several tabs per fence; a portal tab shows any folder of your PC |
-| 🧹 **Sorting rules** | New desktop files go to the right fence automatically (apps, games, images, documents…) |
+| 🧹 **Sorting rules** | New desktop files go to the right fence automatically (apps, games, images, documents…); an "Everything else" rule makes any fence an inbox. New files never land hidden behind a fence |
+| 👀 **Peek and search** | A shortcut (Ctrl+Alt+Space by default, customizable) brings your fences above all windows; start typing to search every fence, or press Ctrl+Alt+F (both shortcuts can be changed or turned off) |
+| 🫥 **Quick hide** | Optional: double-click an empty spot of the desktop to hide all fences and icons, again to bring them back |
+| 🖥️ **Screen changes** | Fences follow resolution and monitor changes: each screen setup keeps its own layout, new setups are scaled. Save and restore named layouts from the tray menu |
 | 🖥️ **Keep files on the desktop** | Optional: fenced files stay in your Desktop folder (visible in Explorer), only their icons are hidden |
 | 🗑️ **System icons** | Put the Recycle Bin, This PC, your user folder, Network or Control Panel in a fence instead of the desktop |
-| 🖱️ **Drag & drop anything** | In, out and between fences; apps from the Start menu or anywhere else become shortcuts |
+| 🖱️ **Drag & drop anything** | In, out and between fences; apps from the Start menu or anywhere else become shortcuts; drop a file on a folder or an app inside a fence to move it there or open it with that app |
 | ⚡ **Smooth and light** | Native Win32 + Rust, no runtime, no web view |
 | 🌍 **25 languages** | Auto-detected from Windows, switchable from the tray menu |
 | 🔄 **Updates** | Checks GitHub Releases, shows what's new and installs in one click (SHA-256 verified) |
 | 🔒 **Private** | No account, no telemetry, no ads; the only network call is the update check |
 | 👤 **No admin needed** | Per-user installer, optional start with Windows |
 
-<p align="center"><img src="docs/settings.png" alt="Rust Desktop Icons settings" width="460"></p>
+<p align="center"><img src="docs/settings.png" alt="Rust Desktop Icons settings" width="600"></p>
 
 ## Install
 
@@ -64,20 +68,34 @@ updates are automatic again afterwards.
 | Open an item | Double-click it |
 | Take an item out | Drag it out of the fence, or select it and press **Delete** to send it to the Recycle Bin |
 | Rename a fence | Right-click its title |
-| Move / resize | Drag the title bar / drag an edge |
+| Move / resize | Drag the title bar / drag an edge (hold **Alt** to turn off snapping) |
+| Peek | **Ctrl+Alt+Space** (change it in Settings → Behavior); **Esc** or a click outside ends it |
+| Search | Type while peeking, or **Ctrl+Alt+F** (Settings → Behavior), or tray icon → **Search…**; **Enter** opens the item |
+| Hide everything | Turn on Settings → Desktop → **Hide all on desktop double-click**, then double-click an empty spot of the desktop |
+| Show names / compact view | Right-click a fence → **Appearance** → **Show names** |
+| Icon alignment | Right-click a fence → **Appearance** → **Icon alignment** (left, centered, right), or Settings for every fence |
+| Sort | Right-click a fence → **Sort by** (name, type, date, size or your own order) |
+| Inbox | Right-click a fence → **Rules** → **Everything else** |
+| Layouts | Tray icon → **Layouts** → **Save current layout**; each saved layout can be restored, renamed or deleted |
 | Roll up / down | Double-click the title bar |
-| Vertical fence | Right-click a fence → **Vertical title**, then park it on a screen edge |
+| Vertical fence | Right-click a fence → **Behavior** → **Vertical title**, then park it on a screen edge |
 | System icons | Right-click a fence → **System icons** (This PC, Recycle Bin, Network…) |
-| Icon size | **Ctrl + mouse wheel** over a fence |
-| Color, tabs, rules, delete | Right-click inside the fence |
-| Global options | Tray icon → **Settings** |
+| Icon size | **Ctrl + mouse wheel** over a fence (that fence only) |
+| Color, tabs, rules, delete | Right-click inside the fence (Appearance, Behavior and Tabs submenus) |
+| Global options | Tray icon → **Settings** (every option has a short explanation) |
+| Undo a fence's own look | Right-click it → **Appearance** → **Reset to default** |
+
+**Settings and individual fences:** the appearance and behavior settings (color, opacity, icon size, tint, names,
+icon alignment, chameleon, automatic height) apply to every fence at once. A setting you change on one fence from its right-click menu
+stays specific to that fence; **Reset to default** in that menu makes it follow Settings again, and Settings →
+**Reset all fences to these settings** does it for every fence.
 
 By default, files from your own desktop are **moved** into `%LOCALAPPDATA%\RustDesktopIcons\fences\<id>` (never deleted);
 anything else gets a **shortcut**, so the original stays where it is. Deleting a fence moves its items back to the desktop.
 
 With **Settings → Keep files on the desktop**, fenced files stay in your Desktop folder instead: Explorer → Desktop
-lists them, and only their desktop icons are hidden (placed off-screen; desktop auto-arrange is turned off while the
-option is on). Turning it on moves existing fence contents to the desktop; turning it off moves them back.
+lists them, and only their desktop icons are hidden (stacked in one corner cell under a wallpaper patch; desktop
+auto-arrange is turned off while the option is on). Turning it on moves existing fence contents to the desktop; turning it off moves them back.
 
 ## Languages
 
@@ -106,8 +124,9 @@ wix build installer/main.wxs -d Version=X.Y.Z -arch x64 -ext WixToolset.UI.wixex
 ```
 
 End-to-end checks on a real desktop (isolated data, test files only): `cargo build` then
-`cargo run --example keep_e2e`, `cargo run --example unroll_e2e`, `cargo run --example system_e2e`, `cargo run --example relaunch_e2e` and `cargo run --example update_e2e` (they move the mouse
-for a few seconds). CI runs them on every push.
+`cargo run --example keep_e2e`, `cargo run --example unroll_e2e`, `cargo run --example system_e2e`, `cargo run --example relaunch_e2e`,
+`cargo run --example update_e2e`, `cargo run --example layout_e2e [-- --desktop]` and `cargo run --example peek_e2e` (they move the mouse
+and press keys for a few seconds). CI runs them on every push.
 
 Pushing a `vX.Y.Z` tag builds and publishes the MSI with [GitHub Actions](.github/workflows/release.yml).
 
@@ -115,12 +134,13 @@ Pushing a `vX.Y.Z` tag builds and publishes the MSI with [GitHub Actions](.githu
 
 | Module | Role |
 | --- | --- |
-| `domain/` | Pure, unit-tested logic: model, config, layout grid, title bar side, sorting, rules, animation, pins, system icons |
+| `domain/` | Pure, unit-tested logic: model, config, layout grid, title bar side, sorting, rules, animation, pins, system icons, snapping, screen setups and layouts, shortcuts, search ranking |
 | `render/`, `layered/` | Pixel compositing (alpha, rounded rectangles, blur) and layered-window painting |
 | `fence/` | Fence window: layout, painting, tabs, drag & drop, selection, menus, roll animation |
 | `keep/` | "Keep files on the desktop" mode: migration, placement, hiding desktop icons |
 | `shell/` | Windows Shell wrappers: icons, shortcuts, folder watch, drag & drop, system icons, desktop view |
-| `app/`, `tray/`, `settings/` | Global state, tray icon and update scheduling, settings window |
+| `app/`, `tray/`, `settings/` | Global state and screen changes, tray icon, layouts menu and update scheduling, settings window |
+| `visibility/`, `search/`, `prompt.rs` | Quick hide (desktop double-click), peek shortcut and dim layer, search window, text prompt (layout names) |
 | `store.rs`, `rules.rs`, `update.rs` | Persistence and safe moves, desktop auto-sort, release check and silent install |
 
 ## Known limitations

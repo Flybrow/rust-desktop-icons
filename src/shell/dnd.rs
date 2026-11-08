@@ -1,12 +1,16 @@
 use crate::win::{cursor_pos, desktop_at};
-use std::{cell::Cell, path::PathBuf, rc::Rc};
+use std::{
+    cell::Cell,
+    path::{Path, PathBuf},
+    rc::Rc,
+};
 use windows::{
     Win32::{
         Foundation::{COLORREF, DRAGDROP_S_CANCEL, DRAGDROP_S_DROP, DRAGDROP_S_USEDEFAULTCURSORS, HWND, POINT, S_OK, SIZE},
         Graphics::Gdi::{DeleteObject, HBITMAP},
         System::{
             Com::{CLSCTX_INPROC_SERVER, CoCreateInstance, CoTaskMemFree, IDataObject},
-            Ole::{DROPEFFECT, DROPEFFECT_COPY, DROPEFFECT_LINK, DROPEFFECT_MOVE, IDropSource, IDropSource_Impl},
+            Ole::{DROPEFFECT, DROPEFFECT_COPY, DROPEFFECT_LINK, DROPEFFECT_MOVE, IDropSource, IDropSource_Impl, IDropTarget},
             SystemServices::{MK_LBUTTON, MK_RBUTTON, MODIFIERKEYS_FLAGS},
         },
         UI::Shell::*,
@@ -76,7 +80,12 @@ impl IDropSource_Impl for Source_Impl {
 }
 
 pub fn drag_out(h: HWND, paths: &[PathBuf], image: Option<DragImage>, move_only: bool, desk: bool) -> bool {
-    let Some(obj) = super::data::object(paths) else { return false };
+    let Some(obj) = super::data::object(paths) else {
+        if let Some(img) = image {
+            let _ = unsafe { DeleteObject(img.bitmap.into()) };
+        }
+        return false;
+    };
     if let Some(img) = image {
         attach(&obj, img);
     }
@@ -85,4 +94,8 @@ pub fn drag_out(h: HWND, paths: &[PathBuf], image: Option<DragImage>, move_only:
     let source: IDropSource = Source { desk, landed: landed.clone() }.into();
     let _ = unsafe { SHDoDragDrop(Some(h), &obj, &source, effects) };
     landed.get()
+}
+
+pub fn drop_target(p: &Path) -> Option<IDropTarget> {
+    super::data::items(&[p.to_path_buf()], &BHID_SFUIObject)
 }

@@ -2,6 +2,7 @@ pub mod desk_icons;
 mod fences;
 mod instance;
 mod res;
+pub mod screens;
 mod view;
 
 use crate::{
@@ -57,7 +58,7 @@ impl App {
     }
 
     pub fn fence(&mut self, id: u64) -> Option<&mut Fence> {
-        self.cfg.fences.iter_mut().find(|f| f.id == id)
+        self.cfg.fence_mut(id)
     }
 
     pub fn fence_of(&mut self, h: HWND) -> Option<&mut Fence> {
@@ -84,12 +85,18 @@ pub fn check_save() {
     }
 }
 
-pub fn change(f: impl FnOnce(&mut Config)) {
-    with(|a| {
-        f(&mut a.cfg);
+pub fn edit<R>(f: impl FnOnce(&mut App) -> R) -> Option<R> {
+    let out = with(|a| {
+        let out = f(a);
         a.save();
+        out
     });
     check_save();
+    out
+}
+
+pub fn change(f: impl FnOnce(&mut Config)) {
+    edit(|a| f(&mut a.cfg));
 }
 
 thread_local! {
@@ -115,11 +122,16 @@ pub fn run() {
         };
         report::install_panic_hook();
         report::log(if relaunch { "started after an update" } else { "started" });
-        let _ = OleInitialize(None);
+        if let Err(e) = OleInitialize(None) {
+            report::log(&format!("OLE unavailable: {e}"));
+        }
         register(fence::CLASS, Some(fence::proc));
         settings::register_class();
+        fence::register_classes();
         crate::dialog::register_class();
         crate::keep::cover::register_class();
+        crate::visibility::register_class();
+        crate::search::register_class();
         let Some(tray) = tray::create() else { return };
         let existed = store::root().join("config.json").exists();
         let (cfg, damaged) = store::load();
@@ -149,10 +161,14 @@ pub fn run() {
             report::alert(T::ErrConfig, &bad.display().to_string());
         }
         crate::keep::sync(false);
+        screens::adapt();
         rebuild();
         desk_icons::hide_placed();
         rules::watch(tray);
         register_verb();
+        crate::visibility::recover();
+        crate::visibility::hotkeys::register();
+        crate::visibility::sync_dblclick();
         if new {
             new_fence();
         }
@@ -160,11 +176,12 @@ pub fn run() {
         tray::updates::spawn(tray);
         let mut msg = MSG::default();
         while GetMessageW(&mut msg, None, 0, 0).as_bool() {
-            if !fence::key(&msg) {
+            if !crate::visibility::key(&msg) && !crate::prompt::key(&msg) && !fence::key(&msg) {
                 let _ = TranslateMessage(&msg);
                 DispatchMessageW(&msg);
             }
         }
+        crate::visibility::shutdown();
         tray::icon(tray, NIM_DELETE);
         save_now();
         APP.with(|a| a.borrow_mut().take());

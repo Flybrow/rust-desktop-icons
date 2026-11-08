@@ -1,15 +1,22 @@
 pub mod anim;
 pub mod color;
+mod compat;
 mod config;
 pub mod grid;
+pub mod hotkey;
 pub mod icons;
+pub mod inherit;
 pub mod kind;
+pub mod layouts;
 mod model;
 pub mod names;
 pub mod order;
 pub mod pins;
+pub mod screens;
+pub mod search;
 pub mod side;
 pub mod snap;
+pub mod stack;
 pub mod system;
 mod zone;
 

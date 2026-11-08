@@ -3,24 +3,14 @@ mod support;
 use std::{
     env, fs,
     path::{Path, PathBuf},
-    process::{Child, Command, Stdio},
+    process::Child,
     thread,
-    time::{Duration, Instant},
+    time::Duration,
 };
+use support::poll;
 use windows::Win32::Foundation::{HWND, LPARAM, RECT, WPARAM};
 use windows::Win32::UI::WindowsAndMessaging::{FindWindowW, PostMessageW, WM_CLOSE};
 use windows::core::w;
-
-fn wait<T>(secs: u64, mut f: impl FnMut() -> Option<T>) -> Option<T> {
-    let t = Instant::now();
-    while t.elapsed() < Duration::from_secs(secs) {
-        if let Some(v) = f() {
-            return Some(v);
-        }
-        thread::sleep(Duration::from_millis(100));
-    }
-    None
-}
 
 fn dialog(pid: u32) -> Option<HWND> {
     support::windows(pid, "RustDesktopIcons.Dialog").into_iter().next()
@@ -37,13 +27,7 @@ fn click(p: (i32, i32)) {
 }
 
 fn start(root: &Path, fake: bool) -> Child {
-    let exe = env::current_exe().unwrap().parent().unwrap().parent().unwrap().join("rust-desktop-icons.exe");
-    let mut c = Command::new(exe);
-    c.env("LOCALAPPDATA", root).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
-    if fake {
-        c.env("RDI_FAKE_VERSION", "0.0.1");
-    }
-    c.spawn().unwrap()
+    support::app(root, if fake { &[("RDI_FAKE_VERSION", "0.0.1")] } else { &[] }, &[])
 }
 
 fn stop(mut app: Child) {
@@ -77,14 +61,14 @@ fn main() {
     fs::write(data.join("config.json"), r#"{"auto_update": false, "auto_sort": false, "version": "0.0.1"}"#).unwrap();
     let app = start(&root, false);
     let pid = app.id();
-    let news = wait(10, || dialog(pid));
+    let news = poll(10, || dialog(pid));
     check(news.is_some(), "what's new popup shows after an update");
     if let Some(h) = news {
         thread::sleep(Duration::from_millis(500));
         let r = support::rect(h);
         shot(&r, "whatsnew");
         click(button(&r, k));
-        check(wait(5, || dialog(pid).is_none().then_some(())).is_some(), "its OK button closes it");
+        check(poll(5, || dialog(pid).is_none().then_some(())).is_some(), "its OK button closes it");
     }
     stop(app);
 
@@ -92,14 +76,14 @@ fn main() {
     fs::write(data.join("config.json"), cfg).unwrap();
     let app = start(&root, true);
     let pid = app.id();
-    let offer = wait(40, || dialog(pid));
+    let offer = poll(40, || dialog(pid));
     check(offer.is_some(), "automatic check offers the newer release in a popup");
     if let Some(h) = offer {
         thread::sleep(Duration::from_millis(500));
         let r = support::rect(h);
         shot(&r, "available");
         click(button(&r, k));
-        let mid = wait(30, || {
+        let mid = poll(30, || {
             let r = support::rect(h);
             (r.bottom - r.top != 0).then_some(r)
         });
@@ -109,7 +93,7 @@ fn main() {
             let _ = r;
         }
         let log = data.join("errors.log");
-        let done = wait(90, || fs::read_to_string(&log).ok().filter(|l| l.contains("debug build: not installing")));
+        let done = poll(90, || fs::read_to_string(&log).ok().filter(|l| l.contains("debug build: not installing")));
         check(done.is_some(), "Install downloads and verifies the release, then starts installing");
         thread::sleep(Duration::from_millis(500));
         check(dialog(pid).is_some(), "the popup stays open with the installing progress");

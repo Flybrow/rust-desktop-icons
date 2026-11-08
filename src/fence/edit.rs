@@ -1,24 +1,14 @@
 use super::{cell, label_font, layout, metrics, reload, title_font, update, view};
 use crate::domain::side::Side;
-use crate::{
-    app::with,
-    domain::{grid, names},
-    i18n::T,
-    report, shell, store,
-    win::*,
-};
+use crate::{app::with, domain::names, i18n::T, report, shell, store, win::*};
 use std::{fs, path::PathBuf};
-use windows::{
-    Win32::{
-        Foundation::*,
-        Graphics::Gdi::{ClientToScreen, HFONT},
-        UI::{
-            Controls::{EM_LIMITTEXT, EM_SETSEL},
-            Input::KeyboardAndMouse::{SetFocus, VK_ESCAPE, VK_RETURN},
-            WindowsAndMessaging::*,
-        },
+use windows::Win32::{
+    Foundation::*,
+    Graphics::Gdi::{ClientToScreen, HFONT},
+    UI::{
+        Input::KeyboardAndMouse::{VK_ESCAPE, VK_RETURN},
+        WindowsAndMessaging::*,
     },
-    core::*,
 };
 
 pub fn key(msg: &MSG) -> bool {
@@ -35,32 +25,10 @@ pub fn key(msg: &MSG) -> bool {
 
 fn open(h: HWND, r: RECT, text: &str, font: HFONT, target: Option<PathBuf>) {
     let mut p = POINT { x: r.left, y: r.top };
-    unsafe {
-        let _ = ClientToScreen(h, &mut p);
-        let style = WS_POPUP | WS_VISIBLE | WS_BORDER | WINDOW_STYLE((ES_CENTER | ES_AUTOHSCROLL) as u32);
-        let (w, ht) = (r.right - r.left, r.bottom - r.top);
-        let Ok(e) = CreateWindowExW(
-            WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
-            w!("EDIT"),
-            PCWSTR(wide(text).as_ptr()),
-            style,
-            p.x,
-            p.y,
-            w,
-            ht,
-            Some(h),
-            None,
-            Some(inst()),
-            None,
-        ) else {
-            return;
-        };
-        SendMessageW(e, WM_SETFONT, Some(WPARAM(font.0 as usize)), Some(LPARAM(1)));
-        SendMessageW(e, EM_LIMITTEXT, Some(WPARAM(255)), None);
-        SendMessageW(e, EM_SETSEL, Some(WPARAM(0)), Some(LPARAM(-1)));
+    let _ = unsafe { ClientToScreen(h, &mut p) };
+    let at = RECT { left: p.x, top: p.y, right: p.x + r.right - r.left, bottom: p.y + r.bottom - r.top };
+    if let Some(e) = edit_popup(h, at, text, font, true) {
         view(h, |v| v.edit = Some((e, target)));
-        let _ = SetForegroundWindow(e);
-        let _ = SetFocus(Some(e));
     }
 }
 
@@ -85,9 +53,10 @@ pub(super) fn item(h: HWND, path: &PathBuf) {
     let g = layout::geo_now(h);
     let Some((text, font, origin)) = with(|a| {
         let font = label_font(a, h);
+        let flow = layout::flow(a, h, g.grid_w(), cell)?;
         let v = a.view(h)?;
         let i = v.items.iter().position(|it| &it.path == path)?;
-        let (x, y) = grid::origin(i, g.grid_w(), cell);
+        let (x, y) = flow.origin(i);
         Some((String::from_utf16_lossy(&v.items[i].name), font, g.cell((x, y - v.scroll), cell)))
     })
     .flatten() else {
@@ -107,10 +76,7 @@ pub(super) fn finish(h: HWND, commit: bool) {
     let Some((e, target)) = with(|a| a.view(h)?.edit.take()).flatten() else {
         return;
     };
-    let mut buf = [0u16; 260];
-    let n = unsafe { GetWindowTextW(e, &mut buf) } as usize;
-    unsafe { DestroyWindow(e).ok() };
-    let text = String::from_utf16_lossy(&buf[..n]);
+    let text = take_text(e);
     if !commit {
         return;
     }

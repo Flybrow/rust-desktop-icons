@@ -9,7 +9,7 @@ pub struct Pin {
     pub id: u64,
 }
 
-fn same(a: &Path, b: &Path) -> bool {
+pub fn same(a: &Path, b: &Path) -> bool {
     a.as_os_str().eq_ignore_ascii_case(b.as_os_str())
 }
 
@@ -55,20 +55,41 @@ impl Config {
     }
 }
 
-pub fn free_slots(taken: &[(i32, i32)], cell: (i32, i32), (ox, oy, _, h): (i32, i32, i32, i32), n: usize) -> Vec<(i32, i32)> {
+pub type Wall = (i32, i32, i32, i32);
+
+pub fn covered(walls: &[Wall], (x, y): (i32, i32), (cw, ch): (i32, i32)) -> bool {
+    walls.iter().any(|&(l, t, r, b)| x < r && x + cw > l && y < b && y + ch > t)
+}
+
+fn columns(cell: (i32, i32), (ox, oy, _, h): (i32, i32, i32, i32)) -> impl Iterator<Item = (i32, i32)> {
     let (cw, ch) = (cell.0.max(1), cell.1.max(1));
     let rows = (h / ch).max(1);
-    let busy = |x: i32, y: i32| taken.iter().any(|&(tx, ty)| (tx - x).abs() < cw && (ty - y).abs() < ch);
-    (0..).map(|i| (ox + i / rows * cw, oy + i % rows * ch)).filter(|&(x, y)| !busy(x, y)).take(n).collect()
+    (0..).map(move |i| (ox + i / rows * cw, oy + i % rows * ch))
+}
+
+fn busy(taken: &[(i32, i32)], walls: &[Wall], (cw, ch): (i32, i32)) -> impl Fn(&(i32, i32)) -> bool {
+    move |&(x, y)| taken.iter().any(|&(tx, ty)| (tx - x).abs() < cw && (ty - y).abs() < ch) || covered(walls, (x, y), (cw, ch))
+}
+
+pub fn free_slots(taken: &[(i32, i32)], walls: &[Wall], cell: (i32, i32), area: (i32, i32, i32, i32), n: usize) -> Vec<(i32, i32)> {
+    let used = busy(taken, walls, (cell.0.max(1), cell.1.max(1)));
+    columns(cell, area).filter(|p| !used(p)).take(n).collect()
+}
+
+pub fn clear_spot(taken: &[(i32, i32)], walls: &[Wall], cell: (i32, i32), area: (i32, i32, i32, i32)) -> Option<(i32, i32)> {
+    let (cw, ch) = (cell.0.max(1), cell.1.max(1));
+    let used = busy(taken, walls, (cw, ch));
+    let fits = |&(x, y): &(i32, i32)| x + cw <= area.0 + area.2 && y + ch <= area.1 + area.3;
+    columns(cell, area).take(((area.2 / cw).max(1) * (area.3 / ch).max(1)) as usize).filter(fits).find(|p| !used(p))
 }
 
 pub fn corner_slot(taken: &[(i32, i32)], cell: (i32, i32), (ox, oy, w, h): (i32, i32, i32, i32)) -> (i32, i32) {
     let (cw, ch) = (cell.0.max(1), cell.1.max(1));
     let rows = (h / ch).max(1);
-    let busy = |x: i32, y: i32| taken.iter().any(|&(tx, ty)| (tx - x).abs() < cw && (ty - y).abs() < ch);
+    let used = busy(taken, &[], (cw, ch));
     (0..rows * (w / cw).max(1))
         .map(|i| (ox + w - (i / rows + 1) * cw, oy + h - (i % rows + 1) * ch))
-        .find(|&(x, y)| !busy(x, y))
+        .find(|p| !used(p))
         .unwrap_or((ox + w - cw, oy + h - ch))
 }
 
@@ -106,10 +127,20 @@ mod tests {
 
     #[test]
     fn slots_fill_columns_and_skip_taken() {
-        assert_eq!(free_slots(&[], (100, 100), (0, 0, 1000, 250), 3), vec![(0, 0), (0, 100), (100, 0)]);
-        assert_eq!(free_slots(&[(0, 5), (0, 100)], (100, 100), (0, 0, 1000, 200), 2), vec![(100, 0), (100, 100)]);
-        assert_eq!(free_slots(&[], (0, 0), (0, 0, 0, 0), 2), vec![(0, 0), (1, 0)]);
-        assert_eq!(free_slots(&[(1920, 0)], (100, 100), (1920, 0, 1000, 200), 2), vec![(1920, 100), (2020, 0)]);
+        assert_eq!(free_slots(&[], &[], (100, 100), (0, 0, 1000, 250), 3), vec![(0, 0), (0, 100), (100, 0)]);
+        assert_eq!(free_slots(&[(0, 5), (0, 100)], &[], (100, 100), (0, 0, 1000, 200), 2), vec![(100, 0), (100, 100)]);
+        assert_eq!(free_slots(&[], &[], (0, 0), (0, 0, 0, 0), 2), vec![(0, 0), (1, 0)]);
+        assert_eq!(free_slots(&[(1920, 0)], &[], (100, 100), (1920, 0, 1000, 200), 2), vec![(1920, 100), (2020, 0)]);
+        assert_eq!(free_slots(&[], &[(0, 0, 150, 120)], (100, 100), (0, 0, 1000, 300), 2), vec![(0, 200), (100, 200)]);
+    }
+
+    #[test]
+    fn new_items_avoid_fences() {
+        let walls = [(0, 0, 250, 1000)];
+        assert!(covered(&walls, (240, 10), (100, 100)) && !covered(&walls, (250, 10), (100, 100)));
+        assert_eq!(clear_spot(&[(300, 0)], &walls, (100, 100), (0, 0, 1000, 300)), Some((300, 100)));
+        assert_eq!(clear_spot(&[], &[(0, 0, 1000, 300)], (100, 100), (0, 0, 1000, 300)), None);
+        assert_eq!(clear_spot(&[(0, 0)], &[], (100, 100), (0, 0, 150, 150)), None);
     }
 
     #[test]

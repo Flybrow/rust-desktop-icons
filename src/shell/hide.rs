@@ -1,4 +1,10 @@
-use crate::domain::pins::{corner_slot, free_slots};
+use crate::{
+    domain::{
+        pins::{Wall, clear_spot, covered, same},
+        stack::{self, Icon},
+    },
+    win::work_area,
+};
 use std::path::{Path, PathBuf};
 use windows::{
     Win32::{
@@ -14,7 +20,7 @@ use windows::{
                 *,
             },
             WindowsAndMessaging::{
-                FindWindowExW, FindWindowW, GetSystemMetrics, SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN, SPI_GETWORKAREA,
+                FindWindowExW, GetSystemMetrics, SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN, SPI_GETWORKAREA,
                 SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, SystemParametersInfoW,
             },
         },
@@ -23,8 +29,6 @@ use windows::{
 };
 
 pub const MASK: u32 = (FWF_AUTOARRANGE.0 | FWF_SNAPTOGRID.0) as u32;
-const AWAY: i32 = -20_000;
-
 struct Entry {
     path: PathBuf,
     pidl: *mut ITEMIDLIST,
@@ -38,16 +42,16 @@ impl Drop for Entry {
 }
 
 fn away(p: POINT) -> bool {
-    p.x <= AWAY / 2
+    stack::away((p.x, p.y))
 }
 
 fn listed(paths: &[PathBuf], p: &Path) -> bool {
-    paths.iter().any(|q| q.as_os_str().eq_ignore_ascii_case(p.as_os_str()))
+    paths.iter().any(|q| same(q, p))
 }
 
 pub fn listview() -> Option<HWND> {
     unsafe {
-        let progman = FindWindowW(w!("Progman"), None).ok()?;
+        let progman = crate::win::progman()?;
         let mut view = FindWindowExW(Some(progman), None, w!("SHELLDLL_DefView"), None).ok();
         let mut worker = None;
         while view.is_none() {
@@ -125,7 +129,7 @@ impl Desk {
         let entries = self.entries();
         let todo: Vec<&Entry> = entries.iter().filter(|e| listed(paths, &e.path)).collect();
         let cell = self.spacing();
-        let pts: Vec<POINT> = (0..todo.len() as i32).map(|i| POINT { x: at.x - cell.x / 2 + i * cell.x, y: at.y - cell.y / 2 }).collect();
+        let pts: Vec<POINT> = stack::row((at.x, at.y), (cell.x, cell.y), todo.len()).into_iter().map(|(x, y)| POINT { x, y }).collect();
         self.place(&todo, &pts);
     }
 
@@ -137,43 +141,66 @@ impl Desk {
         (area.left - vx, area.top - vy, area.right - area.left, area.bottom - area.top)
     }
 
-    pub fn sync(&self, keep: &[PathBuf], prev: Option<(i32, i32)>) -> Option<((i32, i32), RECT)> {
+    fn walls(screen: &[RECT]) -> Option<(POINT, Vec<Wall>)> {
+        let mut o = POINT::default();
+        let _ = unsafe { ClientToScreen(listview()?, &mut o) };
+        Some((o, screen.iter().map(|r| (r.left - o.x, r.top - o.y, r.right - o.x, r.bottom - o.y)).collect()))
+    }
+
+    pub fn item_at(&self, (x, y): (i32, i32)) -> bool {
+        let Some((o, _)) = Self::walls(&[]) else { return true };
+        let (cell, p) = (self.spacing(), (x - o.x, y - o.y));
+        self.entries()
+            .iter()
+            .filter(|e| !away(e.pos))
+            .any(|e| covered(&[(e.pos.x, e.pos.y, e.pos.x + cell.x, e.pos.y + cell.y)], p, (1, 1)))
+    }
+
+    pub fn uncover(&self, paths: &[PathBuf], fences: &[RECT]) {
+        if self.flags().is_some_and(|f| f & FWF_AUTOARRANGE.0 as u32 != 0) {
+            return;
+        }
+        let Some((o, walls)) = Self::walls(fences) else { return };
+        let (entries, cell) = (self.entries(), self.spacing());
+        let size = (cell.x, cell.y);
+        let mut taken: Vec<(i32, i32)> = entries.iter().filter(|e| !away(e.pos)).map(|e| (e.pos.x, e.pos.y)).collect();
+        for e in entries.iter().filter(|e| listed(paths, &e.path) && !away(e.pos) && covered(&walls, (e.pos.x, e.pos.y), size)) {
+            let (sx, sy) = (e.pos.x + o.x, e.pos.y + o.y);
+            let a = work_area(&RECT { left: sx, top: sy, right: sx + 1, bottom: sy + 1 });
+            let area = (a.left - o.x, a.top - o.y, a.right - a.left, a.bottom - a.top);
+            if let Some(p) = clear_spot(&taken, &walls, size, area) {
+                taken.push(p);
+                self.place(&[e], &[POINT { x: p.0, y: p.1 }]);
+            }
+        }
+    }
+
+    pub fn sync(&self, keep: &[PathBuf], prev: Option<(i32, i32)>, fences: &[RECT]) -> Option<((i32, i32), RECT)> {
         let entries = self.entries();
-        let (cell, area) = (self.spacing(), self.area());
-        let near = |p: POINT, (x, y): (i32, i32)| (p.x - x).abs() < cell.x && (p.y - y).abs() < cell.y;
-        let others: Vec<(i32, i32)> =
-            entries.iter().filter(|e| !away(e.pos) && !listed(keep, &e.path)).map(|e| (e.pos.x, e.pos.y)).collect();
-        let inside = |(x, y): (i32, i32)| x >= area.0 && y >= area.1 && x + cell.x <= area.0 + area.2 && y + cell.y <= area.1 + area.3;
-        let free = |p: (i32, i32)| inside(p) && !others.iter().any(|&o| near(POINT { x: o.0, y: o.1 }, p));
-        let stack = prev.filter(|&p| free(p)).unwrap_or_else(|| corner_slot(&others, (cell.x, cell.y), area));
-        let at = |e: &Entry| (e.pos.x, e.pos.y) == stack;
-        let hide: Vec<&Entry> = entries.iter().filter(|e| listed(keep, &e.path) && !at(e)).collect();
-        let show: Vec<&Entry> = entries.iter().filter(|e| !listed(keep, &e.path) && (away(e.pos) || at(e))).collect();
-        if !hide.is_empty() {
+        let cell = self.spacing();
+        let icons: Vec<Icon> = entries.iter().map(|e| Icon { pos: (e.pos.x, e.pos.y), kept: listed(keep, &e.path) }).collect();
+        let walls = Self::walls(fences).map(|(_, w)| w).unwrap_or_default();
+        let plan = stack::plan(&icons, prev, (cell.x, cell.y), self.area(), &walls);
+        let at = POINT { x: plan.stack.0, y: plan.stack.1 };
+        if !plan.hide.is_empty() {
             if self.flags().is_some_and(|f| f & MASK != 0) {
                 self.set_flags(0);
             }
-            self.place(&hide, &vec![POINT { x: stack.0, y: stack.1 }; hide.len()]);
+            self.place(&plan.hide.iter().map(|&k| &entries[k]).collect::<Vec<_>>(), &vec![at; plan.hide.len()]);
         }
-        let picked: Vec<&Entry> = entries
-            .iter()
-            .filter(|e| at(e) && unsafe { self.0.GetSelectionState(e.pidl) }.is_ok_and(|s| s & SVSI_SELECT.0 as u32 != 0))
-            .collect();
+        let selected = |e: &Entry| unsafe { self.0.GetSelectionState(e.pidl) }.is_ok_and(|s| s & SVSI_SELECT.0 as u32 != 0);
+        let picked: Vec<*const ITEMIDLIST> =
+            plan.stacked.iter().map(|&k| &entries[k]).filter(|e| selected(e)).map(|e| e.pidl as *const _).collect();
         if !picked.is_empty() {
-            let pidls: Vec<*const ITEMIDLIST> = picked.iter().map(|e| e.pidl as *const _).collect();
-            let _ = unsafe { self.0.SelectAndPositionItems(pidls.len() as u32, pidls.as_ptr(), None, SVSI_DESELECT.0 as u32) };
+            let _ = unsafe { self.0.SelectAndPositionItems(picked.len() as u32, picked.as_ptr(), None, SVSI_DESELECT.0 as u32) };
         }
-        if !show.is_empty() {
-            let taken: Vec<(i32, i32)> = others.iter().copied().chain([stack]).collect();
-            let slots = free_slots(&taken, (cell.x, cell.y), area, show.len());
-            self.place(&show, &slots.into_iter().map(|(x, y)| POINT { x, y }).collect::<Vec<_>>());
+        if !plan.show.is_empty() {
+            let items: Vec<&Entry> = plan.show.iter().map(|&(k, _)| &entries[k]).collect();
+            self.place(&items, &plan.show.iter().map(|&(_, (x, y))| POINT { x, y }).collect::<Vec<_>>());
         }
         let lv = listview()?;
-        let mut p = POINT { x: stack.0, y: stack.1 };
+        let mut p = at;
         let _ = unsafe { ClientToScreen(lv, &mut p) };
-        entries
-            .iter()
-            .any(|e| listed(keep, &e.path))
-            .then_some((stack, RECT { left: p.x - cell.x / 4, top: p.y, right: p.x + cell.x * 5 / 4, bottom: p.y + cell.y }))
+        plan.any_kept.then_some((plan.stack, RECT { left: p.x - cell.x / 4, top: p.y, right: p.x + cell.x * 5 / 4, bottom: p.y + cell.y }))
     }
 }

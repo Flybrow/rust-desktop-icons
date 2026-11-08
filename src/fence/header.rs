@@ -13,11 +13,11 @@ fn segment(w: i32, n: usize, i: usize) -> (i32, i32) {
     (i as i32 * w / n, (i as i32 + 1) * w / n)
 }
 
-fn text(frame: &Frame, font: HFONT, f: &Fence, t: i32, pad: i32) {
+fn text(frame: &Frame, font: HFONT, (f, hint): (&Fence, Option<&str>), t: i32, pad: i32) {
     let (w, n) = (frame.w, f.tabs.len());
     let flags = DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS;
-    if n == 1 {
-        return frame.text(font, &f.tabs[0].title, RECT { left: t / 2, top: 0, right: w - t / 2, bottom: t }, flags);
+    if n == 1 || hint.is_some() {
+        return frame.text(font, hint.unwrap_or(&f.tabs[0].title), RECT { left: t / 2, top: 0, right: w - t / 2, bottom: t }, flags);
     }
     for (i, tab) in f.tabs.iter().enumerate() {
         let (x0, x1) = segment(w, n, i);
@@ -47,16 +47,16 @@ pub(super) fn paint(
     main: &mut Frame,
     g: &Geo,
     font: HFONT,
-    f: &Fence,
+    (f, hint): (&Fence, Option<&str>),
     active: Option<usize>,
     (fg, shade): (u32, u32),
     s: impl Fn(i32) -> i32,
 ) {
     let (len, t) = (g.length(), g.bar);
     let Some(mut bar) = Frame::new(len, t) else { return };
-    text(&bar, font, f, t, s(8));
+    text(&bar, font, (f, hint), t, s(8));
     bar.flush();
-    shapes(&mut bar.canvas(), f, active, g.side.flipped(), &s);
+    shapes(&mut bar.canvas(), f, active.filter(|_| hint.is_none()), g.side.flipped(), &s);
     bar.text_layers(fg, shade, s(2), (0, t));
     let (x0, y0, _, _) = g.bar_rect();
     let c = main.canvas();

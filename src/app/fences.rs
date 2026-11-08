@@ -9,17 +9,17 @@ pub fn register_verb() {
 }
 
 pub fn new_fence() {
+    crate::visibility::end_peek();
+    crate::visibility::reveal();
     let (px, py) = cursor_pos();
     let s = sys_scale;
-    let Some(f) = with(|a| {
+    let Some(f) = super::edit(|a| {
         let f = Fence::new(a.cfg.next_id(), a.t(T::Fence), (px - s(180), py - s(120), s(360), s(240)), a.cfg.look.clone());
         a.cfg.fences.push(f.clone());
-        a.save();
         f
     }) else {
         return;
     };
-    super::check_save();
     open(&f);
 }
 
@@ -34,6 +34,8 @@ fn open(f: &Fence) {
 }
 
 pub fn rebuild() {
+    crate::visibility::end_peek();
+    crate::visibility::reveal();
     let Some((old, fences)) = with(|a| (std::mem::take(&mut a.views), a.cfg.fences.clone())) else {
         return;
     };

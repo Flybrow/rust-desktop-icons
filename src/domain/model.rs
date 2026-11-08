@@ -1,8 +1,8 @@
-use super::{icons, kind::Kind, order::Sort, pins::Pin, system::Sys};
+use super::{compat, grid::Align, icons, inherit::Field, kind::Kind, order::Sort, pins::Pin, system::Sys};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-fn clean(s: &str) -> String {
+pub(super) fn clean(s: &str) -> String {
     s.chars().filter(|c| !c.is_control()).take(64).collect()
 }
 
@@ -15,11 +15,23 @@ pub struct Look {
     pub tint: Option<u32>,
     pub chameleon: bool,
     pub auto_height: bool,
+    pub labels: bool,
+    #[serde(deserialize_with = "compat::or_default")]
+    pub align: Align,
 }
 
 impl Default for Look {
     fn default() -> Self {
-        Self { color: 0x302820, alpha: 217, icon: icons::DEFAULT, tint: None, chameleon: false, auto_height: true }
+        Self {
+            color: 0x302820,
+            alpha: 217,
+            icon: icons::DEFAULT,
+            tint: None,
+            chameleon: false,
+            auto_height: true,
+            labels: true,
+            align: Align::Left,
+        }
     }
 }
 
@@ -53,12 +65,14 @@ pub struct Tab {
     pub id: u64,
     pub title: String,
     pub portal: Option<PathBuf>,
+    #[serde(deserialize_with = "compat::known")]
     pub kinds: Vec<Kind>,
+    #[serde(deserialize_with = "compat::or_default")]
     pub sort: Sort,
     pub order: Vec<String>,
     #[serde(skip_serializing)]
     pub recycle: bool,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty", deserialize_with = "compat::known")]
     pub system: Vec<Sys>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub pins: Vec<Pin>,
@@ -81,6 +95,8 @@ pub struct Fence {
     pub look: Look,
     pub tabs: Vec<Tab>,
     pub tab: usize,
+    #[serde(default)]
+    pub custom: Option<Vec<Field>>,
 }
 
 impl Default for Fence {
@@ -98,6 +114,7 @@ impl Default for Fence {
             look: Look::default(),
             tabs: vec![],
             tab: 0,
+            custom: None,
         }
     }
 }
@@ -107,7 +124,7 @@ impl Fence {
 
     pub fn new(id: u64, title: &str, (x, y, w, h): (i32, i32, i32, i32), look: Look) -> Self {
         let tabs = vec![Tab { id, title: title.into(), ..Tab::default() }];
-        Self { id, x, y, w, h, look, tabs, ..Self::default() }
+        Self { id, x, y, w, h, look, tabs, custom: Some(vec![]), ..Self::default() }
     }
 
     pub fn active(&self) -> &Tab {

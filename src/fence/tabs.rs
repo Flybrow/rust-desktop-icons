@@ -59,6 +59,7 @@ pub(super) fn select(h: HWND, i: usize) {
         f.tab = i;
         let v = a.view(h)?;
         let items = std::mem::take(&mut v.items);
+        v.cache.retain(|(id, _)| *id != old);
         v.cache.push((old, items));
         v.scroll = 0;
         let found = v.cache.iter().position(|(id, _)| *id == new).map(|k| v.cache.remove(k).1);
@@ -76,14 +77,12 @@ pub(super) fn select(h: HWND, i: usize) {
 
 fn add(h: HWND, portal: Option<PathBuf>) {
     let title = portal.as_ref().and_then(|p| p.file_name()).map(|n| n.to_string_lossy().into_owned());
-    let dir = with(|a| {
+    let dir = crate::app::edit(|a| {
         let (id, name) = (a.cfg.next_id(), a.t(T::NewTab));
         let f = a.fence_of(h)?;
         f.tabs.push(Tab { id, title: title.unwrap_or_else(|| name.into()), portal, ..Tab::default() });
         f.tab = f.tabs.len() - 1;
-        let dir = store::tab_dir(f.active());
-        a.save();
-        Some(dir)
+        Some(store::tab_dir(f.active()))
     });
     report::failures(T::ErrSave, &store::ensure(&dir.flatten().into_iter().collect::<Vec<_>>()));
     update(h, |_| {});
@@ -103,7 +102,7 @@ pub(super) fn new_portal(h: HWND) {
 pub(super) fn remove(h: HWND) {
     let Some(f) = fence_of(h).filter(|f| f.tabs.len() > 1) else { return };
     let tab = f.active().clone();
-    if tab.portal.is_none() && !actions::confirm(h, T::ConfirmDeleteTab) {
+    if tab.portal.is_none() && !crate::report::confirm(h, T::ConfirmDeleteTab) {
         return;
     }
     if tab.portal.is_none() {

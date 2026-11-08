@@ -1,13 +1,73 @@
 pub type Rect = [i32; 4];
+const MAX_GAP: i32 = 400;
 
-fn near(pairs: [(i32, i32); 2], d: i32) -> i32 {
-    pairs.iter().find(|(v, t)| (t - v).abs() < d).map_or(0, |(v, t)| t - v)
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Guide {
+    pub from: (i32, i32),
+    pub to: (i32, i32),
 }
 
-pub fn moving(r: Rect, area: Rect, d: i32) -> Rect {
-    let dx = near([(r[0], area[0]), (r[2], area[2])], d);
-    let dy = near([(r[1], area[1]), (r[3], area[3])], d);
-    [r[0] + dx, r[1] + dy, r[2] + dx, r[3] + dy]
+fn flip(r: Rect) -> Rect {
+    [r[1], r[0], r[3], r[2]]
+}
+
+fn flip_guide(g: Guide) -> Guide {
+    Guide { from: (g.from.1, g.from.0), to: (g.to.1, g.to.0) }
+}
+
+fn across(a: Rect, b: Rect) -> bool {
+    a[1] < b[3] && b[1] < a[3]
+}
+
+fn gaps(others: &[Rect], gap: i32) -> Vec<i32> {
+    let mut out = vec![gap];
+    for a in others {
+        out.extend(others.iter().filter(|b| across(*a, **b)).map(|b| b[0] - a[2]).filter(|g| (1..=MAX_GAP).contains(g)));
+    }
+    out
+}
+
+fn shift(r: Rect, area: Rect, others: &[Rect], gaps: &[i32], d: i32) -> i32 {
+    let (mut lo, mut hi) = (vec![area[0]], vec![area[2]]);
+    for o in others {
+        lo.extend([o[0], o[2]]);
+        hi.extend([o[0], o[2]]);
+        if across(r, *o) {
+            lo.extend(gaps.iter().map(|g| o[2] + g));
+            hi.extend(gaps.iter().map(|g| o[0] - g));
+        }
+    }
+    lo.iter().map(|t| t - r[0]).chain(hi.iter().map(|t| t - r[2])).filter(|v| v.abs() < d).min_by_key(|v| v.abs()).unwrap_or(0)
+}
+
+fn lines(r: Rect, others: &[Rect], gaps: &[i32]) -> Vec<Guide> {
+    let mut out = vec![];
+    for o in others {
+        for e in [r[0], r[2]].into_iter().filter(|e| *e == o[0] || *e == o[2]) {
+            out.push(Guide { from: (e, r[1].min(o[1])), to: (e, r[3].max(o[3])) });
+        }
+    }
+    let mid = |o: &Rect| (r[1].max(o[1]) + r[3].min(o[3])) / 2;
+    let left = others.iter().filter(|o| across(r, **o) && o[2] < r[0]).max_by_key(|o| o[2]);
+    let right = others.iter().filter(|o| across(r, **o) && o[0] > r[2]).min_by_key(|o| o[0]);
+    out.extend(left.filter(|o| gaps.contains(&(r[0] - o[2]))).map(|o| Guide { from: (o[2], mid(o)), to: (r[0], mid(o)) }));
+    out.extend(right.filter(|o| gaps.contains(&(o[0] - r[2]))).map(|o| Guide { from: (r[2], mid(o)), to: (o[0], mid(o)) }));
+    out
+}
+
+pub fn guides(r: Rect, others: &[Rect], gap: i32) -> Vec<Guide> {
+    let flipped: Vec<Rect> = others.iter().map(|o| flip(*o)).collect();
+    let mut out = lines(r, others, &gaps(others, gap));
+    out.extend(lines(flip(r), &flipped, &gaps(&flipped, gap)).into_iter().map(flip_guide));
+    out
+}
+
+pub fn moving(r: Rect, area: Rect, others: &[Rect], d: i32, gap: i32) -> (Rect, Vec<Guide>) {
+    let flipped: Vec<Rect> = others.iter().map(|o| flip(*o)).collect();
+    let dx = shift(r, area, others, &gaps(others, gap), d);
+    let dy = shift(flip(r), flip(area), &flipped, &gaps(&flipped, gap), d);
+    let out = [r[0] + dx, r[1] + dy, r[2] + dx, r[3] + dy];
+    (out, guides(out, others, gap))
 }
 
 pub fn follow(start: Rect, (x0, y0): (i32, i32), (x, y): (i32, i32)) -> Rect {
@@ -19,29 +79,85 @@ pub fn sizing(r: Rect, area: Rect, d: i32, sides: [bool; 4]) -> Rect {
     std::array::from_fn(|i| if sides[i] && (area[i] - r[i]).abs() < d { area[i] } else { r[i] })
 }
 
+pub fn grid_len(len: i32, chrome: i32, cell: i32, min: i32, room: i32) -> i32 {
+    let cell = cell.max(1);
+    let n = ((len - chrome + cell / 2) / cell).max(1);
+    let n = if chrome + n * cell > room { ((room - chrome) / cell).max(1) } else { n };
+    (chrome + n * cell).max(min)
+}
+
+pub fn resize(r: Rect, sides: [bool; 4], (w, h): (Option<i32>, Option<i32>)) -> Rect {
+    let mut out = r;
+    for (lo, len) in [(0, w), (1, h)] {
+        match len {
+            Some(n) if sides[lo] => out[lo] = r[lo + 2] - n,
+            Some(n) if sides[lo + 2] => out[lo + 2] = r[lo] + n,
+            _ => {}
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    const AREA: Rect = [0, 0, 1920, 1040];
+
+    fn snap(r: Rect, others: &[Rect]) -> Rect {
+        moving(r, AREA, others, 16, 10).0
+    }
+
     #[test]
     fn slow_drag_leaves_the_edge() {
-        let (area, start) = ([0, 0, 1920, 1040], [0, 0, 300, 150]);
+        let start = [0, 0, 300, 150];
         let mut r = start;
         for step in 1..=20 {
-            r = moving(follow(start, (150, 17), (150 + step * 12, 17 + step * 10)), area, 16);
+            r = snap(follow(start, (150, 17), (150 + step * 12, 17 + step * 10)), &[]);
         }
         assert_eq!(r, [240, 200, 540, 350]);
-        assert_eq!(moving(follow(start, (150, 17), (160, 27)), area, 16), start);
+        assert_eq!(snap(follow(start, (150, 17), (160, 27)), &[]), start);
     }
 
     #[test]
     fn snapping() {
-        let area = [0, 0, 1920, 1040];
-        assert_eq!(moving([5, 300, 365, 540], area, 16), [0, 300, 360, 540]);
-        assert_eq!(moving([-7, 1030, 353, 1050], area, 16), [0, 1020, 360, 1040]);
-        assert_eq!(moving([1565, 10, 1925, 250], area, 16), [1560, 0, 1920, 240]);
-        assert_eq!(moving([100, 100, 460, 340], area, 16), [100, 100, 460, 340]);
-        assert_eq!(sizing([4, 4, 1910, 1045], area, 16, [false, true, true, false]), [4, 0, 1920, 1045]);
-        assert_eq!(sizing([4, 4, 1910, 1045], area, 16, [true; 4]), area);
+        assert_eq!(snap([5, 300, 365, 540], &[]), [0, 300, 360, 540]);
+        assert_eq!(snap([-7, 1030, 353, 1050], &[]), [0, 1020, 360, 1040]);
+        assert_eq!(snap([1565, 10, 1925, 250], &[]), [1560, 0, 1920, 240]);
+        assert_eq!(snap([100, 100, 460, 340], &[]), [100, 100, 460, 340]);
+        assert_eq!(sizing([4, 4, 1910, 1045], AREA, 16, [false, true, true, false]), [4, 0, 1920, 1045]);
+        assert_eq!(sizing([4, 4, 1910, 1045], AREA, 16, [true; 4]), AREA);
+    }
+
+    #[test]
+    fn lines_up_with_other_fences() {
+        let other = [500, 500, 800, 700];
+        let (r, g) = moving([505, 100, 705, 300], AREA, &[other], 16, 10);
+        assert_eq!(r, [500, 100, 700, 300]);
+        assert_eq!(g, vec![Guide { from: (500, 100), to: (500, 700) }]);
+        let (r, g) = moving([812, 530, 1012, 660], AREA, &[other], 16, 10);
+        assert_eq!(r, [810, 530, 1010, 660]);
+        assert_eq!(g, vec![Guide { from: (800, 595), to: (810, 595) }]);
+        assert_eq!(snap([830, 100, 1030, 300], &[other]), [830, 100, 1030, 300]);
+    }
+
+    #[test]
+    fn matches_existing_spacing() {
+        let (a, b) = ([100, 100, 300, 300], [340, 100, 540, 300]);
+        let (r, g) = moving([575, 103, 775, 303], AREA, &[a, b], 16, 10);
+        assert_eq!(r, [580, 100, 780, 300]);
+        assert!(g.contains(&Guide { from: (540, 200), to: (580, 200) }));
+        assert!(g.contains(&Guide { from: (100, 100), to: (780, 100) }));
+    }
+
+    #[test]
+    fn sizes_follow_the_icon_grid() {
+        assert_eq!(grid_len(250, 0, 80, 120, 2000), 240);
+        assert_eq!(grid_len(285, 0, 80, 120, 2000), 320);
+        assert_eq!(grid_len(50, 0, 80, 120, 2000), 120);
+        assert_eq!(grid_len(300, 46, 80, 80, 2000), 286);
+        assert_eq!(grid_len(330, 0, 80, 120, 300), 240);
+        assert_eq!(resize([100, 100, 350, 300], [false, false, true, true], (Some(240), Some(206))), [100, 100, 340, 306]);
+        assert_eq!(resize([100, 100, 350, 300], [true, true, false, false], (Some(240), None)), [110, 100, 350, 300]);
     }
 }

@@ -1,10 +1,54 @@
-#![allow(dead_code)]
-use std::{fs, path::Path, thread, time::Duration};
-use windows::Win32::Foundation::{HWND, LPARAM, POINT, RECT};
+#![allow(dead_code, unused_imports)]
+pub mod desk;
+mod input;
+
+pub use input::{chord, cursor, double_click, drag, glide, point, press, right, show_desktop, type_text};
+
+use std::{
+    fs,
+    path::Path,
+    process::{Child, Command, Stdio},
+    thread,
+    time::{Duration, Instant},
+};
+use windows::Win32::Foundation::{HWND, LPARAM, POINT, RECT, WPARAM};
 use windows::Win32::Graphics::Gdi::*;
-use windows::Win32::UI::Input::KeyboardAndMouse::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::BOOL;
+
+pub fn app(root: &Path, env: &[(&str, &str)], args: &[&str]) -> Child {
+    let exe = std::env::current_exe().unwrap().parent().unwrap().parent().unwrap().join("rust-desktop-icons.exe");
+    let mut c = Command::new(exe);
+    c.args(args).env("LOCALAPPDATA", root).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+    for (k, v) in env {
+        c.env(k, v);
+    }
+    c.spawn().expect("build the app first: cargo build")
+}
+
+pub fn waited(secs: u64, mut f: impl FnMut() -> bool) -> Option<u128> {
+    let t = Instant::now();
+    while t.elapsed() < Duration::from_secs(secs) {
+        if f() {
+            return Some(t.elapsed().as_millis());
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
+    None
+}
+
+pub fn wait(secs: u64, f: impl FnMut() -> bool) -> bool {
+    waited(secs, f).is_some()
+}
+
+pub fn poll<T>(secs: u64, mut f: impl FnMut() -> Option<T>) -> Option<T> {
+    let mut out = None;
+    waited(secs, || {
+        out = f();
+        out.is_some()
+    });
+    out
+}
 
 pub fn work() -> RECT {
     let mut r = RECT::default();
@@ -19,19 +63,37 @@ fn class(h: HWND) -> String {
 }
 
 unsafe extern "system" fn collect(h: HWND, lp: LPARAM) -> BOOL {
-    let (pid, name, out) = unsafe { &mut *(lp.0 as *mut (u32, &str, Vec<HWND>)) };
+    let (pid, name, all, out) = unsafe { &mut *(lp.0 as *mut (u32, &str, bool, Vec<HWND>)) };
     let mut p = 0;
     unsafe { GetWindowThreadProcessId(h, Some(&mut p)) };
-    if (*pid == 0 || p == *pid) && class(h) == *name && unsafe { IsWindowVisible(h) }.as_bool() {
+    if (*pid == 0 || p == *pid) && class(h) == *name && (*all || unsafe { IsWindowVisible(h) }.as_bool()) {
         out.push(h);
     }
     true.into()
 }
 
-pub fn windows(pid: u32, name: &str) -> Vec<HWND> {
-    let mut st = (pid, name, Vec::<HWND>::new());
+fn find(pid: u32, name: &str, all: bool) -> Vec<HWND> {
+    let mut st = (pid, name, all, Vec::<HWND>::new());
     let _ = unsafe { EnumWindows(Some(collect), LPARAM(&mut st as *mut _ as isize)) };
-    st.2
+    st.3
+}
+
+pub fn windows(pid: u32, name: &str) -> Vec<HWND> {
+    find(pid, name, false)
+}
+
+pub fn quit(app: &mut Child) {
+    for h in find(app.id(), "RustDesktopIcons.Tray.dev", true) {
+        let _ = unsafe { PostMessageW(Some(h), WM_CLOSE, WPARAM(0), LPARAM(0)) };
+    }
+    for _ in 0..50 {
+        if app.try_wait().ok().flatten().is_some() {
+            return;
+        }
+        thread::sleep(Duration::from_millis(100));
+    }
+    let _ = app.kill();
+    let _ = app.wait();
 }
 
 pub fn rect(h: HWND) -> RECT {
@@ -44,47 +106,23 @@ pub fn fences(pid: u32) -> Vec<RECT> {
     windows(pid, "RustDesktopIcons.Fence").into_iter().map(rect).collect()
 }
 
-pub fn point(p: (i32, i32)) {
-    unsafe { SetCursorPos(p.0, p.1).unwrap() };
-}
-
-pub fn cursor() -> (i32, i32) {
-    let mut p = POINT::default();
-    unsafe { GetCursorPos(&mut p).unwrap() };
-    (p.x, p.y)
-}
-
-fn button(flag: MOUSE_EVENT_FLAGS) {
-    let input = INPUT { r#type: INPUT_MOUSE, Anonymous: INPUT_0 { mi: MOUSEINPUT { dwFlags: flag, ..Default::default() } } };
-    unsafe { SendInput(&[input], size_of::<INPUT>() as i32) };
-    thread::sleep(Duration::from_millis(60));
-}
-
-pub fn drag(from: (i32, i32), to: (i32, i32)) {
-    point(from);
-    thread::sleep(Duration::from_millis(150));
-    button(MOUSEEVENTF_LEFTDOWN);
-    for k in 1..=20 {
-        point((from.0 + (to.0 - from.0) * k / 20, from.1 + (to.1 - from.1) * k / 20));
-        thread::sleep(Duration::from_millis(30));
-    }
-    thread::sleep(Duration::from_millis(200));
-    button(MOUSEEVENTF_LEFTUP);
-}
-
 pub fn on_desktop((x, y): (i32, i32)) -> bool {
     let root = unsafe { GetAncestor(WindowFromPoint(POINT { x, y }), GA_ROOT) };
     matches!(class(root).as_str(), "Progman" | "WorkerW")
 }
 
 pub fn free_desktop_spot(avoid: &[RECT]) -> Option<(i32, i32)> {
+    let icons: Vec<(i32, i32)> = desk::positions().into_iter().map(|(_, p)| desk::screen(p)).collect();
     let w = work();
     let inside = |r: &RECT, (x, y): (i32, i32)| x > r.left - 150 && x < r.right + 150 && y > r.top - 150 && y < r.bottom + 150;
-    (0..40)
+    let on_icon = |p: &(i32, i32)| icons.iter().any(|q| (q.0 - 20..q.0 + 100).contains(&p.0) && (q.1 - 20..q.1 + 100).contains(&p.1));
+    let spots: Vec<(i32, i32)> = (0..40)
         .flat_map(|i| {
             (0..40).map(move |j| (w.left + 60 + i * (w.right - w.left - 120) / 39, w.top + 60 + j * (w.bottom - w.top - 120) / 39))
         })
-        .find(|&p| !avoid.iter().any(|r| inside(r, p)) && on_desktop(p))
+        .filter(|&p| !avoid.iter().any(|r| inside(r, p)) && on_desktop(p))
+        .collect();
+    spots.iter().find(|p| !on_icon(p)).or(spots.first()).copied()
 }
 
 pub fn capture(r: &RECT, path: &Path) {

@@ -10,11 +10,12 @@ pub enum Kind {
     Music,
     Archives,
     Folders,
+    Other,
 }
 
 impl Kind {
-    pub const ALL: [Kind; 8] =
-        [Kind::Games, Kind::Apps, Kind::Images, Kind::Documents, Kind::Videos, Kind::Music, Kind::Archives, Kind::Folders];
+    pub const ALL: [Kind; 9] =
+        [Kind::Games, Kind::Apps, Kind::Images, Kind::Documents, Kind::Videos, Kind::Music, Kind::Archives, Kind::Folders, Kind::Other];
 
     fn exts(self) -> &'static [&'static str] {
         match self {
@@ -26,7 +27,7 @@ impl Kind {
             Kind::Videos => &["mp4", "mkv", "avi", "mov", "wmv", "webm", "flv", "m4v", "mpg", "mpeg"],
             Kind::Music => &["mp3", "wav", "flac", "aac", "ogg", "m4a", "wma", "opus", "mid"],
             Kind::Archives => &["zip", "rar", "7z", "tar", "gz", "bz2", "xz", "iso", "cab"],
-            Kind::Folders | Kind::Games => &[],
+            Kind::Folders | Kind::Games | Kind::Other => &[],
         }
     }
 
@@ -69,6 +70,11 @@ pub fn candidates(ext: Option<&str>, dir: bool, target: Option<&str>) -> Vec<Kin
     if target.is_some_and(is_game) { [Some(Kind::Games), base].into_iter().flatten().collect() } else { base.into_iter().collect() }
 }
 
+pub fn ignored(name: &str, hidden: bool, own: &str) -> bool {
+    let lower = name.to_lowercase();
+    hidden || lower == "desktop.ini" || lower == own.to_lowercase() || transient(lower.rsplit_once('.').map(|(_, e)| e))
+}
+
 pub fn transient(ext: Option<&str>) -> bool {
     ext.is_some_and(|e| ["crdownload", "part", "partial", "tmp", "download", "opdownload"].iter().any(|t| e.eq_ignore_ascii_case(t)))
 }
@@ -99,5 +105,8 @@ mod tests {
         assert_eq!(Kind::of(Some("xyz"), false), None);
         assert_eq!(Kind::of(None, false), None);
         assert!(transient(Some("CRDOWNLOAD")) && !transient(Some("zip")) && !transient(None));
+        let own = "Rust Desktop Icons.lnk";
+        assert!(ignored("Desktop.ini", false, own) && ignored("rust desktop icons.LNK", false, own) && ignored("a.part", false, own));
+        assert!(ignored("photo.jpg", true, own) && !ignored("photo.jpg", false, own) && !ignored("README", false, own));
     }
 }

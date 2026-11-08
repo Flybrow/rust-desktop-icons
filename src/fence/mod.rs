@@ -5,7 +5,9 @@ mod cell;
 mod drop;
 mod edit;
 mod ghost;
+mod guides;
 mod header;
+mod host;
 mod items;
 mod keys;
 mod layout;
@@ -19,6 +21,7 @@ mod snap;
 mod system;
 mod tabs;
 mod target;
+mod window;
 
 use crate::{
     app::{App, View, with},
@@ -29,22 +32,23 @@ use crate::{
 use windows::{
     Win32::{
         Foundation::*,
-        Graphics::Gdi::{FW_NORMAL, FW_SEMIBOLD, HFONT, MONITOR_DEFAULTTONULL, MonitorFromRect, ScreenToClient},
+        Graphics::Gdi::{FW_NORMAL, FW_SEMIBOLD, HFONT, ScreenToClient},
         UI::WindowsAndMessaging::*,
     },
     core::*,
 };
 
 pub use edit::key;
-pub use items::{reload, reload_all};
+pub use items::{reload, reload_all, windows as hwnds};
 pub use paint::render;
 pub use tabs::bind;
+use window::top;
+pub use window::{create, footprints, raise};
 
 pub const CLASS: PCWSTR = w!("RustDesktopIcons.Fence");
 pub const WM_CHANGED: u32 = WM_APP + 10;
 const TITLE: i32 = 34;
 const BORDER: i32 = 6;
-const EN_KILLFOCUS: u32 = 0x0200;
 const MK_CONTROL: usize = 0x0008;
 const TABS: usize = 64;
 const RELOAD: usize = 1;
@@ -89,41 +93,27 @@ fn fence_of(h: HWND) -> Option<Fence> {
 }
 
 fn update(h: HWND, f: impl FnOnce(&mut Fence)) {
-    with(|a| {
-        f(a.fence_of(h)?);
-        a.save();
-        Some(())
-    });
-    crate::app::check_save();
+    crate::app::edit(|a| a.fence_of(h).map(f));
     layout::apply(h);
 }
 
+fn restyle(h: HWND) {
+    layout::apply(h);
+    anim::start(h);
+}
+
+pub fn register_classes() {
+    guides::register_class();
+    host::register_class();
+}
+
+pub fn restyle_all() {
+    items::windows().into_iter().for_each(restyle);
+}
+
 fn metrics(h: HWND) -> (i32, i32) {
-    let px = read(h, |f| f.look.icon).unwrap_or(icons::DEFAULT);
-    (scale(h, icons::cell(px)), scale(h, px))
-}
-
-fn top() -> bool {
-    cfg!(debug_assertions) && std::env::var_os("RDI_TOP").is_some()
-}
-
-pub fn create(f: &Fence) -> Option<HWND> {
-    unsafe {
-        let r = RECT { left: f.x, top: f.y, right: f.x + f.w, bottom: f.y + f.h };
-        let (x, y) = if MonitorFromRect(&r, MONITOR_DEFAULTTONULL).is_invalid() { (100, 100) } else { (f.x, f.y) };
-        let owner = if top() { None } else { FindWindowW(w!("Progman"), None).ok() };
-        let ex = WS_EX_TOOLWINDOW | WS_EX_LAYERED;
-        let h = CreateWindowExW(ex, CLASS, PCWSTR::null(), WS_POPUP, x, y, f.w, f.h, owner, None, Some(inst()), None).ok()?;
-        if f.rolled {
-            layout::resize(h, f);
-        }
-        if top() {
-            let _ = SetWindowPos(h, Some(HWND_TOPMOST), 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-        }
-        let _ = ShowWindow(h, SW_SHOWNOACTIVATE);
-        target::register(h);
-        Some(h)
-    }
+    let (px, labels) = read(h, |f| (f.look.icon, f.look.labels)).unwrap_or((icons::DEFAULT, true));
+    (scale(h, icons::cell(px, labels)), scale(h, px))
 }
 
 pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {
@@ -131,16 +121,8 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
         WM_NCHITTEST => return LRESULT(layout::hit(h, lp) as isize),
         WM_MOUSEACTIVATE => return LRESULT(if (lp.0 & 0xFFFF) as u32 == HTCLIENT { MA_ACTIVATE } else { MA_NOACTIVATE } as isize),
         WM_KEYDOWN if keys::handle(h, wp.0 as u16) => {}
-        WM_INITMENUPOPUP | WM_DRAWITEM | WM_MEASUREITEM | WM_MENUCHAR => {
-            return native::forward(h, m, wp, lp).unwrap_or_else(|| unsafe { DefWindowProcW(h, m, wp, lp) });
-        }
         WM_SIZE if !layout::sizing(h) => render(h),
-        WM_WINDOWPOSCHANGING => {
-            let p = unsafe { &mut *(lp.0 as *mut WINDOWPOS) };
-            if (p.flags & SWP_NOZORDER).0 == 0 && !top() {
-                p.hwndInsertAfter = HWND_BOTTOM;
-            }
-        }
+        WM_WINDOWPOSCHANGING if !top() && !crate::visibility::peeking() => keep_bottom(lp),
         WM_GETMINMAXINFO => {
             let i = unsafe { &mut *(lp.0 as *mut MINMAXINFO) };
             let (len, bar) = (scale(h, Fence::MIN.0), scale(h, TITLE));
@@ -151,10 +133,7 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
             snap::end(h);
             layout::persist(h);
         }
-        WM_DPICHANGED => {
-            let r = unsafe { &*(lp.0 as *const RECT) };
-            unsafe { SetWindowPos(h, None, r.left, r.top, r.right - r.left, r.bottom - r.top, SWP_NOZORDER | SWP_NOACTIVATE).ok() };
-        }
+        WM_DPICHANGED => crate::layered::popup::follow_dpi(h, lp),
         WM_MOVING => {
             if read(h, |f| f.locked) == Some(true) {
                 unsafe { *(lp.0 as *mut RECT) = window_rect(h) };
@@ -168,6 +147,7 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
             return LRESULT(1);
         }
         WM_NCLBUTTONDOWN if wp.0 as u32 == HTCAPTION && tabs::click(h, xy(lp)) => {}
+        WM_NCLBUTTONDOWN => return snap::press(h, xy(lp), || unsafe { DefWindowProcW(h, m, wp, lp) }),
         WM_NCLBUTTONDBLCLK if wp.0 as u32 == HTCAPTION => peek::toggle(h),
         WM_NCMOUSEMOVE => {
             peek::enter(h);
@@ -188,11 +168,11 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
         WM_MOUSELEAVE => items::hover(h, None),
         WM_MOUSEWHEEL if wp.0 & MK_CONTROL != 0 => {
             if let Some(f) = fence_of(h) {
-                items::set_icon(h, icons::step(f.look.icon, (wp.0 >> 16) as i16 > 0));
+                items::set_icon(h, icons::step(f.look.icon, wheel(wp) > 0));
             }
         }
         WM_MOUSEWHEEL => {
-            let step = (wp.0 >> 16) as i16 as i32 * metrics(h).0 / 120;
+            let step = wheel(wp) * metrics(h).0 / 120;
             view(h, |v| v.scroll -= step);
             render(h);
         }

@@ -10,7 +10,7 @@ pub(super) fn show(h: HWND, paths: &[PathBuf], at: (i32, i32)) {
     let extended = key_down(VK_SHIFT);
     let Some(native) = menu::build(paths, extended) else { return };
     view(h, |v| v.native = Some(native.cm.clone()));
-    let id = native.track(h, at);
+    let id = native.track(super::host::for_menu(h), at);
     view(h, |v| v.native = None);
     let Some(id) = id else { return };
     if native.verb(id).eq_ignore_ascii_case("rename") {

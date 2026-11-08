@@ -24,10 +24,10 @@ impl Drop for Native {
 
 pub fn build(paths: &[PathBuf], extended: bool) -> Option<Native> {
     let cm: IContextMenu = data::items(paths, &BHID_SFUIObject)?;
-    let menu = unsafe { CreatePopupMenu() }.ok()?;
+    let native = Native { cm, menu: unsafe { CreatePopupMenu() }.ok()? };
     let flags = CMF_NORMAL | CMF_CANRENAME | if extended { CMF_EXTENDEDVERBS } else { 0 };
-    unsafe { cm.QueryContextMenu(menu, 0, FIRST, 0x7FFF, flags) }.ok().ok()?;
-    Some(Native { cm, menu })
+    unsafe { native.cm.QueryContextMenu(native.menu, 0, FIRST, 0x7FFF, flags) }.ok().ok()?;
+    Some(native)
 }
 
 impl Native {

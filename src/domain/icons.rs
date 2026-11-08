@@ -14,8 +14,8 @@ pub fn label(px: i32) -> String {
     format!("{px} px")
 }
 
-pub fn cell(px: i32) -> i32 {
-    px + 56
+pub fn cell(px: i32, labels: bool) -> i32 {
+    px + if labels { 56 } else { 24 }
 }
 
 #[cfg(test)]
@@ -30,6 +30,6 @@ mod tests {
         assert_eq!(step(48, false), 40);
         assert_eq!(step(128, true), 128);
         assert_eq!(step(24, false), 24);
-        assert_eq!(cell(DEFAULT), 104);
+        assert_eq!((cell(DEFAULT, true), cell(DEFAULT, false)), (104, 72));
     }
 }

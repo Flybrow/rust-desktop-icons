@@ -6,112 +6,24 @@ use std::{
     path::PathBuf,
     process::{Child, Command, Stdio},
     thread,
-    time::{Duration, Instant},
+    time::Duration,
 };
-use windows::Win32::Foundation::{LPARAM, POINT, WPARAM};
+use support::{
+    app,
+    desk::{self, cover, desktop, flags, hidden, positions, screen, stacked, view},
+    waited,
+};
+use windows::Win32::Foundation::{LPARAM, WPARAM};
 use windows::Win32::System::Com::*;
-use windows::Win32::System::Variant::VARIANT;
-use windows::Win32::UI::Shell::Common::{ITEMIDLIST, STRRET};
 use windows::Win32::UI::Shell::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::*;
 
 const EXT: &str = "rdie2e";
 const NAMES: [&str; 3] = ["rdi-e2e-1", "rdi-e2e-2", "rdi-e2e-3"];
-const MASK: u32 = (FWF_AUTOARRANGE.0 | FWF_SNAPTOGRID.0) as u32;
-
-fn desktop() -> PathBuf {
-    unsafe { PathBuf::from(SHGetKnownFolderPath(&FOLDERID_Desktop, KNOWN_FOLDER_FLAG(0), None).unwrap().to_string().unwrap()) }
-}
 
 fn file(name: &str) -> String {
     format!("{name}.{EXT}")
-}
-
-fn view() -> Result<IFolderView2> {
-    unsafe {
-        let windows: IShellWindows = CoCreateInstance(&ShellWindows, None, CLSCTX_ALL)?;
-        let mut hwnd = 0;
-        let disp =
-            windows.FindWindowSW(&VARIANT::from(CSIDL_DESKTOP as i32), &VARIANT::default(), SWC_DESKTOP, &mut hwnd, SWFO_NEEDDISPATCH)?;
-        let browser: IShellBrowser = disp.cast::<IServiceProvider>()?.QueryService(&SID_STopLevelBrowser)?;
-        browser.QueryActiveShellView()?.cast()
-    }
-}
-
-fn positions() -> Vec<(String, POINT)> {
-    let Ok(v) = view() else { return vec![] };
-    let mut out = vec![];
-    unsafe {
-        let (Ok(folder), Ok(list)) = (v.GetFolder::<IShellFolder>(), v.Items::<IEnumIDList>(SVGIO_ALLVIEW)) else { return out };
-        loop {
-            let mut pidl: [*mut ITEMIDLIST; 1] = [std::ptr::null_mut()];
-            if list.Next(&mut pidl, None).0 != 0 {
-                break;
-            }
-            let mut sr = STRRET::default();
-            let mut s = PWSTR::null();
-            if folder.GetDisplayNameOf(pidl[0], SHGDN_FORPARSING, &mut sr).is_ok() && StrRetToStrW(&mut sr, Some(pidl[0]), &mut s).is_ok() {
-                out.push((s.to_string().unwrap_or_default(), v.GetItemPosition(pidl[0]).unwrap_or_default()));
-                CoTaskMemFree(Some(s.0 as _));
-            }
-            CoTaskMemFree(Some(pidl[0] as _));
-        }
-    }
-    out
-}
-
-fn cover() -> Option<POINT> {
-    let h = unsafe { FindWindowW(w!("RustDesktopIcons.Cover"), None) }.ok()?;
-    let r = support::rect(h);
-    let mut p = POINT { x: r.left, y: r.top };
-    let _ = unsafe { windows::Win32::Graphics::Gdi::ScreenToClient(listview(), &mut p) };
-    Some(p)
-}
-
-fn hidden(names: &[String]) -> usize {
-    let Some(at) = cover() else { return 0 };
-    positions()
-        .iter()
-        .filter(|(p, pt)| *pt == at && names.iter().any(|n| p.to_lowercase().ends_with(&format!("\\{}", n.to_lowercase()))))
-        .count()
-}
-
-fn listview() -> windows::Win32::Foundation::HWND {
-    unsafe {
-        let progman = FindWindowW(w!("Progman"), None).unwrap_or_default();
-        let mut view = FindWindowExW(Some(progman), None, w!("SHELLDLL_DefView"), None).ok();
-        let mut worker = None;
-        while view.is_none() {
-            worker = FindWindowExW(None, worker, w!("WorkerW"), None).ok();
-            if worker.is_none() {
-                break;
-            }
-            view = FindWindowExW(worker, None, w!("SHELLDLL_DefView"), None).ok();
-        }
-        FindWindowExW(view, None, w!("SysListView32"), None).unwrap_or_default()
-    }
-}
-
-fn screen(pt: POINT) -> (i32, i32) {
-    let mut p = pt;
-    let _ = unsafe { windows::Win32::Graphics::Gdi::ClientToScreen(listview(), &mut p) };
-    (p.x, p.y)
-}
-
-fn flags() -> u32 {
-    view().and_then(|v| unsafe { v.GetCurrentFolderFlags() }).unwrap_or(0) & MASK
-}
-
-fn wait(secs: u64, mut f: impl FnMut() -> bool) -> Option<u128> {
-    let t = Instant::now();
-    while t.elapsed() < Duration::from_secs(secs) {
-        if f() {
-            return Some(t.elapsed().as_millis());
-        }
-        thread::sleep(Duration::from_millis(10));
-    }
-    None
 }
 
 struct Run {
@@ -151,23 +63,16 @@ impl Run {
     }
 
     fn start(&self) -> Child {
-        let exe = env::current_exe().unwrap().parent().unwrap().parent().unwrap().join("rust-desktop-icons.exe");
-        Command::new(exe)
-            .env("LOCALAPPDATA", &self.root)
-            .env("RDI_REAL_DESKTOP", "1")
-            .env("RDI_TOP", "1")
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-            .expect("build the app first: cargo build")
+        let child = app(&self.root, &[("RDI_REAL_DESKTOP", "1"), ("RDI_TOP", "1")], &[]);
+        desk::follow(child.id());
+        child
     }
 
     fn stop(&self, mut app: Child) {
         if let Ok(t) = unsafe { FindWindowW(w!("RustDesktopIcons.Tray.dev"), None) } {
             let _ = unsafe { PostMessageW(Some(t), WM_CLOSE, WPARAM(0), LPARAM(0)) };
         }
-        if wait(10, || app.try_wait().ok().flatten().is_some()).is_none() {
+        if waited(10, || app.try_wait().ok().flatten().is_some()).is_none() {
             let _ = app.kill();
         }
     }
@@ -180,6 +85,10 @@ fn restart_explorer() {
 
 fn main() {
     unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED).ok().unwrap() };
+    let uncovered = support::free_desktop_spot(&[]).is_none();
+    if uncovered {
+        support::show_desktop();
+    }
     let explorer = env::args().any(|a| a == "--restart-explorer");
     let desk = desktop();
     let mut r = Run { root: env::temp_dir().join(format!("rdi-e2e-{}", std::process::id())), fails: vec![] };
@@ -197,22 +106,22 @@ fn main() {
 
     let app = r.start();
     thread::sleep(Duration::from_millis(500));
-    let migrated = wait(15, || names.iter().all(|n| desk.join(n).exists()) && r.pins().len() == 3);
+    let migrated = waited(15, || names.iter().all(|n| desk.join(n).exists()) && r.pins().len() == 3);
     r.check(migrated.is_some(), "enable: fence files moved to the Desktop folder and pinned");
     r.check(fs::read_dir(r.tab_dir()).map_or(true, |mut d| d.next().is_none()), "enable: fence folder emptied");
-    r.check(wait(10, || hidden(&names) == 3).is_some(), "enable: icons hidden from the desktop");
+    r.check(waited(10, || hidden(&names) == 3).is_some(), "enable: icons hidden from the desktop");
     r.check(flags() == 0, "auto-arrange and snap-to-grid off while active");
     r.check(cover().is_some(), "a cover window hides the stacked icons");
 
     let _ = view().and_then(|v| v.cast::<IShellView>()).map(|v| unsafe { v.Refresh() });
-    let back = wait(1, || hidden(&names) < 3).is_some();
-    let rehid = wait(10, || hidden(&names) == 3);
+    let back = waited(1, || hidden(&names) < 3).is_some();
+    let rehid = waited(10, || hidden(&names) == 3);
     println!("      refresh: icons came back = {back}, hidden again after {} ms", rehid.map_or(-1, |m| m as i64));
     r.check(rehid.is_some(), "icons hidden again after desktop refresh (F5)");
 
     let loose = file("rdi-e2e-loose");
     fs::write(desk.join(&loose), "Rust Desktop Icons e2e test file").unwrap();
-    let spot = wait(10, || positions().iter().any(|(p, pt)| p.ends_with(&loose) && pt.x > -10_000 && Some(*pt) != cover()))
+    let spot = waited(10, || positions().iter().any(|(p, pt)| p.ends_with(&loose) && pt.x > -10_000 && !stacked(*pt)))
         .and_then(|_| positions().into_iter().find(|(p, _)| p.ends_with(&loose)))
         .map(|(_, pt)| screen(pt));
     match (spot, support::free_desktop_spot(&support::fences(app.id()))) {
@@ -222,19 +131,27 @@ fn main() {
             let flag = stop.clone();
             let probe = thread::spawn(move || {
                 unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED).ok().unwrap() };
-                let mut least = watched.len();
+                let (mut least, mut seen) = (watched.len(), String::new());
                 while !flag.load(std::sync::atomic::Ordering::Relaxed) {
-                    least = least.min(hidden(&watched));
+                    let n = hidden(&watched);
+                    if n < least {
+                        least = n;
+                        let at: Vec<_> = positions().into_iter().filter(|(p, _)| p.ends_with(EXT)).map(|(p, pt)| (p, screen(pt))).collect();
+                        seen = format!("cover {:?}, icons {at:?}", cover().map(|r| (r.left, r.top, r.right, r.bottom)));
+                    }
                     thread::sleep(Duration::from_millis(5));
                 }
-                least
+                (least, seen)
             });
             let saved = support::cursor();
             support::drag((from.0 + 20, from.1 + 20), to);
             support::point(saved);
             thread::sleep(Duration::from_millis(1500));
             stop.store(true, std::sync::atomic::Ordering::Relaxed);
-            let least = probe.join().unwrap();
+            let (least, seen) = probe.join().unwrap();
+            if least < names.len() {
+                println!("      when shown: {seen}");
+            }
             println!("      moving a loose icon: fewest hidden = {least}/{}", names.len());
             r.check(least == names.len(), "moving a loose desktop icon never shows the hidden icons");
         }
@@ -245,9 +162,9 @@ fn main() {
     let renamed = file("rdi-e2e-1-renamed");
     fs::rename(desk.join(&names[0]), desk.join(&renamed)).unwrap();
     names[0] = renamed.clone();
-    let followed = wait(15, || r.pins().iter().any(|p| p.ends_with(&renamed)) && r.pins().len() == 3);
+    let followed = waited(15, || r.pins().iter().any(|p| p.ends_with(&renamed)) && r.pins().len() == 3);
     r.check(followed.is_some(), "rename in Explorer: fence follows the file");
-    r.check(wait(10, || hidden(&names) == 3).is_some(), "rename in Explorer: renamed icon stays hidden");
+    r.check(waited(10, || hidden(&names) == 3).is_some(), "rename in Explorer: renamed icon stays hidden");
 
     match support::fences(app.id()).first().copied() {
         Some(f) => {
@@ -260,7 +177,7 @@ fn main() {
                     let before: Vec<String> = r.pins();
                     support::drag(item, spot);
                     support::point(saved);
-                    let left = wait(5, || r.pins().len() == 2);
+                    let left = waited(5, || r.pins().len() == 2);
                     let gone: Vec<String> = before.iter().filter(|p| !r.pins().contains(p)).cloned().collect();
                     let out = gone
                         .first()
@@ -276,7 +193,7 @@ fn main() {
                         .count();
                     r.check(dupes == 0, "drag out to the desktop: no duplicate file");
                     r.check(support::windows(0, "OperationStatusWindow").is_empty(), "drag out to the desktop: no Explorer error dialog");
-                    let shown = wait(5, || positions().iter().any(|(p, pt)| p.ends_with(&out) && pt.x > -10_000 && Some(*pt) != cover()));
+                    let shown = waited(5, || positions().iter().any(|(p, pt)| p.ends_with(&out) && pt.x > -10_000 && !stacked(*pt)));
                     r.check(shown.is_some(), "drag out to the desktop: its icon is shown again");
                     names.retain(|n| *n != out);
                     let _ = fs::remove_file(desk.join(&out));
@@ -289,7 +206,7 @@ fn main() {
 
     if explorer {
         restart_explorer();
-        let t = wait(60, || hidden(&names) == names.len());
+        let t = waited(60, || hidden(&names) == names.len());
         println!("      explorer restart: hidden again after {} ms", t.map_or(-1, |m| m as i64));
         r.check(t.is_some(), "icons hidden again after Explorer restart");
     }
@@ -297,18 +214,21 @@ fn main() {
     r.stop(app);
     r.set_keep(false);
     let app = r.start();
-    let restored = wait(15, || names.iter().all(|n| r.tab_dir().join(n).exists() && !desk.join(n).exists()));
+    let restored = waited(15, || names.iter().all(|n| r.tab_dir().join(n).exists() && !desk.join(n).exists()));
     r.check(restored.is_some(), "disable: files moved back into the fence folder");
-    r.check(wait(5, || r.pins().is_empty()).is_some(), "disable: no pins left");
-    r.check(wait(5, || flags() == before).is_some(), "disable: desktop auto-arrange/snap restored");
+    r.check(waited(5, || r.pins().is_empty()).is_some(), "disable: no pins left");
+    r.check(waited(5, || flags() == before).is_some(), "disable: desktop auto-arrange/snap restored");
     r.stop(app);
 
     for n in &names {
         let _ = fs::remove_file(desk.join(n));
     }
-    let clean = wait(10, || !names.iter().any(|n| desk.join(n).exists()) && !positions().iter().any(|(p, _)| p.ends_with(EXT)));
+    let clean = waited(10, || !names.iter().any(|n| desk.join(n).exists()) && !positions().iter().any(|(p, _)| p.ends_with(EXT)));
     r.check(clean.is_some(), "cleanup: no test file left on the desktop");
     let _ = fs::remove_dir_all(&r.root);
+    if uncovered {
+        support::show_desktop();
+    }
     if r.fails.is_empty() {
         println!("E2E OK");
     } else {

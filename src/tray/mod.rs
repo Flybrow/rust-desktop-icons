@@ -1,11 +1,13 @@
+mod layouts;
+pub mod timers;
 pub mod updates;
 
 use crate::{
-    app::{new_fence, rebuild, save_now, with},
+    app::{new_fence, rebuild, save_now, screens, with},
     i18n::T,
     keep,
     layered::glyph as g,
-    prefs, report, rules, settings,
+    prefs, report, rules, search, settings, visibility,
     win::*,
 };
 use windows::{
@@ -65,9 +67,11 @@ unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESU
         WM_TRAY if lp.0 as u32 == WM_LBUTTONDBLCLK => settings::open(),
         WM_NEW => new_fence(),
         WM_SETTINGS => settings::open(),
+        WM_COMMAND if (wp.0 >> 16) as u32 == EN_KILLFOCUS => crate::prompt::finish(true),
         WM_QUERYENDSESSION => return LRESULT(1),
         WM_ENDSESSION if wp.0 != 0 => {
             report::log("closed by Windows (session end or installer)");
+            visibility::shutdown();
             save_now();
             unsafe { PostQuitMessage(0) }
         }
@@ -75,12 +79,15 @@ unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESU
             report::log("closed on request");
             unsafe { PostQuitMessage(0) }
         }
-        rules::WM_DESK => rules::changed(h),
-        WM_TIMER if wp.0 == rules::TIMER => rules::run(Some(h), false),
+        rules::WM_DESK => rules::changed(),
+        WM_TIMER if wp.0 == rules::TIMER => rules::run(true, false),
         keep::WM_KEEP => keep::finish(lp),
+        WM_DISPLAYCHANGE => screens::changed(),
+        WM_TIMER if wp.0 == screens::TIMER => screens::settled(),
         WM_TIMER if wp.0 == keep::TICK => keep::apply(),
         WM_TIMER if wp.0 == keep::SOON => keep::apply(),
         updates::WM_UPDATE => updates::received(lp),
+        _ if visibility::message(m, wp, lp) => {}
         _ if with(|a| a.taskbar) == Some(m) => {
             icon(h, NIM_ADD);
             rebuild();
@@ -95,7 +102,9 @@ fn menu_at(h: HWND) {
     let Some((m, rtl)) = with(|a| {
         let m = menu();
         a.entry(m, 1, T::NewFence, false, g::ADD);
+        a.entry(m, 8, T::Search, false, g::SEARCH);
         a.entry(m, 7, T::Settings, false, g::SETTINGS);
+        layouts::submenu(a, m);
         separator(m);
         let l = prefs::lang_menu(a);
         a.sub(m, T::Language, l, g::GLOBE);
@@ -120,6 +129,8 @@ fn menu_at(h: HWND) {
         }
         6 => unsafe { PostQuitMessage(0) },
         7 => settings::open(),
+        8 => search::open(None),
+        n if layouts::handle(n) => {}
         n => {
             prefs::set_lang(n);
         }

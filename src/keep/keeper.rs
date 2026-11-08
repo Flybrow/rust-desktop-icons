@@ -8,12 +8,12 @@ use crate::{
 };
 use std::cell::Cell;
 use windows::Win32::{
-    Foundation::{HWND, LPARAM, WPARAM},
+    Foundation::{HWND, LPARAM, RECT, WPARAM},
     UI::{Accessibility::*, WindowsAndMessaging::*},
 };
 
-pub const TICK: usize = 8;
-pub const SOON: usize = 9;
+pub const TICK: usize = tray::timers::KEEP_TICK;
+pub const SOON: usize = tray::timers::KEEP_SOON;
 const TICK_MS: u32 = 3000;
 const SOON_MS: u32 = 30;
 const RETRY_MS: u32 = 250;
@@ -22,6 +22,11 @@ thread_local! {
     static HOOK: Cell<(isize, isize)> = const { Cell::new((0, 0)) };
     static QUEUED: Cell<bool> = const { Cell::new(false) };
     static STACK: Cell<Option<(i32, i32)>> = const { Cell::new(None) };
+    static COVER: Cell<Option<RECT>> = const { Cell::new(None) };
+}
+
+fn union(a: RECT, b: RECT) -> RECT {
+    RECT { left: a.left.min(b.left), top: a.top.min(b.top), right: a.right.max(b.right), bottom: a.bottom.max(b.bottom) }
 }
 
 unsafe extern "system" fn event(_: HWINEVENTHOOK, _: u32, h: HWND, _: i32, _: i32, _: u32, _: u32) {
@@ -51,17 +56,7 @@ fn hook() {
     HOOK.set((h.0 as isize, lv.0 as isize));
 }
 
-fn timer(id: usize, ms: Option<u32>) {
-    let Some(t) = tray::hwnd() else { return };
-    match ms {
-        Some(ms) => unsafe {
-            SetTimer(Some(t), id, ms, None);
-        },
-        None => {
-            let _ = unsafe { KillTimer(Some(t), id) };
-        }
-    }
-}
+use tray::timers::set as timer;
 
 pub fn soon() {
     timer(SOON, Some(SOON_MS));
@@ -84,12 +79,19 @@ pub fn apply() {
     if let Some(f) = d.flags().filter(|_| with(|a| a.cfg.desk_flags.is_none()) == Some(true)) {
         change(|c| c.desk_flags = Some(f));
     }
-    match d.sync(&paths, STACK.get()) {
+    match d.sync(&paths, STACK.get(), &crate::fence::footprints()) {
         Some((stack, r)) => {
-            STACK.set(Some(stack));
-            super::cover::show(r);
+            let moved = STACK.replace(Some(stack)).is_some_and(|p| p != stack);
+            let old = COVER.replace(Some(r)).filter(|_| moved);
+            super::cover::show(old.map_or(r, |o| union(o, r)));
+            if old.is_some() {
+                timer(SOON, Some(RETRY_MS));
+            }
         }
-        None => super::cover::hide(),
+        None => {
+            COVER.set(None);
+            super::cover::hide();
+        }
     }
 }
 
@@ -99,9 +101,10 @@ pub fn restore() {
     unhook();
     super::cover::hide();
     STACK.set(None);
+    COVER.set(None);
     let Some(flags) = with(|a| a.cfg.desk_flags).flatten().filter(|_| live()) else { return };
     let Some(d) = Desk::open() else { return report::log("cannot reach the desktop view to show hidden icons") };
-    d.sync(&[], None);
+    d.sync(&[], None, &[]);
     d.set_flags(flags);
     change(|c| c.desk_flags = None);
 }

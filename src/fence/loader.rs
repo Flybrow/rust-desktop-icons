@@ -1,4 +1,4 @@
-use super::{TABS, WM_CHANGED, fence_of, layout};
+use super::{TABS, WM_CHANGED, fence_of, layout, view};
 use crate::{
     app::{Item, with},
     domain::{
@@ -27,7 +27,8 @@ struct Batch(Vec<(u64, u64, Vec<Item>)>);
 fn meta(p: &Path) -> Meta {
     let md = fs::metadata(p).ok();
     let modified = md.as_ref().and_then(|m| m.modified().ok()).and_then(|t| t.duration_since(UNIX_EPOCH).ok()).map_or(0, |d| d.as_secs());
-    Meta { name: store::name(p), dir: md.is_some_and(|m| m.is_dir()), modified }
+    let (dir, size) = md.as_ref().map_or((false, 0), |m| (m.is_dir(), m.len()));
+    Meta { name: store::name(p), dir, modified, size }
 }
 
 fn load(tab: &Tab) -> Vec<Item> {
@@ -58,6 +59,13 @@ fn load(tab: &Tab) -> Vec<Item> {
 pub(super) fn request(h: HWND, tabs: Vec<Tab>) {
     let Some(jobs) = with(|a| {
         let v = a.view(h)?;
+        if std::mem::replace(&mut v.loading, true) {
+            for t in tabs {
+                v.queued.retain(|q| q.id != t.id);
+                v.queued.push(t);
+            }
+            return None;
+        }
         Some(
             tabs.into_iter()
                 .map(|t| {
@@ -82,7 +90,8 @@ pub(super) fn request(h: HWND, tabs: Vec<Tab>) {
     let hwnd = h.0 as isize;
     thread::spawn(move || {
         let _ = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED) };
-        let batch = Box::new(Batch(jobs.into_iter().map(|(g, t)| (t.id, g, load(&t))).collect()));
+        let loaded = std::panic::catch_unwind(|| jobs.into_iter().map(|(g, t)| (t.id, g, load(&t))).collect());
+        let batch = Box::new(Batch(loaded.unwrap_or_default()));
         let raw = Box::into_raw(batch);
         if unsafe { PostMessageW(Some(HWND(hwnd as _)), WM_LOADED, WPARAM(0), LPARAM(raw as isize)) }.is_err() {
             drop(unsafe { Box::from_raw(raw) });
@@ -99,6 +108,11 @@ pub(super) fn discard(h: HWND) {
 
 pub(super) fn receive(h: HWND, lp: LPARAM) {
     let Batch(results) = *unsafe { Box::from_raw(lp.0 as *mut Batch) };
+    let next = view(h, |v| {
+        v.loading = false;
+        std::mem::take(&mut v.queued)
+    })
+    .unwrap_or_default();
     let Some(active) = fence_of(h).map(|f| f.active().id) else { return };
     with(|a| {
         let v = a.view(h)?;
@@ -107,6 +121,7 @@ pub(super) fn receive(h: HWND, lp: LPARAM) {
                 continue;
             }
             if id == active {
+                v.cache.retain(|(t, _)| *t != id);
                 v.selected.retain(|p| items.iter().any(|i| &i.path == p));
                 v.items = items;
             } else {
@@ -117,4 +132,7 @@ pub(super) fn receive(h: HWND, lp: LPARAM) {
         Some(())
     });
     layout::apply(h);
+    if !next.is_empty() {
+        request(h, next);
+    }
 }

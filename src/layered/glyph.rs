@@ -31,6 +31,11 @@ pub const DOWNLOAD: char = '\u{E896}';
 pub const HEIGHT: char = '\u{E75F}';
 pub const LOCK: char = '\u{E72E}';
 pub const PC: char = '\u{E7F4}';
+pub const LABEL: char = '\u{E8EC}';
+pub const SEARCH: char = '\u{E721}';
+pub const KEYBOARD: char = '\u{E765}';
+pub const HIDE: char = '\u{ED1A}';
+pub const ALIGN: char = '\u{E8E3}';
 
 pub fn bitmap(font: HFONT, ch: char, px: i32, color: u32) -> Option<HBITMAP> {
     let mut f = Frame::new(px, px)?;

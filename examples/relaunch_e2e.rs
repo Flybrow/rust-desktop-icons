@@ -1,10 +1,7 @@
-use std::{
-    env, fs,
-    path::Path,
-    process::{Child, Command, Stdio},
-    thread,
-    time::{Duration, Instant},
-};
+mod support;
+
+use std::{env, fs, path::Path, process::Child, thread, time::Duration};
+use support::wait;
 use windows::Win32::Foundation::{HWND, LPARAM, WPARAM};
 use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::w;
@@ -16,20 +13,8 @@ fn tray() -> Option<(HWND, u32)> {
     Some((h, pid))
 }
 
-fn wait(secs: u64, mut f: impl FnMut() -> bool) -> bool {
-    let t = Instant::now();
-    while t.elapsed() < Duration::from_secs(secs) {
-        if f() {
-            return true;
-        }
-        thread::sleep(Duration::from_millis(50));
-    }
-    false
-}
-
 fn start(root: &Path, args: &[&str]) -> Child {
-    let exe = env::current_exe().unwrap().parent().unwrap().parent().unwrap().join("rust-desktop-icons.exe");
-    Command::new(exe).args(args).env("LOCALAPPDATA", root).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap()
+    support::app(root, &[], args)
 }
 
 fn exited(c: &mut Child) -> bool {

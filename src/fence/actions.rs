@@ -1,11 +1,8 @@
 use super::{fence_of, update, view};
-use crate::{app::with, i18n::T, keep, report, rules, shell, store, win::*};
+use crate::domain::inherit::Field;
+use crate::{i18n::T, keep, report, rules, shell, store, win::*};
 use std::path::Path;
 use windows::Win32::{Foundation::HWND, UI::WindowsAndMessaging::*};
-
-pub(super) fn confirm(h: HWND, q: T) -> bool {
-    with(|a| (a.t(q), a.rtl())).is_some_and(|(q, rtl)| msgbox(Some(h), q, MB_YESNO | MB_ICONQUESTION, rtl) == IDYES)
-}
 
 pub(super) fn evacuate(dir: &Path) -> Vec<String> {
     let Some(desk) = shell::desktop() else { return vec![String::from("Desktop")] };
@@ -16,19 +13,25 @@ pub(super) fn evacuate(dir: &Path) -> Vec<String> {
 
 pub(super) fn color(h: HWND) {
     if let Some(c) = fence_of(h).and_then(|f| choose_color(h, f.look.color)) {
-        update(h, |f| f.look.color = c);
+        update(h, |f| f.set(Field::Color, |l| l.color = c));
     }
 }
 
 pub(super) fn tint(h: HWND) {
     if let Some(c) = fence_of(h).and_then(|f| choose_color(h, f.look.tint.unwrap_or(0xFF_FFFF))) {
-        update(h, |f| f.look.tint = Some(c));
+        update(h, |f| f.set(Field::Tint, |l| l.tint = Some(c)));
     }
+}
+
+pub(super) fn reset_look(h: HWND) {
+    let Some(id) = super::read(h, |f| f.id) else { return };
+    crate::app::edit(|a| a.cfg.reset_look(Some(id)));
+    super::restyle(h);
 }
 
 pub(super) fn delete(h: HWND) {
     let Some(f) = fence_of(h) else { return };
-    if !confirm(h, T::ConfirmDelete) {
+    if !crate::report::confirm(h, T::ConfirmDelete) {
         return;
     }
     view(h, |v| v.watches.clear());
@@ -37,10 +40,9 @@ pub(super) fn delete(h: HWND) {
         report::failures(T::ErrDelete, &errors);
         return super::bind(h);
     }
-    with(|a| {
+    crate::app::edit(|a| {
         a.views.retain(|v| v.hwnd != h);
         a.cfg.fences.retain(|x| x.id != f.id);
-        a.save();
     });
     keep::soon();
     super::system::released(&f.tabs);

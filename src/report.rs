@@ -1,14 +1,14 @@
-use crate::{app::with, i18n::T, store, win::msgbox};
+use crate::{
+    app::with,
+    i18n::T,
+    store,
+    win::{msgbox, stamp},
+};
 use std::{fs::OpenOptions, io::Write};
 use windows::Win32::{
-    System::SystemInformation::GetLocalTime,
-    UI::WindowsAndMessaging::{MB_ICONWARNING, MB_OK},
+    Foundation::HWND,
+    UI::WindowsAndMessaging::{IDYES, MB_ICONQUESTION, MB_ICONWARNING, MB_OK, MB_YESNO},
 };
-
-fn stamp() -> String {
-    let t = unsafe { GetLocalTime() };
-    format!("{:04}-{:02}-{:02} {:02}:{:02}:{:02}", t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond)
-}
 
 fn append(file: &str, msg: &str) {
     let dir = store::root();
@@ -18,7 +18,7 @@ fn append(file: &str, msg: &str) {
         let _ = std::fs::rename(&path, dir.join(format!("{file}.old")));
     }
     if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(path) {
-        let _ = writeln!(f, "[{}] v{} {msg}", stamp(), env!("CARGO_PKG_VERSION"));
+        let _ = writeln!(f, "[{}] v{} {msg}", stamp(true), env!("CARGO_PKG_VERSION"));
     }
 }
 
@@ -26,9 +26,14 @@ pub fn log(msg: &str) {
     append("errors.log", msg);
 }
 
+pub fn confirm(h: HWND, q: T) -> bool {
+    with(|a| (a.t(q), a.rtl())).is_some_and(|(q, rtl)| msgbox(Some(h), q, MB_YESNO | MB_ICONQUESTION, rtl) == IDYES)
+}
+
 pub fn alert(k: T, detail: &str) {
     let (text, rtl) = with(|a| (a.t(k).replace("{}", detail), a.rtl())).unwrap_or_else(|| (detail.to_string(), false));
     log(&text);
+    crate::visibility::end_peek();
     msgbox(None, &text, MB_OK | MB_ICONWARNING, rtl);
 }
 
@@ -43,5 +48,6 @@ pub fn install_panic_hook() {
     std::panic::set_hook(Box::new(|info| {
         let bt = std::backtrace::Backtrace::force_capture();
         append("crash.log", &format!("{info}\n{bt}"));
+        crate::visibility::rescue();
     }));
 }

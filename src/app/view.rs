@@ -35,6 +35,8 @@ pub struct View {
     pub cache: Vec<(u64, Vec<Item>)>,
     pub gens: Vec<(u64, u64)>,
     pub dirty: Vec<usize>,
+    pub loading: bool,
+    pub queued: Vec<crate::domain::Tab>,
     pub selected: HashSet<PathBuf>,
     pub band: Option<((i32, i32), (i32, i32))>,
 }
@@ -66,6 +68,8 @@ impl View {
             cache: vec![],
             gens: vec![],
             dirty: vec![],
+            loading: false,
+            queued: vec![],
             selected: HashSet::new(),
             band: None,
         }

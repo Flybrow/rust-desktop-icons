@@ -7,11 +7,12 @@ pub enum Sort {
     Name,
     Type,
     Date,
+    Size,
     Custom,
 }
 
 impl Sort {
-    pub const ALL: [Sort; 4] = [Sort::Name, Sort::Type, Sort::Date, Sort::Custom];
+    pub const ALL: [Sort; 5] = [Sort::Name, Sort::Type, Sort::Date, Sort::Size, Sort::Custom];
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -19,6 +20,7 @@ pub struct Meta {
     pub name: String,
     pub dir: bool,
     pub modified: u64,
+    pub size: u64,
 }
 
 impl Meta {
@@ -38,6 +40,7 @@ pub fn arrange(items: &[Meta], sort: Sort, custom: &[String]) -> Vec<usize> {
         Sort::Name => {}
         Sort::Type => idx.sort_by_key(|&i| (!items[i].dir, items[i].ext())),
         Sort::Date => idx.sort_by_key(|&i| Reverse(items[i].modified)),
+        Sort::Size => idx.sort_by_key(|&i| (items[i].dir, Reverse(items[i].size))),
         Sort::Custom => idx.sort_by_key(|&i| custom.iter().position(|n| n.eq_ignore_ascii_case(&items[i].name)).unwrap_or(usize::MAX)),
     }
     idx
@@ -56,7 +59,7 @@ mod tests {
     use super::*;
 
     fn m(name: &str, dir: bool, modified: u64) -> Meta {
-        Meta { name: name.into(), dir, modified }
+        Meta { name: name.into(), dir, modified, size: modified * 10 % 7 }
     }
 
     #[test]
@@ -65,6 +68,7 @@ mod tests {
         assert_eq!(arrange(&items, Sort::Name, &[]), vec![1, 0, 3, 2]);
         assert_eq!(arrange(&items, Sort::Type, &[]), vec![2, 1, 3, 0]);
         assert_eq!(arrange(&items, Sort::Date, &[]), vec![3, 0, 2, 1]);
+        assert_eq!(arrange(&items, Sort::Size, &[]), vec![1, 0, 3, 2]);
         let custom = ["c.png".to_string(), "zeta".into()];
         assert_eq!(arrange(&items, Sort::Custom, &custom), vec![3, 2, 1, 0]);
     }

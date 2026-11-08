@@ -4,7 +4,6 @@ use serde_json::json;
 use std::{
     env, fs,
     path::Path,
-    process::{Command, Stdio},
     thread,
     time::{Duration, Instant},
 };
@@ -49,6 +48,8 @@ fn hover(p: (i32, i32)) {
     }
 }
 
+const SNAP: i32 = 16;
+
 struct Case {
     name: &'static str,
     at: (i32, i32),
@@ -82,15 +83,7 @@ fn main() {
     }
     let cfg = json!({"auto_update": false, "auto_sort": false, "version": env!("CARGO_PKG_VERSION"), "fences": cfg_fences});
     fs::write(data.join("config.json"), serde_json::to_vec_pretty(&cfg).unwrap()).unwrap();
-    let exe = env::current_exe().unwrap().parent().unwrap().parent().unwrap().join("rust-desktop-icons.exe");
-    let mut app = Command::new(exe)
-        .env("LOCALAPPDATA", &root)
-        .env("RDI_TOP", "1")
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .unwrap();
+    let mut app = support::app(&root, &[("RDI_TOP", "1")], &[]);
     let pid = app.id();
     let mut saved = POINT::default();
     unsafe { GetCursorPos(&mut saved).unwrap() };
@@ -147,13 +140,18 @@ fn main() {
             drag(bar_at, (bar_at.0 + shift.0, bar_at.1 + shift.1));
             let moved = settle(pid, (bar_at.0 + shift.0, bar_at.1 + shift.1));
             let anchored = if c.vertical {
-                moved.right == open.right && moved.top != open.top
+                (moved.right - open.right).abs() <= SNAP && moved.top != open.top
             } else {
-                moved.bottom == open.bottom && moved.left != open.left
+                (moved.bottom - open.bottom).abs() <= SNAP && moved.left != open.left
             };
             check(
                 anchored,
-                format!("{} can be dragged by its bar while open {:?}", c.name, (moved.left, moved.top, moved.right, moved.bottom)),
+                format!(
+                    "{} can be dragged by its bar while open {:?} -> {:?}",
+                    c.name,
+                    (open.left, open.top, open.right, open.bottom),
+                    (moved.left, moved.top, moved.right, moved.bottom)
+                ),
             );
             point(away);
             let back = settle(pid, (bar_at.0 + shift.0, bar_at.1 + shift.1));

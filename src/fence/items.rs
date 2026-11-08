@@ -1,5 +1,6 @@
 use super::{fence_of, layout, loader, metrics, render, update, view};
 use crate::app::with;
+use crate::domain::inherit::Field;
 use std::path::PathBuf;
 use windows::Win32::Foundation::HWND;
 
@@ -25,7 +26,7 @@ pub fn reload_all() {
 }
 
 pub(super) fn set_icon(h: HWND, px: i32) {
-    update(h, |f| f.look.icon = px);
+    update(h, |f| f.set(Field::Icon, |l| l.icon = px));
 }
 
 pub(super) fn index_at(h: HWND, (x, y): (i32, i32)) -> Option<usize> {
@@ -33,9 +34,9 @@ pub(super) fn index_at(h: HWND, (x, y): (i32, i32)) -> Option<usize> {
     let (x0, y0, x1, y1) = g.body();
     let (cx, cy) = g.to_content((x, y));
     with(|a| {
+        let flow = layout::flow(a, h, g.grid_w(), cell)?;
         let v = a.view(h)?;
-        ((x0..x1).contains(&x) && (y0..y1).contains(&y))
-            .then(|| crate::domain::grid::index_at((cx, cy + v.scroll), g.grid_w(), cell, v.items.len()))?
+        ((x0..x1).contains(&x) && (y0..y1).contains(&y)).then(|| flow.index_at((cx, cy + v.scroll)))?
     })
     .flatten()
 }

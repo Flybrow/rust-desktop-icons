@@ -1,7 +1,9 @@
 use super::{BORDER, TITLE, fence_of, flagged, metrics, read, render, update, view, xy};
 use crate::{
+    app::App,
     domain::{
-        Fence, Zone, anim, grid,
+        Fence, Zone, anim,
+        grid::{self, Flow},
         side::{self, Geo, Side},
         zone,
     },
@@ -33,14 +35,24 @@ pub(super) fn geo_now(h: HWND) -> Geo {
     geo(h, (r.right, r.bottom))
 }
 
+pub(super) fn flow(a: &mut App, h: HWND, w: i32, cell: i32) -> Option<Flow> {
+    let align = a.fence_of(h)?.look.align;
+    let v = a.view(h)?;
+    Some(Flow { w, cell, n: v.items.len(), align: if v.side == Side::Right { align.mirrored() } else { align } })
+}
+
+pub(super) fn chrome(h: HWND, vertical: bool) -> i32 {
+    scale(h, TITLE + GAP + if vertical { 4 } else { 8 })
+}
+
 fn fit(h: HWND, f: &Fence, max: i32) -> i32 {
     let n = view(h, |v| v.items.len()).unwrap_or(0);
     let (cell, min) = (metrics(h).0, scale(h, Fence::MIN.1));
     match (f.vertical, f.look.auto_height) {
         (false, false) => f.h,
         (true, false) => f.w,
-        (false, true) => grid::fit(n, f.w, cell, scale(h, TITLE + GAP + 8), (min, max)),
-        (true, true) => grid::fit_cols(n, f.h, cell, scale(h, TITLE + GAP + 4), (min, max)),
+        (false, true) => grid::fit(n, f.w, cell, chrome(h, false), (min, max)),
+        (true, true) => grid::fit_cols(n, f.h, cell, chrome(h, true), (min, max)),
     }
 }
 
@@ -87,6 +99,13 @@ pub(super) fn origin(h: HWND, f: &Fence, (w, ht): (i32, i32)) -> (i32, i32) {
         Side::Right => (f.x + t - w, f.y),
         _ => (f.x, f.y),
     }
+}
+
+pub(super) fn footprint(h: HWND) -> Option<RECT> {
+    let f = fence_of(h)?;
+    let (w, ht) = open_size(h, &f);
+    let (x, y) = origin(h, &f, (w, ht));
+    Some(RECT { left: x, top: y, right: x + w, bottom: y + ht })
 }
 
 pub(super) fn crop(h: HWND, open: (i32, i32), size: (i32, i32)) -> (i32, i32) {

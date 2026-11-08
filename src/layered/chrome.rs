@@ -6,6 +6,7 @@ pub const BG: u32 = 0x24_2220;
 pub const BG_END: u32 = 0x1A_1817;
 pub const TEXT: u32 = 0xF2_F2F2;
 pub const LINK: u32 = 0xFF_CD60;
+pub const DIM: u32 = 0xB4_B4B4;
 pub const TOP: i32 = 56;
 const CLOSE_HOT: u32 = 0x2B_11E8;
 

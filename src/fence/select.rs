@@ -1,11 +1,5 @@
 use super::{ghost, items, layout, metrics, render, system, view};
-use crate::{
-    app::with,
-    domain::{grid, system::Sys},
-    i18n::T,
-    keep, report, rules, shell,
-    win::cursor_pos,
-};
+use crate::{app::with, domain::system::Sys, i18n::T, keep, report, rules, shell, win::cursor_pos};
 use std::{collections::HashSet, path::PathBuf};
 use windows::Win32::{
     Foundation::*,
@@ -89,10 +83,11 @@ pub(super) fn track(h: HWND, p: (i32, i32)) -> bool {
     let c = content(h, p);
     let (w, cell) = (layout::geo_now(h).grid_w(), metrics(h).0);
     let done = with(|a| {
+        let flow = layout::flow(a, h, w, cell)?;
         let v = a.view(h)?;
         let (start, _) = v.band?;
         v.band = Some((start, c));
-        let hit = grid::in_rect(v.items.len(), w, cell, (start.0, start.1, c.0, c.1));
+        let hit = flow.in_rect((start.0, start.1, c.0, c.1));
         v.selected = hit.into_iter().map(|i| v.items[i].path.clone()).collect();
         Some(())
     });

@@ -1,6 +1,7 @@
 pub mod chrome;
 mod dib;
 pub mod glyph;
+pub mod popup;
 
 use crate::render::{Canvas, blur, gray, premul};
 pub use dib::Dib;
@@ -48,6 +49,10 @@ impl Frame {
 
     pub fn clip(&self, (x0, y0, x1, y1): (i32, i32, i32, i32)) {
         unsafe { IntersectClipRect(self.dc, x0, y0, x1, y1) };
+    }
+
+    pub fn unclip(&self) {
+        unsafe { SelectClipRgn(self.dc, None) };
     }
 
     pub fn target(&self, dib: &Dib) {

@@ -1,4 +1,4 @@
-use crate::win::{inst, register};
+use crate::win::{inst, keep_bottom, progman, register};
 use std::cell::Cell;
 use windows::{
     Win32::{
@@ -25,7 +25,7 @@ fn current() -> Option<HWND> {
 
 pub fn show(r: RECT) {
     let h = current().or_else(|| unsafe {
-        let owner = FindWindowW(w!("Progman"), None).ok();
+        let owner = progman();
         let ex = WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
         let h = CreateWindowExW(ex, CLASS, None, WS_POPUP, r.left, r.top, 1, 1, owner, None, Some(inst()), None).ok()?;
         COVER.set(h.0 as isize);
@@ -57,12 +57,7 @@ unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESU
         WM_SETTINGCHANGE | WM_DISPLAYCHANGE => {
             let _ = unsafe { InvalidateRect(Some(h), None, false) };
         }
-        WM_WINDOWPOSCHANGING => {
-            let p = unsafe { &mut *(lp.0 as *mut WINDOWPOS) };
-            if (p.flags & SWP_NOZORDER).0 == 0 {
-                p.hwndInsertAfter = HWND_BOTTOM;
-            }
-        }
+        WM_WINDOWPOSCHANGING => keep_bottom(lp),
         _ => return unsafe { DefWindowProcW(h, m, wp, lp) },
     }
     LRESULT(0)
