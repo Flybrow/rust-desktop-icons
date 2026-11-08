@@ -180,4 +180,5 @@ pub enum T {
     InFence,
     InExplorer,
     OpenInFence,
+    Recovered,
 }

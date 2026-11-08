@@ -2,6 +2,20 @@ use super::{View, with};
 use crate::{domain::Fence, fence, i18n::T, report, shell, store, win::*};
 use windows::Win32::{Foundation::RECT, UI::WindowsAndMessaging::*};
 
+pub fn recover() {
+    let dirs = store::filled_dirs();
+    let w = work_area_at((0, 0));
+    let at = (w.left + sys_scale(40), w.top + sys_scale(40));
+    let found = with(|a| {
+        let title = a.t(T::Recovered).to_string();
+        a.cfg.recover(&dirs, &title, at).inspect(|_| a.save())
+    });
+    if let Some(Some(id)) = found {
+        report::log(&format!("orphan fence folders recovered into fence {id}"));
+        super::check_save();
+    }
+}
+
 pub fn register_verb() {
     if let Some(label) = with(|a| a.t(T::DesktopVerb)).filter(|_| !cfg!(debug_assertions)) {
         shell::set_desktop_verb(label);

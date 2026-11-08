@@ -46,4 +46,6 @@
 - **No flashing icons:** with "Keep files on the desktop" on, hidden icons no longer flash when their stack moves to another cell.
 - **Slow folders:** fences reload their content one load at a time, so a slow network folder can no longer pile up background work.
 - **Safer config:** a config written by a newer version of the app no longer resets your fences: unknown values are simply ignored.
+- **Files never get lost:** if the configuration is damaged or a fence goes missing from it, the files still stored for that fence come back at the next start in a "Recovered files" fence. The configuration is written safely to disk (a power cut while saving can no longer empty it), a config.json saved with Notepad (UTF-8 with BOM) is read normally, and two tabs can no longer end up sharing the same folder.
+- **Starts on any PC:** the app no longer needs the Microsoft Visual C++ runtime, so it also starts on a freshly installed Windows.
 - **Leaks:** small memory and resource leaks fixed (context menus, drag images).

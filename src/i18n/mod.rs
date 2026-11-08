@@ -12,7 +12,7 @@ mod table;
 
 use table::S;
 
-const N: usize = 180;
+const N: usize = 181;
 
 pub const LANGS: [(&str, &str); 25] = [
     ("en", "English"),
@@ -113,7 +113,18 @@ mod tests {
     #[test]
     fn complete_tables() {
         assert!(S.iter().flatten().all(|s| !s.trim().is_empty()));
-        assert_eq!(T::OpenInFence as usize, N - 1);
+        assert_eq!(T::Recovered as usize, N - 1);
+    }
+
+    #[test]
+    fn translations_keep_placeholders_and_line_breaks() {
+        let marks = |s: &str| ["{}", "\n", "\t"].map(|m| s.matches(m).count());
+        for (lang, row) in S.iter().enumerate() {
+            for (k, s) in row.iter().enumerate() {
+                assert_eq!(marks(s), marks(S[0][k]), "{} key {k}: {s:?}", LANGS[lang].0);
+                assert_eq!(s.trim(), *s, "{} key {k}: {s:?}", LANGS[lang].0);
+            }
+        }
     }
 
     #[test]

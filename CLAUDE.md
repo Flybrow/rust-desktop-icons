@@ -12,7 +12,8 @@ Open-source Fences 6 alternative for Windows 10/11: customizable desktop rectang
   id + `set`), `win::edit_popup`/`take_text` (popup text box, used by fence rename and `prompt::ask`)) before writing new code.
 
 ## Stack
-Rust 2024 (1.98), `windows` 0.62 (raw Win32/GDI), serde/serde_json, ureq 3 (rustls), sha2. MSI via WiX 5.0.2.
+Rust 2024 (1.98), `windows` 0.62 (raw Win32/GDI), serde/serde_json, ureq 3 (rustls), sha2. MSI via WiX 5.0.2. The CRT is linked statically (`.cargo/config.toml`, `+crt-static`):
+the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; the MSI ships only the exe).
 
 ## Commands (verified)
 - Test: `cargo test` — single: `cargo test grid_layout`
@@ -44,10 +45,15 @@ Rust 2024 (1.98), `windows` 0.62 (raw Win32/GDI), serde/serde_json, ureq 3 (rust
   `groups.rs` (`Fence.group` + `mates`/`group_with`/`ungroup`; virtual desktops: registry GUID parsing, `Fence::shown_on`),
   `backup.rs` (`Config::import` keeps this PC's fields and prefs, `rewind` (undo) restores prefs too; both list orphan tabs to empty and system icons to restore),
   `search.rs` (accent-folding ranking, result place label, double-click test).
+  `recover.rs` (`Config::orphans`/`recover`: non-empty `fences/<id>` folders no tab uses come back at startup in a
+  "Recovered files" fence, `app::recover` + `store::filled_dirs`). Test-only: `upgrade.rs` loads real configs of every
+  released shape (`fixtures/v*.json`, add one when the config format changes), `props.rs` proptest invariants (grid,
+  bar sides, screen scaling, `beside`, snapping, globs, search, random/damaged JSON configs: unique fence/tab ids,
+  `sanitized` idempotent).
 - `store.rs` persistence (`Config::parse` accepts a UTF-8 BOM; `tab_dir`: portal path or `fences/<tab id>`); `i18n/` (`mod.rs` logic, `keys.rs` the `T` enum, `table.rs` 25 languages);
   `backup.rs` export/import of the config JSON (file dialogs in `shell/pick.rs`; import confirms; `adopt` empties orphan tab folders to the desktop and rebuilds, shared with undo);
   `undo.rs` (`step(|| action)` around every user action entry point: fence/tray menus, drop, keys, moves, settings acts, prompts, rules;
-  `store::move_into`, `link_into` and item renames note file ops; `undo()` moves files back in reverse then `adopt(rewind)`; Ctrl+Z via `undo::shortcut`);
+  `store::move_into`, `link_into` and item renames note file ops; `undo()` moves files back in reverse (`revert`, unit-tested: never overwrites, skips what is gone, reports locked files) then `adopt(rewind)`; Ctrl+Z via `undo::shortcut`);
   `update/` updater: `release.rs` (pure, tested: GitHub release JSON, versions, notes, checksum, progress), `net.rs` (trusted
   URLs only, streamed download with progress), `install.rs` (msiexec + relaunch chain; debug builds never install), `mod.rs` check/download.
   `tray/updates.rs` drives it: auto (6 h) and manual checks open the themed popup (notes, Install / Later), download progress is
@@ -131,7 +137,13 @@ Rust 2024 (1.98), `windows` 0.62 (raw Win32/GDI), serde/serde_json, ureq 3 (rust
   `undo_e2e` (undo of moves, Move to, fence deletion with its file, rename via Ctrl+Z, duplicate, tray Undo),
   `display_e2e` (thumbnails, title alignment/size, bar on hover, wallpaper color, filtered portal, arrow keys, Ctrl+Tab; reads the
   `RDI_DUMP` canvases, `KEEP_DUMPS=<dir>` keeps them), `rules_e2e` (name/kind/"Everything else" rules and Sort now on the real Desktop, `*.rdie2e` files only; Sort now is tested
-  with a name rule only so no user file can move), `vdesk_e2e` (temporary virtual desktop, closed at the end), `uninstall_e2e`.
+  with a name rule only so no user file can move), `vdesk_e2e` (temporary virtual desktop, closed at the end), `uninstall_e2e`,
+  `recover_e2e` (orphan fence folders come back in a "Recovered files" fence, damaged config restored from `.bak`, BOM config),
+  `soak_e2e` (`SOAK_MIN` minutes of everyday actions; GDI/USER/handles/private bytes must stay flat: `support::usage`),
+  `load_e2e` (41 fences, 3,800 files: time to draw, memory, idle CPU). Debug builds tag every layered window with the
+  `RDI_DRAWN` prop (last present had visible pixels); `support::fences` only lists drawn fences, so every E2E fails on a fence
+  that never paints. Installer: `rdi-sandbox/bundle/msi.ps1` (Sandbox: MSI 0.9.4 -> current while running -> uninstall).
+  What the Sandbox cannot test (several monitors, mixed DPI, Windows 10) is listed in `docs/manual-tests.md`.
   Menu helpers: `examples/support/menu.rs` finds entries by text (`pick(&["Behavior", "Lock position"])`, `checked`: our
   menus show checks as a trailing "	✓"); `clip.rs` puts files on the clipboard. E2E runs move the real mouse: any user
   input meanwhile (even a screenshot) makes them fail.
@@ -147,7 +159,8 @@ Rust 2024 (1.98), `windows` 0.62 (raw Win32/GDI), serde/serde_json, ureq 3 (rust
 ## Robustness rules
 - Never ignore a user-visible failure: collect errors and call `report::failures`/`report::alert` outside `app::with`.
   Yes/no questions use `report::confirm(h, T)`. After changing `Config.look`, call `fence::restyle_all()`.
-- `store::save` keeps `config.json.bak`; an unreadable config is renamed `config.json.bad-<ts>` and never overwritten.
+- `store::save` writes `config.json.tmp` + `sync_all` + rename and keeps `config.json.bak`; an unreadable config (`Config::parse`:
+  JSON object only, UTF-8 BOM accepted) is renamed `config.json.bad-<ts>` and never overwritten. `sanitized` never lets two tabs share an id (= a folder).
 - Items keep a system image-list index (`Item.icon: i32`), never an HICON: icons are drawn on demand via
   `shell::draw_icon`. Folder reads + icon lookups run on a thread (`fence/loader.rs`, per-tab generations, one load at a
   time per fence: requests made meanwhile are queued in `View.queued`, a panicking load still posts an empty batch);

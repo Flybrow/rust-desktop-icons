@@ -55,4 +55,23 @@ mod tests {
         let back = i.cfg.rewind(Config { autostart: true, keep_on_desktop: false, ..mine.clone() });
         assert!(back.cfg.autostart && back.cfg.keep_on_desktop && back.cfg.fences.len() == 2 && back.orphans.is_empty());
     }
+
+    #[test]
+    fn this_pc_keeps_its_own_screens_and_updates() {
+        let screens = vec![crate::domain::screens::Screen { full: [0, 0, 1920, 1080], work: [0, 0, 1920, 1040] }];
+        let mine = Config {
+            auto_update: false,
+            version: Some("1.0.0".into()),
+            desk_icons: vec![(Sys::ThisPc, Some(1))],
+            screens: screens.clone(),
+            layouts: vec![Default::default()],
+            ..Config::default()
+        };
+        let theirs = Config { auto_update: true, version: Some("0.9".into()), layouts: vec![], ..Config::default() };
+        let i = mine.import(theirs.clone());
+        assert_eq!((i.cfg.auto_update, i.cfg.version.as_deref(), i.cfg.layouts.len()), (false, Some("1.0.0"), 1));
+        assert_eq!((i.cfg.desk_icons.clone(), i.cfg.screens.clone()), (vec![(Sys::ThisPc, Some(1))], screens.clone()));
+        let back = mine.rewind(theirs);
+        assert_eq!((back.cfg.auto_update, back.cfg.screens, back.cfg.version.as_deref()), (true, screens, Some("1.0.0")));
+    }
 }

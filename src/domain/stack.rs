@@ -76,4 +76,22 @@ mod tests {
     fn dropped_items_form_a_row() {
         assert_eq!(row((500, 300), CELL, 3), vec![(450, 250), (550, 250), (650, 250)]);
     }
+
+    #[test]
+    fn only_far_away_icons_count_as_parked() {
+        assert!(away((AWAY, 0)) && away((AWAY / 2, 5)) && !away((AWAY / 2 + 1, 0)) && !away((-5, 0)) && !away((0, 0)));
+    }
+
+    #[test]
+    fn a_previous_stack_cell_is_kept_only_while_free_and_inside() {
+        let icons = [icon((300, 200), true), icon((500, 200), false)];
+        let keep = plan(&icons, Some((300, 200)), CELL, AREA, &[]);
+        assert_eq!(keep.stack, (300, 200));
+        for prev in [(450, 150), (550, 250), (-50, 0), (950, 0), (0, 450), (0, -1), (901, 0), (0, 401)] {
+            assert_eq!(plan(&icons, Some(prev), CELL, AREA, &[]).stack, (900, 400), "{prev:?}");
+        }
+        for prev in [(400, 200), (600, 200), (500, 100), (500, 300), (0, 0), (900, 400), (0, 400), (900, 0)] {
+            assert_eq!(plan(&icons, Some(prev), CELL, AREA, &[]).stack, prev, "{prev:?}");
+        }
+    }
 }

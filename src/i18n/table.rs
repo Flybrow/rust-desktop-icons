@@ -182,6 +182,7 @@ pub static S: [[&str; N]; 25] = [
         "In the fence",
         "In File Explorer",
         "Open in the fence",
+        "Recovered files",
     ],
     [
         "新建分区",
@@ -364,6 +365,7 @@ pub static S: [[&str; N]; 25] = [
         "在区域中",
         "在文件资源管理器中",
         "在区域中打开",
+        "恢复的文件",
     ],
     [
         "नया क्षेत्र",
@@ -546,6 +548,7 @@ pub static S: [[&str; N]; 25] = [
         "क्षेत्र में",
         "फ़ाइल एक्सप्लोरर में",
         "क्षेत्र में खोलें",
+        "पुनर्प्राप्त फ़ाइलें",
     ],
     [
         "Nueva zona",
@@ -728,6 +731,7 @@ pub static S: [[&str; N]; 25] = [
         "En la zona",
         "En el Explorador de archivos",
         "Abrir en la zona",
+        "Archivos recuperados",
     ],
     [
         "Nouvelle zone",
@@ -910,6 +914,7 @@ pub static S: [[&str; N]; 25] = [
         "Dans la zone",
         "Dans l'Explorateur",
         "Ouvrir dans la zone",
+        "Fichiers récupérés",
     ],
     [
         "منطقة جديدة",
@@ -1092,6 +1097,7 @@ pub static S: [[&str; N]; 25] = [
         "داخل المنطقة",
         "في مستكشف الملفات",
         "فتح داخل المنطقة",
+        "الملفات المستردة",
     ],
     [
         "নতুন অঞ্চল",
@@ -1274,6 +1280,7 @@ pub static S: [[&str; N]; 25] = [
         "জোনের ভেতরে",
         "ফাইল এক্সপ্লোরারে",
         "জোনে খুলুন",
+        "পুনরুদ্ধার করা ফাইল",
     ],
     [
         "Nova área",
@@ -1456,6 +1463,7 @@ pub static S: [[&str; N]; 25] = [
         "Na área",
         "No Explorador de Ficheiros",
         "Abrir na área",
+        "Arquivos recuperados",
     ],
     [
         "Новая область",
@@ -1638,6 +1646,7 @@ pub static S: [[&str; N]; 25] = [
         "В зоне",
         "В Проводнике",
         "Открыть в зоне",
+        "Восстановленные файлы",
     ],
     [
         "نیا خطہ",
@@ -1820,6 +1829,7 @@ pub static S: [[&str; N]; 25] = [
         "زون میں",
         "فائل ایکسپلورر میں",
         "زون میں کھولیں",
+        "بازیافت شدہ فائلیں",
     ],
     [
         "Area baru",
@@ -2002,6 +2012,7 @@ pub static S: [[&str; N]; 25] = [
         "Di dalam zona",
         "Di File Explorer",
         "Buka di zona",
+        "File yang dipulihkan",
     ],
     [
         "Neuer Bereich",
@@ -2184,6 +2195,7 @@ pub static S: [[&str; N]; 25] = [
         "Im Bereich",
         "Im Explorer",
         "Im Bereich öffnen",
+        "Wiederhergestellte Dateien",
     ],
     [
         "新しいフェンス",
@@ -2366,6 +2378,7 @@ pub static S: [[&str; N]; 25] = [
         "ゾーン内で",
         "エクスプローラーで",
         "ゾーン内で開く",
+        "復元されたファイル",
     ],
     [
         "Eneo jipya",
@@ -2548,6 +2561,7 @@ pub static S: [[&str; N]; 25] = [
         "Ndani ya eneo",
         "Katika File Explorer",
         "Fungua ndani ya eneo",
+        "Faili zilizorejeshwa",
     ],
     [
         "नवीन क्षेत्र",
@@ -2730,6 +2744,7 @@ pub static S: [[&str; N]; 25] = [
         "झोनमध्ये",
         "फाइल एक्सप्लोररमध्ये",
         "झोनमध्ये उघडा",
+        "पुनर्प्राप्त फाइल्स",
     ],
     [
         "కొత్త ప్రాంతం",
@@ -2912,6 +2927,7 @@ pub static S: [[&str; N]; 25] = [
         "జోన్‌లోనే",
         "ఫైల్ ఎక్స్‌ప్లోరర్‌లో",
         "జోన్‌లో తెరువు",
+        "పునరుద్ధరించిన ఫైల్‌లు",
     ],
     [
         "Yeni alan",
@@ -3094,6 +3110,7 @@ pub static S: [[&str; N]; 25] = [
         "Bölgede",
         "Dosya Gezgini'nde",
         "Bölgede aç",
+        "Kurtarılan dosyalar",
     ],
     [
         "புதிய பகுதி",
@@ -3276,6 +3293,7 @@ pub static S: [[&str; N]; 25] = [
         "மண்டலத்திலேயே",
         "கோப்பு எக்ஸ்ப்ளோரரில்",
         "மண்டலத்தில் திற",
+        "மீட்கப்பட்ட கோப்புகள்",
     ],
     [
         "Vùng mới",
@@ -3458,6 +3476,7 @@ pub static S: [[&str; N]; 25] = [
         "Trong vùng",
         "Trong File Explorer",
         "Mở trong vùng",
+        "Tệp đã khôi phục",
     ],
     [
         "새 영역",
@@ -3640,6 +3659,7 @@ pub static S: [[&str; N]; 25] = [
         "영역 안에서",
         "파일 탐색기에서",
         "영역에서 열기",
+        "복구된 파일",
     ],
     [
         "Nuova area",
@@ -3822,6 +3842,7 @@ pub static S: [[&str; N]; 25] = [
         "Nella zona",
         "In Esplora file",
         "Apri nella zona",
+        "File recuperati",
     ],
     [
         "พื้นที่ใหม่",
@@ -4004,6 +4025,7 @@ pub static S: [[&str; N]; 25] = [
         "ในโซน",
         "ใน File Explorer",
         "เปิดในโซน",
+        "ไฟล์ที่กู้คืน",
     ],
     [
         "Nowy obszar",
@@ -4186,6 +4208,7 @@ pub static S: [[&str; N]; 25] = [
         "W strefie",
         "W Eksploratorze plików",
         "Otwórz w strefie",
+        "Odzyskane pliki",
     ],
     [
         "Нова область",
@@ -4368,6 +4391,7 @@ pub static S: [[&str; N]; 25] = [
         "У зоні",
         "У Провіднику",
         "Відкрити в зоні",
+        "Відновлені файли",
     ],
     [
         "ناحیه جدید",
@@ -4550,5 +4574,6 @@ pub static S: [[&str; N]; 25] = [
         "در همین ناحیه",
         "در File Explorer",
         "باز کردن در ناحیه",
+        "فایل‌های بازیابی‌شده",
     ],
 ];

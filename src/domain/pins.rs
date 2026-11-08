@@ -152,4 +152,28 @@ mod tests {
         assert_eq!(corner_slot(&full, (100, 100), area), (2720, 900));
         assert_eq!(corner_slot(&[], (0, 0), (0, 0, 0, 0)), (-1, -1));
     }
+
+    #[test]
+    fn pins_are_found_only_where_they_are() {
+        let mut c = Config { fences: vec![Fence::new(1, "A", (0, 0, 9, 9), Look::default())], ..Config::default() };
+        c.fences[0].tabs[0].pins = vec![pin("D:\\a.txt", 1)];
+        assert!(c.is_pinned(std::path::Path::new("d:\\A.TXT")) && !c.is_pinned(std::path::Path::new("D:\\b.txt")));
+        assert!(!Tab::default().pinned(std::path::Path::new("D:\\a.txt")));
+    }
+
+    #[test]
+    fn cells_touching_a_wall_edge_are_free() {
+        let wall = [(100, 100, 200, 200)];
+        assert!(!covered(&wall, (0, 100), (100, 100)) && !covered(&wall, (200, 100), (100, 100)));
+        assert!(!covered(&wall, (100, 0), (100, 100)) && !covered(&wall, (100, 200), (100, 100)));
+        assert!(covered(&wall, (199, 199), (100, 100)) && covered(&wall, (1, 1), (100, 100)));
+        assert_eq!(clear_spot(&[], &wall, (100, 100), (0, 0, 300, 300)), Some((0, 0)));
+        assert_eq!(clear_spot(&[(0, 0), (0, 100), (0, 200)], &wall, (100, 100), (0, 0, 300, 300)), Some((100, 0)));
+        assert_eq!(clear_spot(&[], &[(0, 0, 300, 300)], (100, 100), (0, 0, 300, 300)), None);
+        assert_eq!(clear_spot(&[], &[], (100, 100), (50, 20, 250, 250)), Some((50, 20)));
+        assert_eq!(corner_slot(&[], (100, 100), (50, 20, 300, 200)), (250, 120));
+        assert_eq!(corner_slot(&[(250, 120)], (100, 100), (50, 20, 300, 200)), (250, 20));
+        assert_eq!(corner_slot(&[(250, 120), (250, 20)], (100, 100), (50, 20, 300, 200)), (150, 120));
+        assert_eq!(free_slots(&[], &[], (100, 50), (10, 10, 300, 120), 3), vec![(10, 10), (10, 60), (110, 10)]);
+    }
 }

@@ -187,4 +187,27 @@ mod tests {
         assert!(b.order.is_empty() && b.pins.is_empty() && b.system.is_empty());
         assert_eq!(Tab { sort: Sort::Size, ..t }.browsing("/y".into()).sort, Sort::Size);
     }
+
+    #[test]
+    fn globs_backtrack_over_several_stars() {
+        assert!(glob("*a?c", "xxabc") && glob("a*b?d", "aXXbcd") && glob("*b*", "abc") && glob("a**c", "abc"));
+        assert!(!glob("*a?c", "xxac") && !glob("a*b?d", "abd") && !glob("*z*", "abc") && glob("?*", "a") && !glob("?*", ""));
+        assert!(glob("*ab", "aab") && glob("*aab", "aaab") && !glob("*ab", "aba"));
+    }
+
+    #[test]
+    fn age_rules_skip_themselves_and_missing_targets() {
+        let mut c = Config {
+            fences: vec![Fence::new(1, "A", (0, 0, 9, 9), Look::default()), Fence::new(2, "B", (0, 0, 9, 9), Look::default())],
+            ..Config::default()
+        };
+        c.fences[0].tabs[0].expire = Some(Expire { days: 7, fence: 2, tab: 2 });
+        c.fences[1].tabs[0].expire = Some(Expire { days: 7, fence: 2, tab: 2 });
+        assert_eq!(c.expiring().iter().map(|(f, t, _)| (*f, *t)).collect::<Vec<_>>(), vec![(1, 1)]);
+        c.fences[0].tabs[0].expire = Some(Expire { days: 7, fence: 9, tab: 9 });
+        assert!(c.expiring().is_empty());
+        let t = Tab { system: vec![crate::domain::system::Sys::RecycleBin], pins: vec![Pin { path: "x".into(), id: 1 }], ..Tab::default() };
+        let b = t.browsing("D:\\sub".into());
+        assert!(b.system.is_empty() && b.pins.is_empty() && b.portal.as_deref() == Some(std::path::Path::new("D:\\sub")));
+    }
 }

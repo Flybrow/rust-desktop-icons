@@ -160,6 +160,17 @@ impl Frame {
             SelectObject(self.dc, self.canvas.bmp.into());
             let _ = UpdateLayeredWindow(h, None, Some(&pos), Some(&size), Some(self.dc), Some(&src), COLORREF(0), Some(&blend), ULW_ALPHA);
         }
+        #[cfg(debug_assertions)]
+        self.mark_drawn(h, src, size, alpha);
+    }
+
+    #[cfg(debug_assertions)]
+    fn mark_drawn(&self, h: HWND, src: POINT, size: SIZE, alpha: u8) {
+        let px = self.canvas.pixels();
+        let rows = (src.y..src.y + size.cy).map(|y| (y * self.w + src.x) as usize);
+        let visible =
+            alpha > 0 && rows.into_iter().any(|r| px.get(r..r + size.cx as usize).is_some_and(|row| row.iter().any(|p| p >> 24 != 0)));
+        let _ = unsafe { SetPropW(h, windows::core::w!("RDI_DRAWN"), Some(HANDLE(visible as usize as _))) };
     }
 }
 

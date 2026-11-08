@@ -3,9 +3,10 @@ pub mod clip;
 pub mod desk;
 mod input;
 pub mod menu;
+pub mod usage;
 
 pub use input::{
-    chord, click, ctrl_wheel, cursor, double_click, drag, glide, hold, point, press, right, right_click, show_desktop, type_text,
+    chord, click, ctrl_wheel, cursor, double_click, drag, glide, hold, point, press, right, right_click, show_desktop, type_text, wheel,
 };
 
 use std::{
@@ -110,8 +111,12 @@ pub fn rect(h: HWND) -> RECT {
     r
 }
 
+pub fn drawn(h: HWND) -> bool {
+    !unsafe { GetPropW(h, windows::core::w!("RDI_DRAWN")) }.is_invalid()
+}
+
 pub fn fences(pid: u32) -> Vec<RECT> {
-    windows(pid, "RustDesktopIcons.Fence").into_iter().map(rect).collect()
+    windows(pid, "RustDesktopIcons.Fence").into_iter().filter(|h| drawn(*h)).map(rect).collect()
 }
 
 pub fn on_desktop((x, y): (i32, i32)) -> bool {

@@ -47,7 +47,10 @@ fn load_from(dir: &Path) -> (Config, Option<PathBuf>) {
 fn save_to(dir: &Path, c: &Config) -> io::Result<()> {
     fs::create_dir_all(dir)?;
     let (tmp, main) = (dir.join("config.json.tmp"), dir.join("config.json"));
-    fs::write(&tmp, serde_json::to_vec_pretty(c)?)?;
+    let mut f = fs::File::create(&tmp)?;
+    io::Write::write_all(&mut f, &serde_json::to_vec_pretty(c)?)?;
+    f.sync_all()?;
+    drop(f);
     if parse(&main).is_some() {
         fs::copy(&main, dir.join("config.json.bak"))?;
     }
@@ -137,6 +140,14 @@ pub fn tab_dirs() -> Vec<PathBuf> {
     fs::read_dir(root().join("fences")).into_iter().flatten().flatten().map(|e| e.path()).filter(|p| p.is_dir()).collect()
 }
 
+pub fn filled_dirs() -> Vec<u64> {
+    tab_dirs()
+        .iter()
+        .filter(|d| fs::read_dir(d).is_ok_and(|mut r| r.next().is_some()))
+        .filter_map(|d| d.file_name()?.to_str()?.parse().ok())
+        .collect()
+}
+
 pub fn name(p: &Path) -> String {
     p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
 }
@@ -210,6 +221,65 @@ mod tests {
         let pick = unique_by(&d, OsStr::new("a.txt"), |p| p.exists() || reserved.contains(&p.to_path_buf()));
         assert_eq!(pick, d.join("a (3).txt"));
         assert_eq!(unique(&d, OsStr::new("b.txt")), d.join("b.txt"));
+        fs::remove_dir_all(d).unwrap();
+    }
+
+    #[test]
+    fn interrupted_saves_never_lose_the_config() {
+        let d = tmp("crash");
+        let mut c = Config::default();
+        c.fences.push(Fence::new(3, "Docs", (0, 0, 300, 200), Look::default()));
+        save_to(&d, &c).unwrap();
+        fs::write(d.join("config.json.tmp"), "{half").unwrap();
+        assert_eq!(load_from(&d).0, c);
+        save_to(&d, &c).unwrap();
+        fs::write(d.join("config.json"), "").unwrap();
+        let (restored, bad) = load_from(&d);
+        assert_eq!((restored, bad.is_some()), (c.clone(), true));
+        for junk in ["", "null", "[]", "{\"fences\": 5}", "\u{feff}"] {
+            let e = tmp("junk");
+            fs::write(e.join("config.json"), junk).unwrap();
+            let (cfg, bad) = load_from(&e);
+            assert_eq!((cfg, bad.is_some()), (Config::default().sanitized(), true), "{junk:?}");
+            fs::remove_dir_all(e).unwrap();
+        }
+        fs::remove_dir_all(d).unwrap();
+    }
+
+    #[test]
+    fn moves_survive_awkward_files() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let d = tmp("awk");
+        let (a, b) = (d.join("a"), d.join("b"));
+        fs::create_dir_all(&a).unwrap();
+        let ro = a.join("lecture seule é😀.txt");
+        fs::write(&ro, "r").unwrap();
+        let mut perm = fs::metadata(&ro).unwrap().permissions();
+        perm.set_readonly(true);
+        fs::set_permissions(&ro, perm).unwrap();
+        let moved = move_into(&ro, &b).unwrap();
+        assert_eq!((fs::read_to_string(&moved).unwrap().as_str(), moved.file_name()), ("r", ro.file_name()));
+        let deep = (0..14).fold(a.clone(), |p, i| p.join(format!("dossier-très-long-{i:02}")));
+        fs::create_dir_all(&deep).unwrap();
+        fs::write(deep.join("loin.txt"), "l").unwrap();
+        assert!(deep.as_os_str().len() > 260);
+        assert_eq!(fs::read_to_string(move_into(&deep.join("loin.txt"), &b).unwrap()).unwrap(), "l");
+        let locked = a.join("locked.txt");
+        fs::write(&locked, "k").unwrap();
+        let hold = fs::OpenOptions::new().read(true).share_mode(0).open(&locked).unwrap();
+        assert!(move_into(&locked, &b).is_err());
+        assert!(locked.exists() && !b.join("locked.txt").exists());
+        let (moved, errors) = evacuate(&a, &b);
+        assert!(errors.iter().any(|e| e.starts_with("locked.txt")) && a.exists() && !moved.is_empty());
+        drop(hold);
+        let (_, errors) = evacuate(&a, &b);
+        assert!(errors.is_empty() && !a.exists() && b.join("locked.txt").exists());
+        for e in fs::read_dir(&b).unwrap().flatten() {
+            let mut p = e.metadata().unwrap().permissions();
+            #[allow(clippy::permissions_set_readonly_false)]
+            p.set_readonly(false);
+            let _ = fs::set_permissions(e.path(), p);
+        }
         fs::remove_dir_all(d).unwrap();
     }
 

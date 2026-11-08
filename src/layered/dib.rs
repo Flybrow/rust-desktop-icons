@@ -28,6 +28,10 @@ impl Dib {
     pub fn px(&mut self) -> &mut [u32] {
         unsafe { slice::from_raw_parts_mut(self.ptr, self.len) }
     }
+
+    pub fn pixels(&self) -> &[u32] {
+        unsafe { slice::from_raw_parts(self.ptr, self.len) }
+    }
 }
 
 impl Drop for Dib {

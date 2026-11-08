@@ -120,3 +120,34 @@ fn sort(tray: bool, all: bool) {
     }
     report::failures(T::ErrMove, &errors);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{
+        fs::{File, FileTimes},
+        os::windows::fs::{FileTimesExt, OpenOptionsExt},
+        time::SystemTime,
+    };
+
+    #[test]
+    fn files_wait_until_written_and_hidden_ones_stay() {
+        let d = std::env::temp_dir().join(format!("rdi-rules-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&d);
+        fs::create_dir_all(&d).unwrap();
+        let (new, old, copied) = (d.join("new.txt"), d.join("old.txt"), d.join("copied.txt"));
+        for p in [&new, &old, &copied] {
+            fs::write(p, "x").unwrap();
+        }
+        let past = SystemTime::now() - Duration::from_secs(60);
+        let open = |p: &Path| File::options().write(true).custom_flags(0x0200_0000).open(p).unwrap();
+        open(&old).set_times(FileTimes::new().set_modified(past).set_created(past)).unwrap();
+        open(&copied).set_times(FileTimes::new().set_modified(past)).unwrap();
+        assert!(!settled(&new) && settled(&old) && !settled(&copied) && !settled(&d.join("missing")));
+        let hidden = d.join("hidden.txt");
+        fs::write(&hidden, "h").unwrap();
+        std::process::Command::new("attrib").arg("+h").arg(&hidden).status().unwrap();
+        assert!(movable(&old) && !movable(&hidden) && !movable(&d.join("a.crdownload")) && !movable(&d.join(OWN_SHORTCUT)));
+        fs::remove_dir_all(d).unwrap();
+    }
+}

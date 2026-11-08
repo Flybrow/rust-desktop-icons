@@ -1,0 +1,24 @@
+{
+  "lang": "en",
+  "auto_update": true,
+  "autostart": true,
+  "auto_sort": true,
+  "roll_ms": 350,
+  "look": { "color": 3156000, "alpha": 217, "icon": 48, "tint": null, "chameleon": false, "auto_height": true },
+  "fences": [
+    {
+      "id": 3, "x": 1920, "y": 0, "w": 400, "h": 300, "rolled": true, "locked": false,
+      "color": 3156000, "alpha": 217, "icon": 48, "tint": null, "chameleon": false, "auto_height": true,
+      "tabs": [
+        {
+          "id": 3, "title": "Work", "portal": null, "kinds": ["Archives"], "sort": "Type", "order": [], "recycle": false,
+          "pins": [{ "path": "C:\\Users\\me\\Desktop\\report.docx", "id": 281474976718001 }]
+        }
+      ],
+      "tab": 0
+    }
+  ],
+  "version": "0.8.1",
+  "keep_on_desktop": true,
+  "desk_flags": 1075839525
+}

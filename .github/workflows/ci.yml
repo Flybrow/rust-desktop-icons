@@ -36,3 +36,24 @@ jobs:
         run: target/debug/examples/update_e2e.exe
       - name: Uninstall gives every fence's items back
         run: target/debug/examples/uninstall_e2e.exe
+      - name: Lost fence folders and damaged configs are recovered
+        run: target/debug/examples/recover_e2e.exe
+      - name: Many fences and files (load)
+        run: target/debug/examples/load_e2e.exe
+  msi:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: rustup toolchain install stable --profile minimal && rustup default stable
+      - run: cargo build --release --locked
+      - name: The exe runs without the Visual C++ runtime
+        shell: pwsh
+        run: if (Select-String -Path target/release/rust-desktop-icons.exe -Pattern 'VCRUNTIME140' -SimpleMatch -Quiet) { throw 'the exe imports VCRUNTIME140.dll' }
+      - run: dotnet tool install --global wix --version 5.0.2
+      - run: wix extension add -g WixToolset.UI.wixext/5.0.2 WixToolset.Util.wixext/5.0.2
+      - run: wix build installer/main.wxs -d Version=0.0.0 -arch x64 -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext -o rust-desktop-icons-dev.msi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: msi
+          path: rust-desktop-icons-dev.msi
+          retention-days: 7

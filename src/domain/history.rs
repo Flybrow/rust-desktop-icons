@@ -93,4 +93,24 @@ mod tests {
         h.end(&b);
         assert!(!h.any());
     }
+
+    #[test]
+    fn oldest_steps_go_first_and_undo_is_last_in_first_out() {
+        let cfg = |roll_ms| Config { roll_ms, ..Config::default() };
+        let mut h = History::default();
+        h.end(&cfg(1));
+        h.rebase(&cfg(1));
+        assert!(!h.any());
+        for n in 0..CAP as u32 + 3 {
+            h.begin(&cfg(n));
+            h.end(&cfg(n + 1));
+        }
+        let befores: Vec<u32> = std::iter::from_fn(|| h.pop()).map(|s| s.before.roll_ms).collect();
+        assert_eq!(befores, (3..CAP as u32 + 3).rev().collect::<Vec<_>>());
+        h.begin(&cfg(1));
+        h.rebase(&cfg(5));
+        h.note(Op::Created("a".into()));
+        h.end(&cfg(5));
+        assert_eq!(h.pop().map(|s| (s.before.roll_ms, s.ops.len())), Some((5, 1)));
+    }
 }

@@ -136,4 +136,12 @@ mod tests {
         assert_eq!(Sys::RecycleBin.original(Some(HIDDEN)), None);
         assert_eq!(Sys::RecycleBin.original(Some(0)), Some(0));
     }
+
+    #[test]
+    fn every_system_icon_opens_its_own_shell_folder() {
+        let all = [Sys::RecycleBin, Sys::ThisPc, Sys::UserFiles, Sys::Network, Sys::ControlPanel];
+        let folders: std::collections::HashSet<&str> = all.iter().map(|s| s.folder()).collect();
+        assert_eq!(folders.len(), all.len());
+        assert!(folders.iter().all(|f| f.starts_with("shell:") && f.ends_with("Folder")));
+    }
 }

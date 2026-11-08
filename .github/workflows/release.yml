@@ -21,6 +21,9 @@ jobs:
       - run: cargo install cargo-audit --locked
       - run: cargo audit
       - run: cargo build --release --locked
+      - name: The exe runs without the Visual C++ runtime
+        shell: pwsh
+        run: if (Select-String -Path target/release/rust-desktop-icons.exe -Pattern 'VCRUNTIME140' -SimpleMatch -Quiet) { throw 'the exe imports VCRUNTIME140.dll' }
       - run: dotnet tool install --global wix --version 5.0.2
       - run: wix extension add -g WixToolset.UI.wixext/5.0.2 WixToolset.Util.wixext/5.0.2
       - name: Build MSI

@@ -46,4 +46,6 @@
 - **Plus de clignotement :** avec « Garder les fichiers sur le Bureau », les icônes masquées ne clignotent plus quand leur pile change de case.
 - **Dossiers lents :** les zones rechargent leur contenu un chargement à la fois, si bien qu'un dossier réseau lent ne peut plus accumuler de travail en arrière-plan.
 - **Configuration plus sûre :** une configuration écrite par une version plus récente de l'application ne réinitialise plus vos zones : les valeurs inconnues sont simplement ignorées.
+- **Aucun fichier perdu :** si la configuration est endommagée ou qu'une zone en disparaît, les fichiers encore rangés pour cette zone reviennent au démarrage suivant dans une zone « Fichiers récupérés ». La configuration est écrite de façon sûre sur le disque (une coupure de courant pendant l'enregistrement ne peut plus la vider), un config.json enregistré avec le Bloc-notes (UTF-8 avec BOM) est lu normalement, et deux onglets ne peuvent plus partager le même dossier.
+- **Démarre sur tous les PC :** l'application n'a plus besoin du runtime Microsoft Visual C++ et démarre donc aussi sur un Windows fraîchement installé.
 - **Fuites :** petites fuites de mémoire et de ressources corrigées (menus contextuels, images de glisser-déposer).

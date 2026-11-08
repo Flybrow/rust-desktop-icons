@@ -17,12 +17,17 @@ mod model;
 pub mod names;
 pub mod order;
 pub mod pins;
+#[cfg(test)]
+mod props;
+mod recover;
 pub mod screens;
 pub mod search;
 pub mod side;
 pub mod snap;
 pub mod stack;
 pub mod system;
+#[cfg(test)]
+mod upgrade;
 mod zone;
 
 pub use config::Config;

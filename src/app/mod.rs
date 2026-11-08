@@ -12,7 +12,7 @@ use crate::{
     report, rules, settings, shell, store, tray,
     win::*,
 };
-pub use fences::{duplicate, new_fence, rebuild, register_verb};
+pub use fences::{duplicate, new_fence, rebuild, recover, register_verb};
 use std::{cell::RefCell, collections::HashSet, path::PathBuf};
 pub use view::{Item, View};
 use windows::{
@@ -159,12 +159,13 @@ pub fn run() {
         let taskbar = RegisterWindowMessageW(w!("TaskbarCreated"));
         APP.with(|a| *a.borrow_mut() = Some(App::new(cfg, taskbar)));
         tray::icon(tray, NIM_ADD);
-        if let Some(bad) = damaged {
-            report::alert(T::ErrConfig, &bad.display().to_string());
-        }
+        recover();
         crate::keep::sync(false);
         screens::adapt();
         rebuild();
+        if let Some(bad) = damaged {
+            report::alert(T::ErrConfig, &bad.display().to_string());
+        }
         desk_icons::hide_placed();
         rules::watch(tray);
         register_verb();

@@ -111,3 +111,23 @@ impl Fence {
         self
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_stale_active_tab_falls_back_to_the_last_one() {
+        let mut f = Fence::new(1, "A", (0, 0, 300, 200), Look::default());
+        f.tabs.push(Tab { id: 2, title: "B".into(), ..Tab::default() });
+        f.tab = 7;
+        assert_eq!(f.active().id, 2);
+        f.active_mut().title = "Bis".into();
+        assert_eq!((f.tabs[1].title.as_str(), f.tabs[0].title.as_str()), ("Bis", "A"));
+        let f = f.sanitized();
+        assert_eq!((f.tab, f.active().id), (1, 2));
+        let g = Fence { id: 3, title: "Old\ttitle".into(), w: 5, h: 5, x: 99_999, ..Fence::default() }.sanitized();
+        assert_eq!((g.tabs.len(), g.tabs[0].id, g.tabs[0].title.as_str(), g.title.as_str()), (1, 3, "Oldtitle", ""));
+        assert_eq!((g.w, g.h, g.x), (Fence::MIN.0, Fence::MIN.1, 20_000));
+    }
+}

@@ -1,0 +1,26 @@
+{
+  "lang": "fr",
+  "auto_update": true,
+  "autostart": true,
+  "auto_sort": true,
+  "roll_ms": 350,
+  "look": { "color": 1579032, "alpha": 200, "icon": 48, "tint": null, "chameleon": false, "auto_height": true },
+  "fences": [
+    {
+      "id": 1, "x": 0, "y": 300, "w": 120, "h": 500, "rolled": true, "locked": false, "vertical": true,
+      "color": 1579032, "alpha": 200, "icon": 48, "tint": null, "chameleon": false, "auto_height": true,
+      "tabs": [{ "id": 1, "title": "Système", "portal": null, "kinds": [], "sort": "Name", "order": [], "system": ["RecycleBin", "ThisPc"] }],
+      "tab": 0
+    },
+    {
+      "id": 2, "x": 300, "y": 40, "w": 500, "h": 280, "rolled": false, "locked": false, "vertical": false,
+      "color": 1579032, "alpha": 200, "icon": 64, "tint": null, "chameleon": false, "auto_height": true,
+      "tabs": [{ "id": 2, "title": "Projets", "portal": "C:\\Projets", "kinds": ["Folders"], "sort": "Date", "order": [] }],
+      "tab": 0
+    }
+  ],
+  "version": "0.9.4",
+  "keep_on_desktop": false,
+  "desk_flags": null,
+  "desk_icons": [["RecycleBin", 0], ["ThisPc", null]]
+}

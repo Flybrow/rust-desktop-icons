@@ -1,0 +1,20 @@
+{
+  "lang": null,
+  "auto_update": true,
+  "autostart": true,
+  "auto_sort": true,
+  "roll_ms": 350,
+  "look": { "color": 3156000, "alpha": 217, "icon": 48, "tint": null, "chameleon": false, "auto_height": true },
+  "fences": [
+    {
+      "id": 1, "x": 100, "y": 100, "w": 360, "h": 240, "rolled": false, "locked": true,
+      "color": 255, "alpha": 217, "icon": 32, "tint": null, "chameleon": false, "auto_height": false,
+      "tabs": [
+        { "id": 1, "title": "Bureau", "portal": null, "kinds": ["Documents"], "sort": "Custom", "order": ["b.txt", "a.txt"], "recycle": true },
+        { "id": 2, "title": "Photos", "portal": null, "kinds": ["Images", "Videos"], "sort": "Date", "order": [], "recycle": false }
+      ],
+      "tab": 0
+    }
+  ],
+  "version": "0.7.14"
+}

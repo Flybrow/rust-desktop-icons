@@ -1,0 +1,9 @@
+{
+  "lang": "fr",
+  "auto_update": true,
+  "autostart": false,
+  "fences": [
+    { "id": 1, "title": "Jeux", "x": 40, "y": 60, "w": 420, "h": 260, "color": 1315860, "alpha": 200, "rolled": true },
+    { "id": 2, "title": "Documents", "x": 500, "y": 60, "w": 360, "h": 240, "color": 3156000, "alpha": 217, "rolled": false }
+  ]
+}

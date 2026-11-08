@@ -114,7 +114,11 @@ impl Config {
     }
 
     pub fn parse(bytes: &[u8]) -> serde_json::Result<Self> {
-        serde_json::from_slice(bytes.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(bytes))
+        let json = bytes.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(bytes);
+        if json.trim_ascii_start().first() != Some(&b'{') {
+            return Err(serde::de::Error::custom("not a JSON object"));
+        }
+        serde_json::from_slice(json)
     }
 
     pub fn sanitized(mut self) -> Self {
@@ -123,10 +127,18 @@ impl Config {
         let mut seen = HashSet::new();
         self.fences = self.fences.into_iter().filter(|f| f.id > 0 && seen.insert(f.id)).map(Fence::sanitized).collect();
         let mut tabs = HashSet::new();
+        let mut fresh = self.next_id();
         for f in &mut self.fences {
             f.tabs.retain(|t| t.id > 0 && tabs.insert(t.id));
             if f.tabs.is_empty() {
-                f.tabs.push(Tab { id: f.id, ..Tab::default() });
+                let id = if tabs.insert(f.id) {
+                    f.id
+                } else {
+                    fresh += 1;
+                    fresh - 1
+                };
+                tabs.insert(id);
+                f.tabs.push(Tab { id, ..Tab::default() });
             }
             f.tab = f.tab.min(f.tabs.len() - 1);
         }

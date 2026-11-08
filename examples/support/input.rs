@@ -104,15 +104,23 @@ pub fn show_desktop() {
     thread::sleep(Duration::from_millis(800));
 }
 
-pub fn ctrl_wheel(up: bool) {
-    let wheel = INPUT {
+fn wheel_input(up: bool) -> INPUT {
+    INPUT {
         r#type: INPUT_MOUSE,
         Anonymous: INPUT_0 {
             mi: MOUSEINPUT { dwFlags: MOUSEEVENTF_WHEEL, mouseData: if up { 120 } else { -120i32 as u32 }, ..Default::default() },
         },
-    };
+    }
+}
+
+pub fn wheel(up: bool) {
+    send(&[wheel_input(up)]);
+    thread::sleep(Duration::from_millis(60));
+}
+
+pub fn ctrl_wheel(up: bool) {
     send(&[key(VK_CONTROL, 0, KEYBD_EVENT_FLAGS(0))]);
-    send(&[wheel]);
+    send(&[wheel_input(up)]);
     send(&[key(VK_CONTROL, 0, KEYEVENTF_KEYUP)]);
     thread::sleep(Duration::from_millis(200));
 }

@@ -109,6 +109,8 @@ stays specific to that fence; **Reset to default** in that menu makes it follow 
 
 By default, files from your own desktop are **moved** into `%LOCALAPPDATA%\RustDesktopIcons\fences\<id>` (never deleted);
 anything else gets a **shortcut**, so the original stays where it is. Deleting a fence moves its items back to the desktop.
+If the configuration is ever damaged or loses a fence, the files still stored in `fences\<id>` come back at the next start in a
+**Recovered files** fence.
 
 With **Settings → Keep files on the desktop**, fenced files stay in your Desktop folder instead: Explorer → Desktop
 lists them, and only their desktop icons are hidden (stacked in one corner cell under a wallpaper patch; desktop
