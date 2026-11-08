@@ -14,7 +14,8 @@
 - **Compact view:** right-click a fence → Appearance → Show names. Without names, icons take less room and the hovered name shows in the title bar.
 - **Icon alignment:** left (default), centered or right, for all fences in Settings → Default appearance, or for one fence from its right-click menu (Appearance → Icon alignment).
 - **Sort by size:** next to name, type, date and your own order.
-- **Open folders inside the fence:** double-click a folder in a fence to show its content right there; the arrow in the title bar (or Backspace) goes back. Ctrl+double-click opens Explorer. It can be turned off in Settings → Behavior, or per fence (right-click → Behavior).
+- **Icon size with the mouse wheel:** hold Ctrl and turn the mouse wheel over a fence to make its icons bigger or smaller (that fence only).
+- **Open folders inside the fence:** double-click a folder in a fence to show its content right there; the arrow in the title bar (or Backspace) goes back. Ctrl+double-click opens Explorer. A rolled-up fence goes back to its own items when it rolls up. Choose where folders open in Settings → Behavior, or per fence: right-click → Open folders → In the fence / In File Explorer. A folder's own right-click menu also offers "Open in the fence".
 - **Move to:** right-click an item → Move to, then pick any fence or tab, or the desktop.
 - **Rules by name:** in Settings → Sorting rules, send new desktop files whose name matches a pattern (for example `invoice*.pdf`; `*` stands for any text, `?` for one character) to the fence you choose. Name rules are checked before file-type rules.
 - **Rules by age:** items of a fence that have not been modified for 7 days to a year move automatically to another fence (Settings → Sorting rules → Add a rule by age). Checked a minute after start, then every hour.

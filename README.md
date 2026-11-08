@@ -68,6 +68,7 @@ updates are automatic again afterwards.
 | Create a fence | Tray icon → **New fence**, right-click the desktop → **Create an RDI fence**, or right-click a fence |
 | Add icons | Drag them onto a fence (from the desktop, Start menu, Explorer…) |
 | Open an item | Double-click it (a folder opens inside the fence: the title-bar arrow or **Backspace** goes back; **Ctrl+double-click** opens Explorer) |
+| Where folders open | Right-click a fence → **Open folders** → **In the fence** / **In File Explorer** (Settings → Behavior for every fence); a folder's own menu has **Open in the fence** |
 | Undo | **Ctrl+Z** in a fence or the settings, or **Undo** at the top of a fence's or the tray icon's menu (last 20 actions) |
 | Keyboard | Arrow keys move between icons (Shift extends), Home/End, Page Up/Down, **Ctrl+Tab** switches tabs |
 | Move an item elsewhere | Right-click it → **Move to** → any fence, tab or the desktop |
@@ -86,7 +87,7 @@ updates are automatic again afterwards.
 | Names and spacing | Right-click a fence → **Appearance** → **Name size**, **Name color**, **Icon spacing**, or Settings → Icons for every fence |
 | Icon alignment | Right-click a fence → **Appearance** → **Icon alignment** (left, centered, right), or Settings for every fence |
 | Sort | Right-click a fence → **Sort by** (name, type, date, size or your own order) |
-| Inbox | Right-click a fence → **Rules** → **Everything else** |
+| Inbox | Right-click a fence → **Sorting rules** → **Everything else** |
 | Rules by name / age | Settings → **Sorting rules**: send new files matching `invoice*.pdf` to a fence; move items not modified for N days to another fence |
 | Duplicate a fence | Right-click it → **Duplicate**: same look, size and tabs (names, rules, sort, portals), placed next to it, without the files |
 | Group fences | Right-click a fence → **Behavior** → **Group with**: the group moves together; **Ungroup** to leave it |
