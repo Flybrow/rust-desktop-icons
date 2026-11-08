@@ -26,15 +26,19 @@ pub(super) fn reg_delete(key: &str, name: &str) -> bool {
     unsafe { RegDeleteKeyValueW(HKEY_CURRENT_USER, PCWSTR(k.as_ptr()), PCWSTR(n.as_ptr())) }.is_ok()
 }
 
-pub(super) fn reg_dword(key: &str, name: &str) -> Option<u32> {
+pub(super) fn reg_bytes(key: &str, name: &str, flags: REG_ROUTINE_FLAGS) -> Option<Vec<u8>> {
     let (k, n) = (wide(key), wide(name));
-    let (mut v, mut size) = (0u32, 4u32);
-    let flags = RRF_RT_REG_DWORD;
-    unsafe {
-        RegGetValueW(HKEY_CURRENT_USER, PCWSTR(k.as_ptr()), PCWSTR(n.as_ptr()), flags, None, Some(&mut v as *mut u32 as _), Some(&mut size))
-    }
-    .is_ok()
-    .then_some(v)
+    let (k, n) = (PCWSTR(k.as_ptr()), PCWSTR(n.as_ptr()));
+    let mut size = 0u32;
+    unsafe { RegGetValueW(HKEY_CURRENT_USER, k, n, flags, None, None, Some(&mut size)) }.ok().ok()?;
+    let mut buf = vec![0u8; size as usize];
+    unsafe { RegGetValueW(HKEY_CURRENT_USER, k, n, flags, None, Some(buf.as_mut_ptr().cast()), Some(&mut size)) }.ok().ok()?;
+    buf.truncate(size as usize);
+    Some(buf)
+}
+
+pub(super) fn reg_dword(key: &str, name: &str) -> Option<u32> {
+    reg_bytes(key, name, RRF_RT_REG_DWORD)?.try_into().ok().map(u32::from_le_bytes)
 }
 
 fn reg_set(key: &str, name: &str, value: &str) {

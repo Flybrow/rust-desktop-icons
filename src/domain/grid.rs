@@ -72,20 +72,73 @@ impl Flow {
     }
 }
 
-pub fn max_scroll(n: usize, w: i32, h: i32, cell: i32) -> i32 {
-    let c = cols(w, cell);
-    ((n as i32 + c - 1) / c * cell - h).max(0)
+fn rows(n: usize, w: i32, cell: i32) -> i32 {
+    (n as i32 + cols(w, cell) - 1) / cols(w, cell)
 }
 
-pub fn fit(n: usize, w: i32, cell: i32, chrome: i32, (min, max): (i32, i32)) -> i32 {
-    let rows = (n as i32 + cols(w, cell) - 1) / cols(w, cell);
-    (chrome + rows.max(1) * cell).clamp(min, max.max(min))
+pub fn last_row(n: usize, w: i32, cell: i32) -> std::ops::Range<usize> {
+    ((rows(n, w, cell) - 1).max(0) * cols(w, cell)) as usize..n
+}
+
+pub fn extent(n: usize, w: i32, cell: i32, tail: i32) -> i32 {
+    (rows(n, w, cell).max(1) - 1) * cell + tail
+}
+
+pub fn max_scroll(n: usize, w: i32, h: i32, cell: i32, tail: i32) -> i32 {
+    if n == 0 { 0 } else { (extent(n, w, cell, tail) - h).max(0) }
+}
+
+pub fn fit(n: usize, w: i32, (cell, tail): (i32, i32), chrome: i32, (min, max): (i32, i32)) -> i32 {
+    (chrome + extent(n, w, cell, tail)).clamp(min, max.max(min))
 }
 
 pub fn fit_cols(n: usize, len: i32, cell: i32, chrome: i32, (min, max): (i32, i32)) -> i32 {
     let rows = (len / cell.max(1)).max(1);
     let cols = (n as i32 + rows - 1) / rows;
     (chrome + cols.max(1) * cell).clamp(min, max.max(min))
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Move {
+    Left,
+    Right,
+    Up,
+    Down,
+    Home,
+    End,
+    Page(i32),
+}
+
+pub fn step(n: usize, cols: i32, at: Option<usize>, m: Move, (flip_x, flip_y): (bool, bool)) -> Option<usize> {
+    let last = n.checked_sub(1)? as i32;
+    let Some(i) = at.map(|i| i.min(last as usize) as i32) else { return Some(0) };
+    let cols = cols.max(1);
+    let m = match m {
+        Move::Left if flip_x => Move::Right,
+        Move::Right if flip_x => Move::Left,
+        Move::Up if flip_y => Move::Down,
+        Move::Down if flip_y => Move::Up,
+        Move::Page(r) if flip_y => Move::Page(-r),
+        m => m,
+    };
+    let to = match m {
+        Move::Left => i - 1,
+        Move::Right => i + 1,
+        Move::Up if i >= cols => i - cols,
+        Move::Up => i,
+        Move::Down if i + cols <= last => i + cols,
+        Move::Down if i / cols < last / cols => last,
+        Move::Down => i,
+        Move::Home => 0,
+        Move::End => last,
+        Move::Page(r) => i + r * cols,
+    };
+    Some(to.clamp(0, last) as usize)
+}
+
+pub fn row_span(i: usize, cols: i32, cell: i32) -> (i32, i32) {
+    let top = i as i32 / cols.max(1) * cell;
+    (top, top + cell)
 }
 
 pub fn split(w: i32, n: usize, x: i32) -> Option<usize> {
@@ -113,17 +166,19 @@ mod tests {
         assert_eq!(flow(5, Align::Left).index_at((10, 10)), Some(0));
         assert_eq!(flow(5, Align::Left).index_at((10, -5)), None);
         assert_eq!((Align::Left.mirrored(), Align::Center.mirrored()), (Align::Right, Align::Center));
-        assert_eq!(max_scroll(7, 250, 100, 80), 140);
-        assert_eq!(max_scroll(1, 250, 100, 80), 0);
+        assert_eq!(max_scroll(7, 250, 100, 80, 80), 140);
+        assert_eq!((max_scroll(7, 250, 100, 80, 50), max_scroll(1, 250, 100, 80, 80), max_scroll(0, 250, 10, 80, 80)), (110, 0, 0));
+        assert_eq!((last_row(7, 250, 80), last_row(6, 250, 80), last_row(2, 250, 80), last_row(0, 250, 80)), (6..7, 3..6, 0..2, 0..0));
     }
 
     #[test]
     fn auto_height() {
-        assert_eq!(fit(5, 250, 80, 50, (80, 1000)), 50 + 2 * 80);
-        assert_eq!(fit(0, 250, 80, 50, (80, 1000)), 50 + 80);
-        assert_eq!(fit(6, 250, 80, 50, (80, 1000)), 50 + 2 * 80);
-        assert_eq!(fit(40, 250, 80, 50, (80, 500)), 500);
-        assert_eq!(fit(1, 250, 10, 5, (80, 500)), 80);
+        assert_eq!(fit(5, 250, (80, 80), 50, (80, 1000)), 50 + 2 * 80);
+        assert_eq!(fit(5, 250, (80, 62), 50, (80, 1000)), 50 + 80 + 62);
+        assert_eq!(fit(0, 250, (80, 62), 50, (80, 1000)), 50 + 62);
+        assert_eq!(fit(6, 250, (80, 80), 50, (80, 1000)), 50 + 2 * 80);
+        assert_eq!(fit(40, 250, (80, 80), 50, (80, 500)), 500);
+        assert_eq!(fit(1, 250, (10, 10), 5, (80, 500)), 80);
     }
 
     #[test]
@@ -132,6 +187,20 @@ mod tests {
         assert_eq!(fit_cols(0, 250, 80, 40, (60, 1000)), 40 + 80);
         assert_eq!(fit_cols(30, 250, 80, 40, (60, 500)), 500);
         assert_eq!(fit_cols(3, 10, 80, 40, (60, 1000)), 40 + 3 * 80);
+    }
+
+    #[test]
+    fn keyboard_steps() {
+        let go = |at, m| step(7, 3, at, m, (false, false));
+        assert_eq!((go(None, Move::Down), go(Some(4), Move::Left), go(Some(4), Move::Right)), (Some(0), Some(3), Some(5)));
+        assert_eq!((go(Some(0), Move::Left), go(Some(6), Move::Right), go(Some(1), Move::Up)), (Some(0), Some(6), Some(1)));
+        assert_eq!((go(Some(1), Move::Down), go(Some(4), Move::Down), go(Some(6), Move::Down)), (Some(4), Some(6), Some(6)));
+        assert_eq!(
+            (go(Some(5), Move::Home), go(Some(0), Move::End), go(Some(0), Move::Page(2)), go(Some(6), Move::Page(-1))),
+            (Some(0), Some(6), Some(6), Some(3))
+        );
+        assert_eq!((step(7, 3, Some(4), Move::Left, (true, false)), step(7, 3, Some(4), Move::Up, (false, true))), (Some(5), Some(6)));
+        assert_eq!((step(0, 3, None, Move::Down, (false, false)), row_span(4, 3, 80)), (None, (80, 160)));
     }
 
     #[test]

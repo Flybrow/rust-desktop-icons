@@ -1,10 +1,13 @@
 mod actions;
 mod anim;
 mod arrange;
+mod browse;
 mod cell;
+mod desks;
 mod drop;
 mod edit;
 mod ghost;
+mod group;
 mod guides;
 mod header;
 mod host;
@@ -13,7 +16,9 @@ mod keys;
 mod layout;
 mod loader;
 mod menu;
+mod moveto;
 mod native;
+mod nav;
 mod paint;
 mod peek;
 mod select;
@@ -21,12 +26,13 @@ mod snap;
 mod system;
 mod tabs;
 mod target;
+mod titlebar;
+mod wallpaper;
 mod window;
 
 use crate::{
     app::{App, View, with},
     domain::{Fence, icons},
-    shell,
     win::*,
 };
 use windows::{
@@ -38,10 +44,12 @@ use windows::{
     core::*,
 };
 
+pub use actions::evacuate;
 pub use edit::key;
 pub use items::{reload, reload_all, windows as hwnds};
 pub use paint::render;
 pub use tabs::bind;
+pub use wallpaper::changed as wallpaper_changed;
 use window::top;
 pub use window::{create, footprints, raise};
 
@@ -57,11 +65,13 @@ const ANIM: usize = 3;
 const PREPARE: usize = 5;
 
 fn title_font(a: &mut App, h: HWND) -> HFONT {
-    a.font(scale(h, 14), FW_SEMIBOLD.0)
+    let px = a.fence_of(h).map_or(14, |f| f.look.title_size.title_px());
+    a.font(scale(h, px), FW_SEMIBOLD.0)
 }
 
 fn label_font(a: &mut App, h: HWND) -> HFONT {
-    a.font(scale(h, 12), FW_NORMAL.0)
+    let px = a.fence_of(h).map_or(12, |f| f.look.label_size.px());
+    a.font(scale(h, px), FW_NORMAL.0)
 }
 
 fn to_client(h: HWND, (x, y): (i32, i32)) -> (i32, i32) {
@@ -112,15 +122,16 @@ pub fn restyle_all() {
 }
 
 fn metrics(h: HWND) -> (i32, i32) {
-    let (px, labels) = read(h, |f| (f.look.icon, f.look.labels)).unwrap_or((icons::DEFAULT, true));
-    (scale(h, icons::cell(px, labels)), scale(h, px))
+    let look = read(h, |f| f.look.clone()).unwrap_or_default();
+    (scale(h, icons::cell(look.icon, look.labels.then_some(look.label_size), look.spacing)), scale(h, look.icon))
 }
 
 pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {
     match m {
         WM_NCHITTEST => return LRESULT(layout::hit(h, lp) as isize),
         WM_MOUSEACTIVATE => return LRESULT(if (lp.0 & 0xFFFF) as u32 == HTCLIENT { MA_ACTIVATE } else { MA_NOACTIVATE } as isize),
-        WM_KEYDOWN if keys::handle(h, wp.0 as u16) => {}
+        WM_KEYDOWN if crate::undo::shortcut(wp.0 as u16) => crate::undo::undo(),
+        WM_KEYDOWN if crate::undo::step(|| keys::handle(h, wp.0 as u16)) => {}
         WM_SIZE if !layout::sizing(h) => render(h),
         WM_WINDOWPOSCHANGING if !top() && !crate::visibility::peeking() => keep_bottom(lp),
         WM_GETMINMAXINFO => {
@@ -129,10 +140,10 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
             i.ptMinTrackSize = if read(h, |f| f.vertical) == Some(true) { POINT { x: bar, y: len } } else { POINT { x: len, y: bar } };
         }
         WM_ENTERSIZEMOVE => snap::begin(h),
-        WM_EXITSIZEMOVE => {
+        WM_EXITSIZEMOVE => crate::undo::step(|| {
             snap::end(h);
             layout::persist(h);
-        }
+        }),
         WM_DPICHANGED => crate::layered::popup::follow_dpi(h, lp),
         WM_MOVING => {
             if read(h, |f| f.locked) == Some(true) {
@@ -146,18 +157,18 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
             snap::sizing(h, wp, lp);
             return LRESULT(1);
         }
-        WM_NCLBUTTONDOWN if wp.0 as u32 == HTCAPTION && tabs::click(h, xy(lp)) => {}
+        WM_NCLBUTTONDOWN if wp.0 as u32 == HTCAPTION && (browse::bar_click(h, xy(lp)) || tabs::click(h, xy(lp))) => {}
         WM_NCLBUTTONDOWN => return snap::press(h, xy(lp), || unsafe { DefWindowProcW(h, m, wp, lp) }),
         WM_NCLBUTTONDBLCLK if wp.0 as u32 == HTCAPTION => peek::toggle(h),
         WM_NCMOUSEMOVE => {
             peek::enter(h);
             tabs::hover(h, xy(lp));
         }
-        WM_NCRBUTTONUP if wp.0 as u32 == HTCAPTION => peek::keep_open(h, || menu::context(h)),
-        WM_LBUTTONDBLCLK => items::item_at(h, xy(lp)).iter().for_each(|p| shell::open(p)),
-        WM_LBUTTONDOWN => select::down(h, xy(lp), wp.0 & MK_CONTROL != 0),
+        WM_NCRBUTTONUP if wp.0 as u32 == HTCAPTION => peek::keep_open(h, || crate::undo::step(|| menu::context(h))),
+        WM_LBUTTONDBLCLK => items::item_at(h, xy(lp)).iter().for_each(|p| browse::open(h, p, wp.0 & MK_CONTROL != 0)),
+        WM_LBUTTONDOWN => crate::undo::step(|| select::down(h, xy(lp), wp.0 & MK_CONTROL != 0)),
         WM_LBUTTONUP | WM_CAPTURECHANGED => select::up(h),
-        WM_CONTEXTMENU => peek::keep_open(h, || menu::context(h)),
+        WM_CONTEXTMENU => peek::keep_open(h, || crate::undo::step(|| menu::context(h))),
         WM_MOUSEMOVE => {
             track_leave(h);
             peek::enter(h);
@@ -168,7 +179,7 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
         WM_MOUSELEAVE => items::hover(h, None),
         WM_MOUSEWHEEL if wp.0 & MK_CONTROL != 0 => {
             if let Some(f) = fence_of(h) {
-                items::set_icon(h, icons::step(f.look.icon, wheel(wp) > 0));
+                crate::undo::step(|| items::set_icon(h, icons::step(f.look.icon, wheel(wp) > 0)));
             }
         }
         WM_MOUSEWHEEL => {

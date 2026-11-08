@@ -1,11 +1,11 @@
 use crate::{
-    domain::{Fence, color, side::Geo},
+    domain::{Fence, color, grid::Align, side::Geo},
     layered::{Frame, WHITE},
     render::{Canvas, blit, flat, premul, rotate_cw},
 };
 use windows::Win32::{
     Foundation::RECT,
-    Graphics::Gdi::{DT_CENTER, DT_END_ELLIPSIS, DT_SINGLELINE, DT_VCENTER, HFONT},
+    Graphics::Gdi::{DT_CENTER, DT_END_ELLIPSIS, DT_LEFT, DT_RIGHT, DT_SINGLELINE, DT_VCENTER, HFONT},
 };
 
 fn segment(w: i32, n: usize, i: usize) -> (i32, i32) {
@@ -15,10 +15,22 @@ fn segment(w: i32, n: usize, i: usize) -> (i32, i32) {
 
 fn text(frame: &Frame, font: HFONT, (f, hint): (&Fence, Option<&str>), t: i32, pad: i32) {
     let (w, n) = (frame.w, f.tabs.len());
-    let flags = DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS;
+    let flags = DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS;
     if n == 1 || hint.is_some() {
-        return frame.text(font, hint.unwrap_or(&f.tabs[0].title), RECT { left: t / 2, top: 0, right: w - t / 2, bottom: t }, flags);
+        let align = match f.look.title_align {
+            _ if hint.is_some_and(|h| h.starts_with('←')) => DT_LEFT,
+            Align::Left => DT_LEFT,
+            Align::Center => DT_CENTER,
+            Align::Right => DT_RIGHT,
+        };
+        return frame.text(
+            font,
+            hint.unwrap_or(&f.tabs[0].title),
+            RECT { left: t / 2, top: 0, right: w - t / 2, bottom: t },
+            flags | align,
+        );
     }
+    let flags = flags | DT_CENTER;
     for (i, tab) in f.tabs.iter().enumerate() {
         let (x0, x1) = segment(w, n, i);
         frame.text(font, &tab.title, RECT { left: x0 + pad, top: 0, right: x1 - pad, bottom: t }, flags);
@@ -27,7 +39,7 @@ fn text(frame: &Frame, font: HFONT, (f, hint): (&Fence, Option<&str>), t: i32, p
 
 fn shapes(c: &mut Canvas, f: &Fence, active: Option<usize>, flipped: bool, s: impl Fn(i32) -> i32) {
     let (w, t, n, body) = (c.w, c.h, f.tabs.len(), f.look.alpha);
-    let tone = |k, a: u8| premul(color::shade(f.look.color, k), a);
+    let tone = |k, a: u8| premul(color::shade(f.look.bar_color.unwrap_or(f.look.color), k), a);
     let (shape, line) = if flipped { ((0, -s(16), w, t), 0) } else { ((0, 0, w, t + s(16)), t - 1) };
     c.rrect(shape, s(8) as f32, (tone(-20, body.saturating_add(50)), tone(-34, body.saturating_add(60))), (0, t), false);
     c.rrect((s(12), line, w - s(12), line + 1), 0., flat(premul(WHITE, 34)), (0, t), false);
@@ -49,9 +61,9 @@ pub(super) fn paint(
     font: HFONT,
     (f, hint): (&Fence, Option<&str>),
     active: Option<usize>,
-    (fg, shade): (u32, u32),
     s: impl Fn(i32) -> i32,
 ) {
+    let (fg, shade) = color::text_on(f.look.bar_color.unwrap_or(f.look.color));
     let (len, t) = (g.length(), g.bar);
     let Some(mut bar) = Frame::new(len, t) else { return };
     text(&bar, font, (f, hint), t, s(8));

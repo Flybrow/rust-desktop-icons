@@ -7,6 +7,8 @@ pub const KEEP_SOON: usize = 9;
 pub const SCREENS: usize = 10;
 pub const DBLCLICK: usize = 11;
 pub const PEEK: usize = 12;
+pub const AGE: usize = 13;
+pub const DESKS: usize = 14;
 
 pub fn set(id: usize, ms: Option<u32>) {
     let Some(t) = hwnd() else { return };

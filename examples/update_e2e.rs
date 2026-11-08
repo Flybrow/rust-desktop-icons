@@ -52,10 +52,7 @@ fn main() {
     fs::create_dir_all(&data).unwrap();
     let mut fails = vec![];
     let mut check = |ok: bool, what: &str| {
-        println!("[{}] {what}", if ok { "PASS" } else { "FAIL" });
-        if !ok {
-            fails.push(what.to_string());
-        }
+        support::verdict(ok, what, &mut fails);
     };
 
     fs::write(data.join("config.json"), r#"{"auto_update": false, "auto_sort": false, "version": "0.0.1"}"#).unwrap();
@@ -65,6 +62,9 @@ fn main() {
     check(news.is_some(), "what's new popup shows after an update");
     if let Some(h) = news {
         thread::sleep(Duration::from_millis(500));
+        if let (Ok(from), Ok(to)) = (env::var("RDI_DUMP"), env::var("KEEP_DUMPS")) {
+            let _ = std::fs::copy(std::path::Path::new(&from).join("dialog.bin"), std::path::Path::new(&to).join("whatsnew.bin"));
+        }
         let r = support::rect(h);
         shot(&r, "whatsnew");
         click(button(&r, k));

@@ -39,10 +39,8 @@ pub fn create(f: &Fence) -> Option<HWND> {
         if f.rolled {
             layout::resize(h, f);
         }
-        if top() {
-            raise(h, true);
-        }
         let _ = ShowWindow(h, SW_SHOWNOACTIVATE);
+        raise(h, top());
         target::register(h);
         Some(h)
     }

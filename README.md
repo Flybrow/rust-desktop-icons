@@ -27,13 +27,14 @@ Organize your Windows desktop into beautiful, translucent groups of icons. Tiny,
 |  |  |
 | --- | --- |
 | 🪟 **Translucent fences** | Rounded, semi-transparent groups that sit on your desktop, behind every window |
-| 🎨 **Make it yours** | Any color, opacity, icon size and tint, icons aligned left, centered or right, chameleon mode, compact view without names, rename, resize, lock. Settings apply to every fence; any fence can override them from its right-click menu |
+| 🎨 **Make it yours** | Any color, opacity, icon size and tint, name size and color, icon spacing, icons aligned left, centered or right, chameleon mode, compact view without names, rename, resize, lock. Settings apply to every fence; any fence can override them from its right-click menu |
 | 🧲 **Snapping** | Fences line up with each other (with guide lines), keep equal spacing and resize to whole rows and columns of icons; hold **Alt** to move freely |
 | 📜 **Roll up** | A rolled fence shows only its title and unrolls on hover, away from the screen edge (upward near the bottom) |
 | ↔️ **Vertical fences** | Put the title on the side and park the fence on a screen edge: it unrolls toward the middle |
-| 🗂️ **Tabs and portals** | Several tabs per fence; a portal tab shows any folder of your PC |
-| 🧹 **Sorting rules** | New desktop files go to the right fence automatically (apps, games, images, documents…); an "Everything else" rule makes any fence an inbox. New files never land hidden behind a fence |
-| 👀 **Peek and search** | A shortcut (Ctrl+Alt+Space by default, customizable) brings your fences above all windows; start typing to search every fence, or press Ctrl+Alt+F (both shortcuts can be changed or turned off) |
+| 🗂️ **Tabs and portals** | Several tabs per fence; a portal tab shows any folder of your PC; folders open right inside the fence |
+| 🔗 **Groups and virtual desktops** | Group fences so they move together; show a fence on every virtual desktop or only on one |
+| 🧹 **Sorting rules** | New desktop files go to the right fence automatically (apps, games, images, documents…); an "Everything else" rule makes any fence an inbox. Rules by name (`invoice*.pdf`) and by age (move items not modified for 30 days to an archive fence). New files never land hidden behind a fence |
+| 👀 **Peek and search** | A shortcut (Ctrl+Alt+Space by default, customizable) brings your fences above all windows; start typing to search every fence, or press Ctrl+Alt+F. Optional shortcuts to hide everything, create a fence or open the settings |
 | 🫥 **Quick hide** | Optional: double-click an empty spot of the desktop to hide all fences and icons, again to bring them back |
 | 🖥️ **Screen changes** | Fences follow resolution and monitor changes: each screen setup keeps its own layout, new setups are scaled. Save and restore named layouts from the tray menu |
 | 🖥️ **Keep files on the desktop** | Optional: fenced files stay in your Desktop folder (visible in Explorer), only their icons are hidden |
@@ -42,6 +43,7 @@ Organize your Windows desktop into beautiful, translucent groups of icons. Tiny,
 | ⚡ **Smooth and light** | Native Win32 + Rust, no runtime, no web view |
 | 🌍 **25 languages** | Auto-detected from Windows, switchable from the tray menu |
 | 🔄 **Updates** | Checks GitHub Releases, shows what's new and installs in one click (SHA-256 verified) |
+| 💾 **Export / import** | Save your whole setup (fences, tabs, rules, layouts, settings) to a file and load it on another PC |
 | 🔒 **Private** | No account, no telemetry, no ads; the only network call is the update check |
 | 👤 **No admin needed** | Per-user installer, optional start with Windows |
 
@@ -65,17 +67,31 @@ updates are automatic again afterwards.
 | --- | --- |
 | Create a fence | Tray icon → **New fence**, right-click the desktop → **Create an RDI fence**, or right-click a fence |
 | Add icons | Drag them onto a fence (from the desktop, Start menu, Explorer…) |
-| Open an item | Double-click it |
+| Open an item | Double-click it (a folder opens inside the fence: the title-bar arrow or **Backspace** goes back; **Ctrl+double-click** opens Explorer) |
+| Undo | **Ctrl+Z** in a fence or the settings, or **Undo** at the top of a fence's or the tray icon's menu (last 20 actions) |
+| Keyboard | Arrow keys move between icons (Shift extends), Home/End, Page Up/Down, **Ctrl+Tab** switches tabs |
+| Move an item elsewhere | Right-click it → **Move to** → any fence, tab or the desktop |
 | Take an item out | Drag it out of the fence, or select it and press **Delete** to send it to the Recycle Bin |
 | Rename a fence | Right-click its title |
 | Move / resize | Drag the title bar / drag an edge (hold **Alt** to turn off snapping) |
-| Peek | **Ctrl+Alt+Space** (change it in Settings → Behavior); **Esc** or a click outside ends it |
-| Search | Type while peeking, or **Ctrl+Alt+F** (Settings → Behavior), or tray icon → **Search…**; **Enter** opens the item |
+| Peek | **Ctrl+Alt+Space** (change it in Settings → Keyboard shortcuts); **Esc** or a click outside ends it |
+| Search | Type while peeking, or **Ctrl+Alt+F**, or tray icon → **Search…**; **Enter** opens the item |
+| More shortcuts | Settings → **Keyboard shortcuts**: hide/show everything, new fence, open the settings (none by default) |
 | Hide everything | Turn on Settings → Desktop → **Hide all on desktop double-click**, then double-click an empty spot of the desktop |
 | Show names / compact view | Right-click a fence → **Appearance** → **Show names** |
+| Thumbnails | Pictures, videos and PDFs show a preview; turn off in Settings → Icons or right-click → **Appearance** → **Show thumbnails** |
+| Title bar | Settings → **Title bar** (alignment, size, color, show on hover), or right-click → **Appearance** → **Title bar** |
+| Wallpaper colors | Settings → Default appearance → **Color from the wallpaper**, or per fence from its Appearance menu |
+| Filtered portal | Right-click a fence → **Tabs** → **Filter files…** (`*.pdf; *.jpg`) |
+| Names and spacing | Right-click a fence → **Appearance** → **Name size**, **Name color**, **Icon spacing**, or Settings → Icons for every fence |
 | Icon alignment | Right-click a fence → **Appearance** → **Icon alignment** (left, centered, right), or Settings for every fence |
 | Sort | Right-click a fence → **Sort by** (name, type, date, size or your own order) |
 | Inbox | Right-click a fence → **Rules** → **Everything else** |
+| Rules by name / age | Settings → **Sorting rules**: send new files matching `invoice*.pdf` to a fence; move items not modified for N days to another fence |
+| Duplicate a fence | Right-click it → **Duplicate**: same look, size and tabs (names, rules, sort, portals), placed next to it, without the files |
+| Group fences | Right-click a fence → **Behavior** → **Group with**: the group moves together; **Ungroup** to leave it |
+| Virtual desktops | Right-click a fence → **Behavior** → **Show on** → all desktops or a single one |
+| Export / import | Settings → **General** → **Export the configuration…** / **Import a configuration…** (fences, tabs, rules, layouts, settings; never your files) |
 | Layouts | Tray icon → **Layouts** → **Save current layout**; each saved layout can be restored, renamed or deleted |
 | Roll up / down | Double-click the title bar |
 | Vertical fence | Right-click a fence → **Behavior** → **Vertical title**, then park it on a screen edge |
@@ -86,7 +102,7 @@ updates are automatic again afterwards.
 | Undo a fence's own look | Right-click it → **Appearance** → **Reset to default** |
 
 **Settings and individual fences:** the appearance and behavior settings (color, opacity, icon size, tint, names,
-icon alignment, chameleon, automatic height) apply to every fence at once. A setting you change on one fence from its right-click menu
+name size and color, spacing, icon alignment, chameleon, automatic height, opening folders in the fence) apply to every fence at once. A setting you change on one fence from its right-click menu
 stays specific to that fence; **Reset to default** in that menu makes it follow Settings again, and Settings →
 **Reset all fences to these settings** does it for every fence.
 
@@ -125,8 +141,10 @@ wix build installer/main.wxs -d Version=X.Y.Z -arch x64 -ext WixToolset.UI.wixex
 
 End-to-end checks on a real desktop (isolated data, test files only): `cargo build` then
 `cargo run --example keep_e2e`, `cargo run --example unroll_e2e`, `cargo run --example system_e2e`, `cargo run --example relaunch_e2e`,
-`cargo run --example update_e2e`, `cargo run --example layout_e2e [-- --desktop]` and `cargo run --example peek_e2e` (they move the mouse
-and press keys for a few seconds). CI runs them on every push.
+`cargo run --example update_e2e`, `cargo run --example layout_e2e [-- --desktop]`, `cargo run --example peek_e2e`,
+`menu_e2e`, `actions_e2e` (every fence and item menu command), `settings_e2e` (every settings page), `tray_e2e`, `features_e2e`,
+`rules_e2e`, `vdesk_e2e` (creates and closes a temporary virtual desktop) and `uninstall_e2e`. They move the mouse and press keys:
+don't touch the PC while they run. CI runs the ones that need no input on every push.
 
 Pushing a `vX.Y.Z` tag builds and publishes the MSI with [GitHub Actions](.github/workflows/release.yml).
 

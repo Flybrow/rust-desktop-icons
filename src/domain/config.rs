@@ -3,7 +3,9 @@ use super::{
     hotkey::Hotkey,
     kind::Kind,
     layouts::{Layout, Snapshot},
-    model::{Fence, Look, Tab},
+    look::Look,
+    matching::NameRule,
+    model::{Fence, Tab},
     screens::{Adapt, Screen},
     system::Sys,
 };
@@ -30,6 +32,11 @@ pub struct Config {
     pub dblclick_hide: bool,
     pub peek_key: Option<Hotkey>,
     pub search_key: Option<Hotkey>,
+    pub hide_key: Option<Hotkey>,
+    pub new_key: Option<Hotkey>,
+    pub settings_key: Option<Hotkey>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub name_rules: Vec<NameRule>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub screens: Vec<Screen>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -56,6 +63,10 @@ impl Default for Config {
             dblclick_hide: false,
             peek_key: Some(Hotkey::PEEK),
             search_key: Some(Hotkey::SEARCH),
+            hide_key: None,
+            new_key: None,
+            settings_key: None,
+            name_rules: vec![],
             screens: vec![],
             layouts: vec![],
             snapshots: vec![],
@@ -66,35 +77,6 @@ impl Default for Config {
 impl Config {
     pub fn next_id(&self) -> u64 {
         self.fences.iter().flat_map(|f| f.tabs.iter().map(|t| t.id).chain([f.id])).max().map_or(1, |m| m + 1)
-    }
-
-    pub fn placed(&self) -> Vec<Sys> {
-        Sys::ALL.into_iter().filter(|s| self.fences.iter().flat_map(|f| &f.tabs).any(|t| t.system.contains(s))).collect()
-    }
-
-    pub fn remember(&mut self, s: Sys, prev: Option<u32>) -> bool {
-        let fresh = !self.desk_icons.iter().any(|(x, _)| *x == s);
-        if fresh {
-            self.desk_icons.push((s, prev));
-        }
-        fresh
-    }
-
-    pub fn forget(&mut self, s: Sys) -> Option<Option<u32>> {
-        self.desk_icons.iter().position(|(x, _)| *x == s).map(|i| self.desk_icons.remove(i).1)
-    }
-
-    pub fn original(&self, s: Sys) -> Option<u32> {
-        self.desk_icons.iter().find(|(x, _)| *x == s).and_then(|(_, p)| *p)
-    }
-
-    pub fn place(&mut self, s: Sys, tab: Option<u64>) {
-        for t in self.fences.iter_mut().flat_map(|f| f.tabs.iter_mut()) {
-            t.system.retain(|x| *x != s);
-            if Some(t.id) == tab {
-                t.system.push(s);
-            }
-        }
     }
 
     pub fn fence(&self, id: u64) -> Option<&Fence> {
@@ -131,8 +113,13 @@ impl Config {
         kinds.iter().chain([&Kind::Other]).find_map(|k| self.rule_target(*k))
     }
 
+    pub fn parse(bytes: &[u8]) -> serde_json::Result<Self> {
+        serde_json::from_slice(bytes.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(bytes))
+    }
+
     pub fn sanitized(mut self) -> Self {
         self.sanitize_keys();
+        self.sanitize_rules();
         let mut seen = HashSet::new();
         self.fences = self.fences.into_iter().filter(|f| f.id > 0 && seen.insert(f.id)).map(Fence::sanitized).collect();
         let mut tabs = HashSet::new();
@@ -191,40 +178,10 @@ mod tests {
         assert!(!c.dblclick_hide && c.peek_key == Some(Hotkey::PEEK));
         let set: Config = serde_json::from_str(r#"{"peek_key":null,"dblclick_hide":true}"#).unwrap();
         assert!(set.dblclick_hide && set.peek_key.is_none());
+        let bom = Config::parse("\u{feff}{\"dblclick_hide\":true}".as_bytes()).unwrap();
+        assert!(bom.dblclick_hide && Config::parse(b"{\"dblclick_hide\":true}").unwrap().dblclick_hide);
         assert_eq!((f.w, f.look.color, f.look.icon, f.tabs.len(), f.active().title.as_str()), (360, 255, 48, 1, "Jeux"));
         assert_eq!(c.roll_ms, 500);
-    }
-
-    #[test]
-    fn system_icons_live_in_one_tab() {
-        let c: Config = serde_json::from_str::<Config>(
-            r#"{"fences":[{"id":1,"tabs":[{"id":1},{"id":5,"recycle":true}]},{"id":2,"tabs":[{"id":2,"recycle":true,"system":["ThisPc"]}]}]}"#,
-        )
-        .unwrap();
-        let mut c = c.sanitized();
-        let holders =
-            |c: &Config, s: Sys| c.fences.iter().flat_map(|f| &f.tabs).filter(|t| t.system.contains(&s)).map(|t| t.id).collect::<Vec<_>>();
-        assert_eq!((holders(&c, Sys::RecycleBin), holders(&c, Sys::ThisPc)), (vec![5], vec![2]));
-        assert!(!serde_json::to_string(&c).unwrap().contains("recycle"));
-        c.place(Sys::RecycleBin, Some(2));
-        assert_eq!(c.tab(2, 2).unwrap().system, vec![Sys::ThisPc, Sys::RecycleBin]);
-        assert!(c.tab(1, 5).unwrap().system.is_empty());
-        c.place(Sys::ThisPc, None);
-        assert_eq!(c.placed(), vec![Sys::RecycleBin]);
-    }
-
-    #[test]
-    fn desktop_visibility_is_remembered_once() {
-        let mut c = Config::default();
-        assert!(c.remember(Sys::ThisPc, Some(0)));
-        assert!(!c.remember(Sys::ThisPc, Some(1)));
-        assert!(c.remember(Sys::Network, None));
-        assert_eq!((c.original(Sys::ThisPc), c.original(Sys::Network), c.original(Sys::UserFiles)), (Some(0), None, None));
-        let back: Config = serde_json::from_str(&serde_json::to_string(&c).unwrap()).unwrap();
-        assert_eq!(back.desk_icons, c.desk_icons);
-        assert_eq!(c.forget(Sys::ThisPc), Some(Some(0)));
-        assert_eq!((c.forget(Sys::ThisPc), c.forget(Sys::Network)), (None, Some(None)));
-        assert!(c.desk_icons.is_empty());
     }
 
     #[test]

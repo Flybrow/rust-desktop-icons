@@ -63,7 +63,7 @@ pub fn icon(h: HWND, op: NOTIFY_ICON_MESSAGE) {
 
 unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {
     match m {
-        WM_TRAY if lp.0 as u32 == WM_RBUTTONUP => menu_at(h),
+        WM_TRAY if lp.0 as u32 == WM_RBUTTONUP => crate::undo::step(|| menu_at(h)),
         WM_TRAY if lp.0 as u32 == WM_LBUTTONDBLCLK => settings::open(),
         WM_NEW => new_fence(),
         WM_SETTINGS => settings::open(),
@@ -81,8 +81,10 @@ unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESU
         }
         rules::WM_DESK => rules::changed(),
         WM_TIMER if wp.0 == rules::TIMER => rules::run(true, false),
+        WM_TIMER if wp.0 == rules::age::TIMER => rules::age::run(),
         keep::WM_KEEP => keep::finish(lp),
         WM_DISPLAYCHANGE => screens::changed(),
+        WM_SETTINGCHANGE if wp.0 as u32 == SPI_SETDESKWALLPAPER.0 => crate::fence::wallpaper_changed(),
         WM_TIMER if wp.0 == screens::TIMER => screens::settled(),
         WM_TIMER if wp.0 == keep::TICK => keep::apply(),
         WM_TIMER if wp.0 == keep::SOON => keep::apply(),
@@ -101,6 +103,10 @@ unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESU
 fn menu_at(h: HWND) {
     let Some((m, rtl)) = with(|a| {
         let m = menu();
+        if crate::undo::available() {
+            a.entry(m, 9, T::Undo, false, g::UNDO);
+            separator(m);
+        }
         a.entry(m, 1, T::NewFence, false, g::ADD);
         a.entry(m, 8, T::Search, false, g::SEARCH);
         a.entry(m, 7, T::Settings, false, g::SETTINGS);
@@ -120,6 +126,7 @@ fn menu_at(h: HWND) {
     };
     match popup(h, m, rtl) {
         1 => new_fence(),
+        9 => crate::undo::undo(),
         2 => prefs::toggle_autostart(),
         3 => prefs::toggle_auto_update(),
         4 => updates::check_now(h),

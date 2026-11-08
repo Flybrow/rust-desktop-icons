@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 pub const SIZES: [i32; 8] = [24, 32, 40, 48, 64, 80, 96, 128];
 pub const DEFAULT: i32 = 48;
 
@@ -14,8 +16,54 @@ pub fn label(px: i32) -> String {
     format!("{px} px")
 }
 
-pub fn cell(px: i32, labels: bool) -> i32 {
-    px + if labels { 56 } else { 24 }
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LabelSize {
+    Small,
+    #[default]
+    Normal,
+    Large,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Spacing {
+    Compact,
+    #[default]
+    Normal,
+    Wide,
+}
+
+impl LabelSize {
+    pub const ALL: [LabelSize; 3] = [LabelSize::Small, LabelSize::Normal, LabelSize::Large];
+
+    pub fn px(self) -> i32 {
+        match self {
+            LabelSize::Small => 11,
+            LabelSize::Normal => 12,
+            LabelSize::Large => 14,
+        }
+    }
+
+    pub fn title_px(self) -> i32 {
+        match self {
+            LabelSize::Small => 12,
+            LabelSize::Normal => 14,
+            LabelSize::Large => 17,
+        }
+    }
+}
+
+impl Spacing {
+    pub const ALL: [Spacing; 3] = [Spacing::Compact, Spacing::Normal, Spacing::Wide];
+}
+
+pub fn cell(px: i32, labels: Option<LabelSize>, spacing: Spacing) -> i32 {
+    let text = labels.map_or(24, |s| 56 + (s.px() - 12) * 4);
+    let gap = match spacing {
+        Spacing::Compact => -12,
+        Spacing::Normal => 0,
+        Spacing::Wide => 20,
+    };
+    (px + text + gap).max(px + 12)
 }
 
 #[cfg(test)]
@@ -30,6 +78,11 @@ mod tests {
         assert_eq!(step(48, false), 40);
         assert_eq!(step(128, true), 128);
         assert_eq!(step(24, false), 24);
-        assert_eq!((cell(DEFAULT, true), cell(DEFAULT, false)), (104, 72));
+        assert_eq!((cell(DEFAULT, Some(LabelSize::Normal), Spacing::Normal), cell(DEFAULT, None, Spacing::Normal)), (104, 72));
+        assert_eq!(
+            (cell(DEFAULT, Some(LabelSize::Large), Spacing::Wide), cell(DEFAULT, Some(LabelSize::Small), Spacing::Compact)),
+            (132, 88)
+        );
+        assert_eq!((cell(24, None, Spacing::Compact), LabelSize::Small.px()), (36, 11));
     }
 }

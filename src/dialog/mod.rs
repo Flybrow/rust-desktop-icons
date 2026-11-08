@@ -1,8 +1,10 @@
 mod layout;
+mod notes;
 mod paint;
 
+use crate::update::notes::Block;
 use crate::{
-    app::with,
+    app::{App, with},
     layered::{
         chrome::{self, inside},
         popup,
@@ -13,13 +15,17 @@ use layout::{Layout, Metrics, hit, layout};
 use windows::{
     Win32::{
         Foundation::*,
-        UI::{Input::KeyboardAndMouse::VK_ESCAPE, WindowsAndMessaging::*},
+        Graphics::Gdi::HFONT,
+        UI::{
+            Input::KeyboardAndMouse::{VIRTUAL_KEY, VK_DOWN, VK_END, VK_ESCAPE, VK_HOME, VK_NEXT, VK_PRIOR, VK_UP},
+            WindowsAndMessaging::*,
+        },
     },
     core::*,
 };
 
 const CLASS: PCWSTR = w!("RustDesktopIcons.Dialog");
-const WIDTH: i32 = 460;
+const WIDTH: i32 = 600;
 const ANIM: usize = 1;
 
 pub struct Button {
@@ -38,6 +44,7 @@ pub struct Spec {
     pub buttons: Vec<Button>,
     pub progress: Option<Progress>,
     pub dismiss: fn(),
+    pub notes: Vec<Block>,
 }
 
 pub struct Dialog {
@@ -78,14 +85,41 @@ fn metrics(h: HWND) -> Metrics {
     }
 }
 
+fn fonts(a: &mut App, h: HWND) -> (HFONT, notes::Fonts) {
+    let s = |v| scale(h, v);
+    let f = notes::Fonts { section: a.font(s(12), 600), title: a.font(s(13), 600), desc: a.font(s(13), 400) };
+    (f.desc, f)
+}
+
+fn text(h: HWND, width: i32) -> (i32, Vec<notes::Line>) {
+    let Some((font, f, body, blocks)) = with(|a| {
+        let (font, f) = fonts(a, h);
+        a.dialog.as_ref().map(|d| (font, f, d.spec.body.clone(), d.spec.notes.clone()))
+    })
+    .flatten() else {
+        return (0, vec![]);
+    };
+    let top = if body.is_empty() { 0 } else { paint::measure(font, &body, width) + scale(h, 14) };
+    let (mut lines, height) = notes::place(&blocks, f, width, |v| scale(h, v));
+    lines.iter_mut().for_each(|l| (l.rect.1, l.rect.3) = (l.rect.1 + top, l.rect.3 + top));
+    (top + height, lines)
+}
+
 fn current(h: HWND) -> Layout {
     let m = metrics(h);
-    let (font, spec) = with(|a| {
-        (a.font(scale(h, 13), 400), a.dialog.as_ref().map(|d| (d.spec.body.clone(), d.spec.progress.is_some(), d.spec.buttons.len())))
-    })
-    .unwrap_or_default();
-    let (body, progress, buttons) = spec.unwrap_or_default();
-    layout(&m, paint::measure(font, &body, m.width - 2 * m.pad), progress, buttons)
+    let font = with(|a| fonts(a, h).0).unwrap_or_default();
+    let (progress, buttons) =
+        with(|a| a.dialog.as_ref().map(|d| (d.spec.progress.is_some(), d.spec.buttons.len()))).flatten().unwrap_or_default();
+    let line = paint::measure(font, "X", m.width).max(1);
+    let m = Metrics { max_body: (m.max_body / line).max(1) * line, ..m };
+    layout(&m, text(h, m.width - 2 * m.pad).0, progress, buttons)
+}
+
+fn scroll_by(h: HWND, delta: i32) {
+    let l = current(h);
+    let max = (l.text - (l.body.3 - l.body.1)).max(0);
+    with(|a| a.dialog.as_mut().map(|d| d.scroll = (d.scroll - delta).clamp(0, max)));
+    paint::render(h, &l);
 }
 
 fn refresh(h: HWND) {
@@ -169,14 +203,20 @@ unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESU
             paint::render(h, &current(h));
         }
         WM_LBUTTONUP => click(h, xy(lp)),
-        WM_MOUSEWHEEL => {
-            let l = current(h);
-            let step = wheel(wp) * scale(h, 60) / 120;
-            let font = with(|a| a.font(scale(h, 13), 400)).unwrap_or_default();
-            let full = with(|a| a.dialog.as_ref().map(|d| d.spec.body.clone())).flatten().unwrap_or_default();
-            let max = (paint::measure(font, &full, l.body.2 - l.body.0) - (l.body.3 - l.body.1)).max(0);
-            with(|a| a.dialog.as_mut().map(|d| d.scroll = (d.scroll - step).clamp(0, max)));
-            paint::render(h, &l);
+        WM_MOUSEWHEEL => scroll_by(h, wheel(wp) * scale(h, 60) / 120),
+        WM_KEYDOWN if matches!(VIRTUAL_KEY(wp.0 as u16), VK_DOWN | VK_UP | VK_NEXT | VK_PRIOR | VK_HOME | VK_END) => {
+            let page = scale(h, 300);
+            scroll_by(
+                h,
+                match VIRTUAL_KEY(wp.0 as u16) {
+                    VK_DOWN => -scale(h, 40),
+                    VK_UP => scale(h, 40),
+                    VK_NEXT => -page,
+                    VK_PRIOR => page,
+                    VK_HOME => i32::MAX / 2,
+                    _ => -i32::MAX / 2,
+                },
+            );
         }
         WM_TIMER if wp.0 == ANIM => {
             with(|a| a.dialog.as_mut().map(|d| d.phase = d.phase.wrapping_add(1)));
@@ -191,6 +231,7 @@ unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESU
             popup::follow_dpi(h, lp);
             refresh(h);
         }
+        WM_EXITSIZEMOVE | WM_DISPLAYCHANGE => refresh(h),
         WM_DESTROY => {
             with(|a| a.dialog = None);
         }

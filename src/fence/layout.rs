@@ -1,6 +1,6 @@
-use super::{BORDER, TITLE, fence_of, flagged, metrics, read, render, update, view, xy};
+use super::{BORDER, TITLE, cell, fence_of, flagged, label_font, metrics, read, render, update, view, xy};
 use crate::{
-    app::App,
+    app::{App, with},
     domain::{
         Fence, Zone, anim,
         grid::{self, Flow},
@@ -13,6 +13,7 @@ use windows::Win32::{Foundation::*, UI::WindowsAndMessaging::*};
 
 const MARGIN: i32 = 16;
 const GAP: i32 = 4;
+const EDGE: i32 = 8;
 
 fn progress(h: HWND, f: &Fence) -> (f32, bool) {
     view(h, |v| (v.unroll, v.opening)).unwrap_or((if f.rolled { 0. } else { 1. }, false))
@@ -42,16 +43,31 @@ pub(super) fn flow(a: &mut App, h: HWND, w: i32, cell: i32) -> Option<Flow> {
 }
 
 pub(super) fn chrome(h: HWND, vertical: bool) -> i32 {
-    scale(h, TITLE + GAP + if vertical { 4 } else { 8 })
+    scale(h, TITLE + GAP + if vertical { 4 } else { EDGE })
+}
+
+pub(super) fn tail(a: &mut App, h: HWND, w: i32, (cell, icon): (i32, i32)) -> i32 {
+    let s = |v| scale(h, v);
+    let font = a.fence_of(h).is_some_and(|f| f.look.labels).then(|| label_font(a, h));
+    let width = cell::label_width(cell, s);
+    let names: Vec<i32> = a.view(h).map_or(vec![], |v| {
+        let row = grid::last_row(v.items.len(), w, cell);
+        v.items[row].iter().map(|it| font.map_or(0, |f| crate::layered::measure(f, &it.name, width, cell::LABEL))).collect()
+    });
+    cell::content(cell, icon, names.into_iter(), s) + s(GAP + cell::TOP - EDGE)
 }
 
 fn fit(h: HWND, f: &Fence, max: i32) -> i32 {
     let n = view(h, |v| v.items.len()).unwrap_or(0);
-    let (cell, min) = (metrics(h).0, scale(h, Fence::MIN.1));
+    let (m, min) = (metrics(h), scale(h, Fence::MIN.1));
+    let cell = m.0;
     match (f.vertical, f.look.auto_height) {
         (false, false) => f.h,
         (true, false) => f.w,
-        (false, true) => grid::fit(n, f.w, cell, chrome(h, false), (min, max)),
+        (false, true) => {
+            let tail = with(|a| tail(a, h, f.w, m)).unwrap_or(cell);
+            grid::fit(n, f.w, (cell, tail), chrome(h, false), (min, max))
+        }
         (true, true) => grid::fit_cols(n, f.h, cell, chrome(h, true), (min, max)),
     }
 }

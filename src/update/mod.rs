@@ -1,9 +1,10 @@
 mod install;
 mod net;
+pub mod notes;
 mod release;
 
 pub use install::install;
-pub use release::{Release, permille, plain};
+pub use release::{Release, permille};
 use std::{env, error::Error, fs, io::Write, path::PathBuf};
 
 pub type Res<T> = Result<T, Box<dyn Error>>;

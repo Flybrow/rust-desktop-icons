@@ -10,6 +10,12 @@ use windows::Win32::{Foundation::*, Graphics::Gdi::*, UI::WindowsAndMessaging::*
 pub const WHITE: u32 = 0xFF_FFFF;
 pub const ACCENT: u32 = 0xD4_7800;
 
+pub struct Labels {
+    pub key: u64,
+    mask: Vec<u8>,
+    soft: Vec<u8>,
+}
+
 pub struct Frame {
     pub w: i32,
     pub h: i32,
@@ -17,6 +23,29 @@ pub struct Frame {
     pub mask: Dib,
     dc: HDC,
     old: HGDIOBJ,
+}
+
+pub fn measure(font: HFONT, text: &[u16], width: i32, flags: DRAW_TEXT_FORMAT) -> i32 {
+    if text.is_empty() {
+        return 0;
+    }
+    let (mut w, mut r) = (text.to_vec(), RECT { left: 0, top: 0, right: width, bottom: 0 });
+    let dc = MEASURE.with(|c| {
+        if c.get() == 0 {
+            c.set(unsafe { CreateCompatibleDC(None) }.0 as isize);
+        }
+        HDC(c.get() as _)
+    });
+    unsafe {
+        let old = SelectObject(dc, font.into());
+        DrawTextW(dc, &mut w, &mut r, flags | DT_CALCRECT);
+        SelectObject(dc, old);
+    }
+    r.bottom
+}
+
+thread_local! {
+    static MEASURE: std::cell::Cell<isize> = const { std::cell::Cell::new(0) };
 }
 
 impl Frame {
@@ -41,6 +70,9 @@ impl Frame {
     }
 
     pub fn text_w(&self, font: HFONT, text: &mut [u16], r: &mut RECT, flags: DRAW_TEXT_FORMAT) {
+        if text.is_empty() {
+            return;
+        }
         unsafe {
             SelectObject(self.dc, font.into());
             DrawTextW(self.dc, text, r, flags | DT_NOPREFIX);
@@ -60,8 +92,12 @@ impl Frame {
     }
 
     pub fn flush(&mut self) {
-        let _ = unsafe { GdiFlush() };
+        self.sync();
         gray(self.mask.px());
+    }
+
+    pub fn sync(&self) {
+        let _ = unsafe { GdiFlush() };
     }
 
     pub fn export_bitmap(&mut self) -> Option<HBITMAP> {
@@ -72,7 +108,7 @@ impl Frame {
 
     pub fn compact(&mut self) {
         unsafe { SelectObject(self.dc, self.canvas.bmp.into()) };
-        if let Some(m) = Dib::new(1, 1).filter(|_| self.mask.px().len() > 1) {
+        if let Some(m) = (self.mask.px().len() > 1).then(|| Dib::new(1, 1)).flatten() {
             self.mask = m;
         }
     }
@@ -85,13 +121,21 @@ impl Frame {
         Canvas { px: self.canvas.px(), w: self.w, h: self.h }
     }
 
-    pub fn text_layers(&mut self, fg: u32, shadow: u32, r: i32, rows: (i32, i32)) {
+    pub fn labels(&mut self, key: u64, r: i32) -> Labels {
         let (w, h) = (self.w, self.h);
         let mask = self.mask.px();
-        let soft = blur(mask, w, h, r);
-        let mut c = Canvas { px: self.canvas.px(), w, h };
-        c.layer(&soft, (0, 1), Some(premul(shadow, 190)), rows);
-        c.layer(mask, (0, 0), Some(premul(fg, 255)), rows);
+        Labels { key, soft: blur(mask, w, h, r), mask: mask.iter().map(|p| *p as u8).collect() }
+    }
+
+    pub fn layers(&mut self, l: &Labels, fg: u32, shadow: u32, rows: (i32, i32)) {
+        let mut c = self.canvas();
+        c.layer(&l.soft, (0, 1), Some(premul(shadow, 190)), rows);
+        c.layer(&l.mask, (0, 0), Some(premul(fg, 255)), rows);
+    }
+
+    pub fn text_layers(&mut self, fg: u32, shadow: u32, r: i32, rows: (i32, i32)) {
+        let l = self.labels(0, r);
+        self.layers(&l, fg, shadow, rows);
     }
 
     #[cfg(debug_assertions)]
@@ -125,5 +169,33 @@ impl Drop for Frame {
             SelectObject(self.dc, self.old);
             let _ = DeleteDC(self.dc);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn frame_with_text() -> Frame {
+        let mut f = Frame::new(120, 60).unwrap();
+        f.canvas().px.fill(0xFF_20_30_40);
+        let font = HFONT(unsafe { GetStockObject(DEFAULT_GUI_FONT) }.0);
+        f.text(font, "Rapport annuel", RECT { left: 4, top: 10, right: 116, bottom: 50 }, DT_CENTER | DT_WORDBREAK);
+        f.flush();
+        f
+    }
+
+    #[test]
+    fn cached_labels_paint_the_same_pixels() {
+        let mut a = frame_with_text();
+        a.text_layers(WHITE, 0, 2, (0, 60));
+        let mut b = frame_with_text();
+        let labels = b.labels(7, 2);
+        let mut c = Frame::new(120, 60).unwrap();
+        c.canvas().px.fill(0xFF_20_30_40);
+        c.layers(&labels, WHITE, 0, (0, 60));
+        assert!(a.canvas.px().iter().any(|p| *p != 0xFF_20_30_40));
+        assert_eq!(a.canvas.px(), c.canvas.px());
+        assert_eq!(labels.key, 7);
     }
 }

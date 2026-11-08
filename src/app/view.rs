@@ -6,16 +6,19 @@ use crate::{
 use std::{collections::HashSet, path::PathBuf};
 use windows::Win32::{Foundation::HWND, UI::Shell::IContextMenu};
 
+#[derive(PartialEq)]
 pub struct Item {
     pub path: PathBuf,
     pub name: Vec<u16>,
     pub icon: i32,
+    pub thumb: Option<crate::shell::thumb::Thumb>,
 }
 
 pub struct View {
     pub hwnd: HWND,
     pub id: u64,
     pub items: Vec<Item>,
+    pub shown: Option<(u64, Option<PathBuf>)>,
     pub scroll: i32,
     pub edit: Option<(HWND, Option<PathBuf>)>,
     pub native: Option<IContextMenu>,
@@ -28,6 +31,9 @@ pub struct View {
     pub glow: f32,
     pub tick: Option<f64>,
     pub frame: Option<Frame>,
+    pub labels: Option<crate::layered::Labels>,
+    pub wall: Option<((i32, i32, i32, i32), u32)>,
+    pub cursor: Option<usize>,
     pub sizing: bool,
     pub busy: bool,
     pub drag: Option<([i32; 4], (i32, i32))>,
@@ -37,6 +43,7 @@ pub struct View {
     pub dirty: Vec<usize>,
     pub loading: bool,
     pub queued: Vec<crate::domain::Tab>,
+    pub browse: Vec<PathBuf>,
     pub selected: HashSet<PathBuf>,
     pub band: Option<((i32, i32), (i32, i32))>,
 }
@@ -49,6 +56,7 @@ impl View {
             hwnd,
             id: f.id,
             items: vec![],
+            shown: None,
             scroll: 0,
             edit: None,
             native: None,
@@ -61,6 +69,9 @@ impl View {
             glow,
             tick: None,
             frame: None,
+            labels: None,
+            wall: None,
+            cursor: None,
             sizing: false,
             busy: false,
             drag: None,
@@ -70,6 +81,7 @@ impl View {
             dirty: vec![],
             loading: false,
             queued: vec![],
+            browse: vec![],
             selected: HashSet::new(),
             band: None,
         }

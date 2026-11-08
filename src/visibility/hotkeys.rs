@@ -8,7 +8,7 @@ use std::cell::Cell;
 use windows::Win32::UI::Input::KeyboardAndMouse::*;
 
 thread_local! {
-    static FAILED: Cell<[bool; 2]> = const { Cell::new([false; 2]) };
+    static FAILED: Cell<[bool; Slot::ALL.len()]> = const { Cell::new([false; Slot::ALL.len()]) };
 }
 
 fn bind(s: Slot, k: Hotkey) -> bool {
@@ -42,6 +42,9 @@ pub fn fired(id: i32) {
     match Slot::of(id) {
         Some(Slot::Peek) => super::toggle_peek(),
         Some(Slot::Search) => search::open(None),
+        Some(Slot::HideAll) => super::toggle_hidden(),
+        Some(Slot::NewFence) => crate::undo::step(crate::app::new_fence),
+        Some(Slot::Settings) => crate::settings::open(),
         None => {}
     }
 }

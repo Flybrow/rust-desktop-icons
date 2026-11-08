@@ -1,4 +1,4 @@
-use super::{TABS, WM_CHANGED, actions, fence_of, layout, reload, to_client, update, view};
+use super::{TABS, WM_CHANGED, actions, fence_of, layout, read, reload, to_client, update, view};
 use crate::{
     app::with,
     domain::{Tab, grid, system::Sys},
@@ -25,12 +25,14 @@ pub fn bind(h: HWND) {
         let recycle = t.system.contains(&Sys::RecycleBin).then(|| Sys::RecycleBin.path());
         watches.extend(desks.iter().chain(recycle.as_ref()).filter_map(|d| shell::Watch::new(h, d, msg)));
     }
+    let active = with(|a| a.fence_of(h).map(|f| f.tab)).flatten().unwrap_or(0);
+    watches.extend(super::browse::watch(h, active));
     view(h, |v| (v.watches, v.scroll) = (watches, 0));
     reload(h);
 }
 
 pub(super) fn at(h: HWND, p: (i32, i32)) -> Option<usize> {
-    let (n, g) = (fence_of(h)?.tabs.len(), layout::geo_now(h));
+    let (n, g) = (read(h, |f| f.tabs.len())?, layout::geo_now(h));
     g.along_bar(p).filter(|_| n > 1).and_then(|a| grid::split(g.length(), n, a))
 }
 
@@ -58,6 +60,9 @@ pub(super) fn select(h: HWND, i: usize) {
         let (old, new) = (f.active().id, f.tabs[i].id);
         f.tab = i;
         let v = a.view(h)?;
+        if !std::mem::take(&mut v.browse).is_empty() {
+            v.cache.retain(|(id, _)| *id != old);
+        }
         let items = std::mem::take(&mut v.items);
         v.cache.retain(|(id, _)| *id != old);
         v.cache.push((old, items));
@@ -94,9 +99,20 @@ pub(super) fn new_tab(h: HWND) {
 }
 
 pub(super) fn new_portal(h: HWND) {
-    if let Some(dir) = shell::pick_folder(h) {
+    if let Some(dir) = shell::pick::folder(h) {
         add(h, Some(dir));
     }
+}
+
+pub(super) fn filter(h: HWND) {
+    let Some(current) = read(h, |f| f.active().filter.clone()) else { return };
+    let initial = if current.is_empty() { "*.pdf".to_string() } else { current };
+    let hwnd = h.0 as isize;
+    crate::prompt::ask(&initial, move |text| {
+        let h = HWND(hwnd as _);
+        update(h, |f| f.active_mut().filter = text.trim().to_string());
+        reload(h);
+    });
 }
 
 pub(super) fn remove(h: HWND) {

@@ -29,7 +29,7 @@ pub fn run() {
         let _ = std::fs::remove_dir_all(store::root());
         return;
     }
-    let lang = i18n::resolve(cfg.lang.as_deref(), &shell::locale());
+    let lang = i18n::resolve(cfg.lang.as_deref(), shell::locale());
     let text = i18n::get(lang, T::ErrDelete).replace("{}", &errors.iter().take(10).cloned().collect::<Vec<_>>().join("\n"));
     report::log(&text);
     msgbox(None, &text, MB_OK | MB_ICONWARNING, i18n::rtl(lang));

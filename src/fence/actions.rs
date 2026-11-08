@@ -1,26 +1,36 @@
 use super::{fence_of, update, view};
-use crate::domain::inherit::Field;
+use crate::domain::{Look, inherit::Field};
 use crate::{i18n::T, keep, report, rules, shell, store, win::*};
 use std::path::Path;
 use windows::Win32::{Foundation::HWND, UI::WindowsAndMessaging::*};
 
-pub(super) fn evacuate(dir: &Path) -> Vec<String> {
+pub fn evacuate(dir: &Path) -> Vec<String> {
     let Some(desk) = shell::desktop() else { return vec![String::from("Desktop")] };
     let (moved, errors) = store::evacuate(dir, &desk);
     moved.into_iter().for_each(rules::ignore);
     errors
 }
 
-pub(super) fn color(h: HWND) {
-    if let Some(c) = fence_of(h).and_then(|f| choose_color(h, f.look.color)) {
-        update(h, |f| f.set(Field::Color, |l| l.color = c));
+fn recolor(h: HWND, field: Field, start: impl Fn(&Look) -> u32, put: impl FnOnce(&mut Look, u32)) {
+    if let Some(c) = fence_of(h).and_then(|f| choose_color(h, start(&f.look))) {
+        update(h, |f| f.set(field, |l| put(l, c)));
     }
 }
 
+pub(super) fn color(h: HWND) {
+    recolor(h, Field::Color, |l| l.color, |l, c| l.color = c);
+}
+
 pub(super) fn tint(h: HWND) {
-    if let Some(c) = fence_of(h).and_then(|f| choose_color(h, f.look.tint.unwrap_or(0xFF_FFFF))) {
-        update(h, |f| f.set(Field::Tint, |l| l.tint = Some(c)));
-    }
+    recolor(h, Field::Tint, |l| l.tint.unwrap_or(0xFF_FFFF), |l, c| l.tint = Some(c));
+}
+
+pub(super) fn bar_color(h: HWND) {
+    recolor(h, Field::BarColor, |l| l.bar_color.unwrap_or(l.color), |l, c| l.bar_color = Some(c));
+}
+
+pub(super) fn label_color(h: HWND) {
+    recolor(h, Field::LabelColor, |l| l.label_color.unwrap_or(0xFF_FFFF), |l, c| l.label_color = Some(c));
 }
 
 pub(super) fn reset_look(h: HWND) {

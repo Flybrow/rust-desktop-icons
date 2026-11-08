@@ -27,6 +27,7 @@ pub fn reload_all() {
 
 pub(super) fn set_icon(h: HWND, px: i32) {
     update(h, |f| f.set(Field::Icon, |l| l.icon = px));
+    reload(h);
 }
 
 pub(super) fn index_at(h: HWND, (x, y): (i32, i32)) -> Option<usize> {

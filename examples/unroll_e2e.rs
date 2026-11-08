@@ -90,10 +90,7 @@ fn main() {
     let away = (w.left + 5, (w.top + w.bottom) / 2);
     let mut fails = vec![];
     let mut check = |ok: bool, what: String| {
-        println!("[{}] {what}", if ok { "PASS" } else { "FAIL" });
-        if !ok {
-            fails.push(what);
-        }
+        support::verdict(ok, &what, &mut fails);
     };
     let t = Instant::now();
     while fences(pid).len() < cases.len() && t.elapsed() < Duration::from_secs(10) {

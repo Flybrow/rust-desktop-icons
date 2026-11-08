@@ -9,6 +9,22 @@ use windows::{
 };
 
 const FIRST: u32 = 1;
+pub const OWN: u32 = 0x7000;
+
+fn pick(id: u32) -> Pick {
+    match id {
+        0 => Pick::Nothing,
+        id if id >= OWN => Pick::Own((id - OWN) as usize),
+        id => Pick::Shell(id - FIRST),
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Pick {
+    Nothing,
+    Shell(u32),
+    Own(usize),
+}
 const CMIC_MASK_UNICODE: u32 = 0x4000;
 
 pub struct Native {
@@ -26,15 +42,27 @@ pub fn build(paths: &[PathBuf], extended: bool) -> Option<Native> {
     let cm: IContextMenu = data::items(paths, &BHID_SFUIObject)?;
     let native = Native { cm, menu: unsafe { CreatePopupMenu() }.ok()? };
     let flags = CMF_NORMAL | CMF_CANRENAME | if extended { CMF_EXTENDEDVERBS } else { 0 };
-    unsafe { native.cm.QueryContextMenu(native.menu, 0, FIRST, 0x7FFF, flags) }.ok().ok()?;
+    unsafe { native.cm.QueryContextMenu(native.menu, 0, FIRST, OWN - 1, flags) }.ok().ok()?;
     Some(native)
 }
 
 impl Native {
-    pub fn track(&self, h: HWND, (x, y): (i32, i32)) -> Option<u32> {
+    pub fn prepend(&self, label: &str, sub: HMENU) {
+        let text = crate::win::wide(label);
+        unsafe {
+            let _ = InsertMenuW(self.menu, 0, MF_BYPOSITION | MF_POPUP, sub.0 as usize, windows::core::PCWSTR(text.as_ptr()));
+            let _ = InsertMenuW(self.menu, 1, MF_BYPOSITION | MF_SEPARATOR, 0, None);
+        }
+    }
+
+    pub fn prepend_item(&self, label: &str, own: usize) {
+        let text = crate::win::wide(label);
+        let _ = unsafe { InsertMenuW(self.menu, 0, MF_BYPOSITION | MF_STRING, OWN as usize + own, windows::core::PCWSTR(text.as_ptr())) };
+    }
+
+    pub fn track(&self, h: HWND, (x, y): (i32, i32)) -> Pick {
         let _ = unsafe { SetForegroundWindow(h) };
-        let id = unsafe { TrackPopupMenuEx(self.menu, (TPM_RETURNCMD | TPM_RIGHTBUTTON).0, x, y, h, None) }.0 as u32;
-        (id >= FIRST).then(|| id - FIRST)
+        pick(unsafe { TrackPopupMenuEx(self.menu, (TPM_RETURNCMD | TPM_RIGHTBUTTON).0, x, y, h, None) }.0 as u32)
     }
 
     pub fn verb(&self, id: u32) -> String {
@@ -65,4 +93,17 @@ pub fn forward(cm: &IContextMenu, msg: u32, wp: WPARAM, lp: LPARAM) -> Option<LR
     }
     let c2 = cm.cast::<IContextMenu2>().ok()?;
     unsafe { c2.HandleMenuMsg(msg, wp, lp) }.ok().map(|_| LRESULT(0))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn menu_ids_split_between_windows_and_the_app() {
+        assert_eq!(
+            (pick(0), pick(FIRST), pick(OWN - 1), pick(OWN), pick(OWN + 3)),
+            (Pick::Nothing, Pick::Shell(0), Pick::Shell(OWN - 2), Pick::Own(0), Pick::Own(3))
+        );
+    }
 }

@@ -12,7 +12,7 @@ use crate::{
     report, rules, settings, shell, store, tray,
     win::*,
 };
-pub use fences::{new_fence, rebuild, register_verb};
+pub use fences::{duplicate, new_fence, rebuild, register_verb};
 use std::{cell::RefCell, collections::HashSet, path::PathBuf};
 pub use view::{Item, View};
 use windows::{
@@ -41,8 +41,25 @@ pub struct App {
 }
 
 impl App {
+    pub fn new(cfg: Config, taskbar: u32) -> App {
+        App {
+            cfg,
+            views: vec![],
+            fonts: vec![],
+            glyphs: vec![],
+            taskbar,
+            seen: HashSet::new(),
+            desk: None,
+            panel: None,
+            dialog: None,
+            sys_drag: vec![],
+            save_error: None,
+            save_reported: false,
+        }
+    }
+
     pub fn lang(&self) -> usize {
-        i18n::resolve(self.cfg.lang.as_deref(), &shell::locale())
+        i18n::resolve(self.cfg.lang.as_deref(), shell::locale())
     }
 
     pub fn t(&self, k: T) -> &'static str {
@@ -140,22 +157,7 @@ pub fn run() {
         }
         tray::updates::enable(cfg.auto_update);
         let taskbar = RegisterWindowMessageW(w!("TaskbarCreated"));
-        APP.with(|a| {
-            *a.borrow_mut() = Some(App {
-                cfg,
-                views: vec![],
-                fonts: vec![],
-                glyphs: vec![],
-                taskbar,
-                seen: HashSet::new(),
-                desk: None,
-                panel: None,
-                dialog: None,
-                sys_drag: vec![],
-                save_error: None,
-                save_reported: false,
-            })
-        });
+        APP.with(|a| *a.borrow_mut() = Some(App::new(cfg, taskbar)));
         tray::icon(tray, NIM_ADD);
         if let Some(bad) = damaged {
             report::alert(T::ErrConfig, &bad.display().to_string());

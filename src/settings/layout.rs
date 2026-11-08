@@ -3,7 +3,7 @@ use super::rows::{Ctl, PAGES, Row};
 pub const ITEM: i32 = 40;
 const HEADER: i32 = 46;
 const ROW: i32 = 44;
-const NOTE: i32 = 84;
+const NOTE: i32 = 92;
 const DESCRIBED: i32 = 66;
 pub const RESET_LINE: i32 = 22;
 

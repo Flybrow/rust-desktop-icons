@@ -1,62 +1,9 @@
-use super::{compat, grid::Align, icons, inherit::Field, kind::Kind, order::Sort, pins::Pin, system::Sys};
+use super::{Look, compat, inherit::Field, kind::Kind, matching::Expire, order::Sort, pins::Pin, system::Sys};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 pub(super) fn clean(s: &str) -> String {
     s.chars().filter(|c| !c.is_control()).take(64).collect()
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(default)]
-pub struct Look {
-    pub color: u32,
-    pub alpha: u8,
-    pub icon: i32,
-    pub tint: Option<u32>,
-    pub chameleon: bool,
-    pub auto_height: bool,
-    pub labels: bool,
-    #[serde(deserialize_with = "compat::or_default")]
-    pub align: Align,
-}
-
-impl Default for Look {
-    fn default() -> Self {
-        Self {
-            color: 0x302820,
-            alpha: 217,
-            icon: icons::DEFAULT,
-            tint: None,
-            chameleon: false,
-            auto_height: true,
-            labels: true,
-            align: Align::Left,
-        }
-    }
-}
-
-impl Look {
-    pub const PERCENTS: [u32; 8] = [30, 40, 50, 60, 70, 80, 90, 100];
-
-    pub fn percent(&self) -> u32 {
-        (self.alpha as u32 * 100 + 127) / 255
-    }
-
-    pub fn label(pct: u32) -> String {
-        format!("{pct}%")
-    }
-
-    pub fn alpha_for(pct: u32) -> u8 {
-        (pct.min(100) * 255 / 100) as u8
-    }
-
-    pub(super) fn sanitized(mut self) -> Self {
-        self.alpha = self.alpha.max(64);
-        self.color &= 0xFF_FFFF;
-        self.icon = icons::nearest(self.icon);
-        self.tint = self.tint.map(|t| t & 0xFF_FFFF);
-        self
-    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -76,6 +23,10 @@ pub struct Tab {
     pub system: Vec<Sys>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub pins: Vec<Pin>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expire: Option<Expire>,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub filter: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -97,6 +48,10 @@ pub struct Fence {
     pub tab: usize,
     #[serde(default)]
     pub custom: Option<Vec<Field>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub group: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub desktop: Option<String>,
 }
 
 impl Default for Fence {
@@ -115,6 +70,8 @@ impl Default for Fence {
             tabs: vec![],
             tab: 0,
             custom: None,
+            group: None,
+            desktop: None,
         }
     }
 }
@@ -152,16 +109,5 @@ impl Fence {
         }
         self.tab = self.tab.min(self.tabs.len() - 1);
         self
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn opacity_steps() {
-        assert_eq!((Look::alpha_for(30), Look::alpha_for(100), Look::alpha_for(500)), (76, 255, 255));
-        assert_eq!(Look { alpha: Look::alpha_for(70), ..Look::default() }.percent(), 70);
     }
 }

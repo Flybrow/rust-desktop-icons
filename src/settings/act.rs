@@ -10,7 +10,7 @@ use crate::{
 };
 use windows::Win32::Foundation::HWND;
 
-fn choose(h: HWND, options: Vec<(String, bool)>) -> Option<usize> {
+pub(super) fn choose(h: HWND, options: Vec<(String, bool)>) -> Option<usize> {
     let rtl = with(|a| a.rtl()).unwrap_or(false);
     let m = menu();
     for (i, (label, on)) in options.iter().enumerate() {
@@ -19,8 +19,16 @@ fn choose(h: HWND, options: Vec<(String, bool)>) -> Option<usize> {
     popup(h, m, rtl).checked_sub(1)
 }
 
-fn pick<V: Copy + PartialEq>(h: HWND, values: &[V], current: V, label: impl Fn(V) -> String) -> Option<V> {
+pub(super) fn pick<V: Copy + PartialEq>(h: HWND, values: &[V], current: V, label: impl Fn(V) -> String) -> Option<V> {
     choose(h, values.iter().map(|&v| (label(v), v == current)).collect()).map(|i| values[i])
+}
+
+fn optional_color(h: HWND, off: T, current: Option<u32>, start: u32) -> Option<Option<u32>> {
+    let labels = with(|a| [a.t(off), a.t(T::Color)]).unwrap_or_default();
+    match choose(h, vec![(labels[0].into(), current.is_none()), (labels[1].into(), current.is_some())])? {
+        0 => Some(None),
+        _ => choose_color(h, current.unwrap_or(start)).map(Some),
+    }
 }
 
 fn restyle(f: impl FnOnce(&mut Look)) {
@@ -64,22 +72,57 @@ fn perform(h: HWND, act: rows::Act) {
         IconSize => {
             if let Some(px) = pick(h, &icons::SIZES, l.icon, icons::label) {
                 restyle(|l| l.icon = px);
+                crate::fence::reload_all();
             }
         }
         Tint => {
-            let labels = with(|a| [a.t(T::None), a.t(T::Color)]).unwrap_or_default();
-            match choose(h, vec![(labels[0].into(), l.tint.is_none()), (labels[1].into(), l.tint.is_some())]) {
-                Some(0) => restyle(|l| l.tint = None),
-                Some(_) => {
-                    if let Some(t) = choose_color(h, l.tint.unwrap_or(0xFF_FFFF)) {
-                        restyle(|l| l.tint = Some(t));
-                    }
-                }
-                None => {}
+            if let Some(t) = optional_color(h, T::None, l.tint, 0xFF_FFFF) {
+                restyle(|l| l.tint = t);
             }
         }
         Chameleon => restyle(|l| l.chameleon ^= true),
         Labels => restyle(|l| l.labels ^= true),
+        LabelSize => {
+            if let Some(s) =
+                pick(h, &icons::LabelSize::ALL, l.label_size, |s| with(|a| a.t(i18n::label_size(s)).to_string()).unwrap_or_default())
+            {
+                restyle(|l| l.label_size = s);
+            }
+        }
+        Spacing => {
+            if let Some(s) = pick(h, &icons::Spacing::ALL, l.spacing, |s| with(|a| a.t(i18n::spacing(s)).to_string()).unwrap_or_default()) {
+                restyle(|l| l.spacing = s);
+            }
+        }
+        LabelColor => {
+            if let Some(c) = optional_color(h, T::Auto, l.label_color, 0xFF_FFFF) {
+                restyle(|l| l.label_color = c);
+            }
+        }
+        Browse => restyle(|l| l.browse ^= true),
+        Thumbs => {
+            restyle(|l| l.thumbs ^= true);
+            crate::fence::reload_all();
+        }
+        Wallpaper => restyle(|l| l.wallpaper ^= true),
+        BarHover => restyle(|l| l.bar_hover ^= true),
+        TitleAlign => {
+            if let Some(m) = pick(h, &grid::Align::ALL, l.title_align, |m| with(|a| a.t(i18n::align(m)).to_string()).unwrap_or_default()) {
+                restyle(|l| l.title_align = m);
+            }
+        }
+        TitleSize => {
+            if let Some(z) =
+                pick(h, &icons::LabelSize::ALL, l.title_size, |z| with(|a| a.t(i18n::label_size(z)).to_string()).unwrap_or_default())
+            {
+                restyle(|l| l.title_size = z);
+            }
+        }
+        BarColor => {
+            if let Some(c) = optional_color(h, T::Auto, l.bar_color, l.color) {
+                restyle(|l| l.bar_color = c);
+            }
+        }
         Align => {
             if let Some(m) = pick(h, &grid::Align::ALL, l.align, |m| with(|a| a.t(i18n::align(m)).to_string()).unwrap_or_default()) {
                 restyle(|l| l.align = m);
@@ -105,7 +148,7 @@ fn perform(h: HWND, act: rows::Act) {
             visibility::reveal();
         }
         ResetKey(s) => {
-            visibility::hotkeys::set(s, Some(s.default_key()));
+            visibility::hotkeys::set(s, s.default_key());
         }
         Key(s) => {
             visibility::hotkeys::suspend();
@@ -120,6 +163,12 @@ fn perform(h: HWND, act: rows::Act) {
         AutoSort => change(|c| c.auto_sort ^= true),
         Rule(fence, tab) => rule(h, fence, tab),
         SortNow => rules::run(false, true),
+        NameRule(i) => super::rules::name(h, i),
+        AddNameRule => super::rules::add_name(),
+        AgeRule(f, t) => super::rules::age(h, f, t),
+        AddAgeRule => super::rules::add_age(h),
+        Export => crate::backup::export(h),
+        Import => crate::backup::import(h),
         Lang => {
             let rtl = with(|a| a.rtl()).unwrap_or(false);
             if let Some(m) = with(|a| prefs::lang_menu(a)) {
@@ -139,7 +188,7 @@ fn perform(h: HWND, act: rows::Act) {
 pub(super) fn click(h: HWND, i: usize, offset: i32) {
     let pick = |r: &rows::Row| r.reset.filter(|_| rows::on_reset(r, offset)).or(r.act);
     if let Some(act) = with(|a| rows::build(a, a.panel.as_ref().map_or(0, |p| p.page)).get(i).and_then(pick)).flatten() {
-        perform(h, act);
+        crate::undo::step(|| perform(h, act));
         refresh();
     }
 }

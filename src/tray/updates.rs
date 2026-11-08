@@ -94,7 +94,7 @@ fn ok() -> Vec<Button> {
 }
 
 fn notice(body: String) {
-    dialog::show(Spec { title: "Rust Desktop Icons".into(), body, buttons: ok(), progress: None, dismiss: dialog::close });
+    dialog::show(Spec { title: "Rust Desktop Icons".into(), body, buttons: ok(), progress: None, dismiss: dialog::close, notes: vec![] });
 }
 
 fn later() {
@@ -135,10 +135,10 @@ fn install() {
 
 fn offer(rel: Release) {
     let body = t(T::UpdateVersion).replace("{new}", &rel.label()).replace("{cur}", &update::current());
-    let body = format!("{body}\n\n{}", rel.notes);
+    let notes = rel.notes.blocks.clone();
     PENDING.with(|p| *p.borrow_mut() = Some(rel));
     let buttons = vec![Button { label: t(T::Install), act: install }, Button { label: t(T::Later), act: later }];
-    dialog::show(Spec { title: t(T::UpdateAvailable), body, buttons, progress: None, dismiss: later });
+    dialog::show(Spec { title: t(T::UpdateAvailable), body, buttons, progress: None, dismiss: later, notes });
 }
 
 pub fn received(lp: LPARAM) {

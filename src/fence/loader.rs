@@ -1,8 +1,8 @@
-use super::{TABS, WM_CHANGED, fence_of, layout, view};
+use super::{TABS, WM_CHANGED, layout, read, view};
 use crate::{
     app::{Item, with},
     domain::{
-        Tab,
+        Tab, kind,
         order::{self, Meta},
         system::Sys,
     },
@@ -31,19 +31,22 @@ fn meta(p: &Path) -> Meta {
     Meta { name: store::name(p), dir, modified, size }
 }
 
-fn load(tab: &Tab) -> Vec<Item> {
+fn shown(tab: &Tab, p: &Path) -> bool {
+    let name = store::name(p);
+    !name.eq_ignore_ascii_case("desktop.ini") && (p.is_dir() || tab.shows(&name))
+}
+
+fn thumb(p: &Path, size: Option<i32>) -> Option<crate::shell::thumb::Thumb> {
+    let ext = p.extension()?.to_str()?;
+    size.filter(|_| kind::thumbable(ext)).and_then(|s| crate::shell::thumb::thumbnail(p, s))
+}
+
+fn load(tab: &Tab, thumbs: Option<i32>) -> Vec<Item> {
     let paths: Vec<PathBuf> = tab
         .system
         .iter()
         .map(|s| s.path())
-        .chain(
-            fs::read_dir(store::tab_dir(tab))
-                .into_iter()
-                .flatten()
-                .flatten()
-                .map(|e| e.path())
-                .filter(|p| !p.file_name().is_some_and(|n| n.eq_ignore_ascii_case("desktop.ini"))),
-        )
+        .chain(fs::read_dir(store::tab_dir(tab)).into_iter().flatten().flatten().map(|e| e.path()).filter(|p| shown(tab, p)))
         .chain(tab.pins.iter().map(|p| p.path.clone()).filter(|p| p.exists()))
         .collect();
     let metas: Vec<Meta> = paths.iter().map(|p| meta(p)).collect();
@@ -51,12 +54,13 @@ fn load(tab: &Tab) -> Vec<Item> {
         .into_iter()
         .map(|i| {
             let (icon, name) = Sys::of(&paths[i]).map_or_else(|| shell::info(&paths[i]), shell::system::info);
-            Item { path: paths[i].clone(), name, icon }
+            Item { path: paths[i].clone(), name, icon, thumb: thumb(&paths[i], thumbs) }
         })
         .collect()
 }
 
 pub(super) fn request(h: HWND, tabs: Vec<Tab>) {
+    let tabs: Vec<Tab> = tabs.into_iter().map(|t| super::browse::tab(h, t)).collect();
     let Some(jobs) = with(|a| {
         let v = a.view(h)?;
         if std::mem::replace(&mut v.loading, true) {
@@ -88,9 +92,10 @@ pub(super) fn request(h: HWND, tabs: Vec<Tab>) {
         return;
     };
     let hwnd = h.0 as isize;
+    let thumbs = read(h, |f| f.look.thumbs).unwrap_or(false).then(|| super::metrics(h).1);
     thread::spawn(move || {
         let _ = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED) };
-        let loaded = std::panic::catch_unwind(|| jobs.into_iter().map(|(g, t)| (t.id, g, load(&t))).collect());
+        let loaded = std::panic::catch_unwind(|| jobs.into_iter().map(|(g, t)| (t.id, g, load(&t, thumbs))).collect());
         let batch = Box::new(Batch(loaded.unwrap_or_default()));
         let raw = Box::into_raw(batch);
         if unsafe { PostMessageW(Some(HWND(hwnd as _)), WM_LOADED, WPARAM(0), LPARAM(raw as isize)) }.is_err() {
@@ -113,9 +118,10 @@ pub(super) fn receive(h: HWND, lp: LPARAM) {
         std::mem::take(&mut v.queued)
     })
     .unwrap_or_default();
-    let Some(active) = fence_of(h).map(|f| f.active().id) else { return };
-    with(|a| {
+    let Some(active) = read(h, |f| f.active().id) else { return };
+    let changed = with(|a| {
         let v = a.view(h)?;
+        let mut changed = false;
         for (id, g, items) in results {
             if !v.gens.iter().any(|&(t, cur)| t == id && cur == g) {
                 continue;
@@ -123,15 +129,21 @@ pub(super) fn receive(h: HWND, lp: LPARAM) {
             if id == active {
                 v.cache.retain(|(t, _)| *t != id);
                 v.selected.retain(|p| items.iter().any(|i| &i.path == p));
+                let key = Some((id, v.browse.last().cloned()));
+                changed |= v.items != items || v.shown != key;
+                v.shown = key;
                 v.items = items;
             } else {
                 v.cache.retain(|(t, _)| *t != id);
                 v.cache.push((id, items));
             }
         }
-        Some(())
-    });
-    layout::apply(h);
+        Some(changed)
+    })
+    .flatten();
+    if changed != Some(false) {
+        layout::apply(h);
+    }
     if !next.is_empty() {
         request(h, next);
     }

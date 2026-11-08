@@ -28,10 +28,7 @@ fn main() {
     fs::write(data.join("config.json"), r#"{"auto_update": false, "auto_sort": false, "version": "0.0.0"}"#).unwrap();
     let mut fails = vec![];
     let mut check = |ok: bool, what: &str| {
-        println!("[{}] {what}", if ok { "PASS" } else { "FAIL" });
-        if !ok {
-            fails.push(what.to_string());
-        }
+        support::verdict(ok, what, &mut fails);
     };
     let mut old = start(&root, &[]);
     check(wait(10, || tray().is_some_and(|(_, p)| p == old.id())), "first instance running");

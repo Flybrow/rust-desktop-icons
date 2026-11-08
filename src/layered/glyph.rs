@@ -36,6 +36,11 @@ pub const SEARCH: char = '\u{E721}';
 pub const KEYBOARD: char = '\u{E765}';
 pub const HIDE: char = '\u{ED1A}';
 pub const ALIGN: char = '\u{E8E3}';
+pub const IMAGE: char = '\u{E91B}';
+pub const FONT: char = '\u{E8D2}';
+pub const PICTURE: char = '\u{E8B9}';
+pub const UNDO: char = '\u{E7A7}';
+pub const FILTER: char = '\u{E71C}';
 
 pub fn bitmap(font: HFONT, ch: char, px: i32, color: u32) -> Option<HBITMAP> {
     let mut f = Frame::new(px, px)?;

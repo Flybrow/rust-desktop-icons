@@ -37,6 +37,7 @@ pub fn link_into(target: &Path, dir: &Path) -> Result<PathBuf> {
         let dst = dir.join(target.file_name().unwrap_or_default());
         if !dst.exists() {
             std::fs::copy(target, &dst)?;
+            crate::undo::created(&dst);
         }
         return Ok(dst);
     }
@@ -53,6 +54,7 @@ pub fn link_into(target: &Path, dir: &Path) -> Result<PathBuf> {
         }
         link.cast::<IPersistFile>()?.Save(PCWSTR(wide_path(&dst).as_ptr()), true)?;
     }
+    crate::undo::created(&dst);
     Ok(dst)
 }
 

@@ -41,6 +41,6 @@ pub fn finish(commit: bool) {
     let Some((e, done)) = ACTIVE.with(|a| a.borrow_mut().take()) else { return };
     let text = take_text(e);
     if commit && !text.trim().is_empty() {
-        done(text);
+        crate::undo::step(|| done(text));
     }
 }

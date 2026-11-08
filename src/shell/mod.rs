@@ -5,13 +5,17 @@ pub mod hide;
 mod link;
 pub mod menu;
 mod ops;
+pub mod pick;
 mod reg;
 pub mod system;
+pub mod thumb;
+pub mod vdesk;
+pub mod vwatch;
 mod watch;
 
 use crate::win::wide_path;
 pub use data::files;
-pub use dnd::{DragImage, drag_out, drop_target, pick_folder};
+pub use dnd::{DragImage, drag_out, drop_target};
 pub use link::{link_into, link_target};
 pub use ops::{delete, transfer, transfer_to};
 pub use reg::{NEW_ARG, RELAUNCH_ARG, UNINSTALL_ARG, set_autostart, set_desktop_verb};
@@ -34,10 +38,13 @@ use windows::{
     core::*,
 };
 
-pub fn locale() -> String {
-    let mut b = [0u16; 85];
-    let n = unsafe { GetUserDefaultLocaleName(&mut b) } as usize;
-    String::from_utf16_lossy(&b[..n.saturating_sub(1)])
+pub fn locale() -> &'static str {
+    static LOCALE: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    LOCALE.get_or_init(|| {
+        let mut b = [0u16; 85];
+        let n = unsafe { GetUserDefaultLocaleName(&mut b) } as usize;
+        String::from_utf16_lossy(&b[..n.saturating_sub(1)])
+    })
 }
 
 fn known(id: &GUID) -> Option<PathBuf> {

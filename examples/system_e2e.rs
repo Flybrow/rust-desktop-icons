@@ -24,10 +24,7 @@ fn main() {
     let mut app = support::app(&root, &[("RDI_TOP", "1")], &[]);
     let mut fails = vec![];
     let mut check = |ok: bool, what: &str| {
-        println!("[{}] {what}", if ok { "PASS" } else { "FAIL" });
-        if !ok {
-            fails.push(what.to_string());
-        }
+        support::verdict(ok, what, &mut fails);
     };
     check(wait(10, || !support::fences(app.id()).is_empty()), "fence shown");
     let migrated = wait(10, || system().len() == 5 && system()[0] == "RecycleBin" && !config().to_string().contains("\"recycle\""));

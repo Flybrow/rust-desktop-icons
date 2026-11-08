@@ -1,8 +1,12 @@
 #![allow(dead_code, unused_imports)]
+pub mod clip;
 pub mod desk;
 mod input;
+pub mod menu;
 
-pub use input::{chord, cursor, double_click, drag, glide, point, press, right, show_desktop, type_text};
+pub use input::{
+    chord, click, ctrl_wheel, cursor, double_click, drag, glide, hold, point, press, right, right_click, show_desktop, type_text,
+};
 
 use std::{
     fs,
@@ -56,7 +60,7 @@ pub fn work() -> RECT {
     r
 }
 
-fn class(h: HWND) -> String {
+pub fn class(h: HWND) -> String {
     let mut buf = [0u16; 64];
     let n = unsafe { GetClassNameW(h, &mut buf) } as usize;
     String::from_utf16_lossy(&buf[..n])
@@ -82,8 +86,12 @@ pub fn windows(pid: u32, name: &str) -> Vec<HWND> {
     find(pid, name, false)
 }
 
+pub fn windows_all(pid: u32, name: &str) -> Vec<HWND> {
+    find(pid, name, true)
+}
+
 pub fn quit(app: &mut Child) {
-    for h in find(app.id(), "RustDesktopIcons.Tray.dev", true) {
+    for h in windows_all(app.id(), "RustDesktopIcons.Tray.dev") {
         let _ = unsafe { PostMessageW(Some(h), WM_CLOSE, WPARAM(0), LPARAM(0)) };
     }
     for _ in 0..50 {
@@ -165,4 +173,66 @@ pub fn capture(r: &RECT, path: &Path) {
     out.extend([0u8; 24]);
     out.extend(px);
     let _ = fs::write(path, out);
+}
+
+pub fn title(h: HWND) -> String {
+    let mut b = [0u16; 512];
+    let n = unsafe { GetWindowTextW(h, &mut b) } as usize;
+    String::from_utf16_lossy(&b[..n])
+}
+
+pub fn explorer(name: &str) -> Option<HWND> {
+    let ours = |t: String| {
+        [" - ", " : ", " — "].iter().fold(t.as_str(), |t, sep| t.split(sep).next().unwrap_or(t)).rsplit('\\').next() == Some(name)
+    };
+    windows(0, "CabinetWClass").into_iter().find(|h| ours(title(*h)))
+}
+
+pub fn close(h: HWND) {
+    let _ = unsafe { PostMessageW(Some(h), WM_CLOSE, WPARAM(0), LPARAM(0)) };
+}
+
+pub fn saved(data: &Path) -> serde_json::Value {
+    fs::read(data.join("config.json")).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default()
+}
+
+pub fn fence_cfg(data: &Path, id: u64) -> serde_json::Value {
+    saved(data)["fences"].as_array().and_then(|a| a.iter().find(|f| f["id"] == id).cloned()).unwrap_or_default()
+}
+
+pub fn answer(pid: u32, keys: &[windows::Win32::UI::Input::KeyboardAndMouse::VIRTUAL_KEY]) -> bool {
+    let shown = wait(3, || !windows(pid, "#32770").is_empty());
+    if let Some(d) = windows(pid, "#32770").first() {
+        let _ = unsafe { windows::Win32::UI::WindowsAndMessaging::SetForegroundWindow(*d) };
+        thread::sleep(Duration::from_millis(200));
+        chord(keys);
+    }
+    shown
+}
+
+thread_local! {
+    static SHOT: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
+pub fn verdict(ok: bool, what: &str, fails: &mut Vec<String>) {
+    println!("[{}] {what}", if ok { "PASS" } else { "FAIL" });
+    if !ok {
+        fails.push(what.to_string());
+    }
+    SHOT.with(|n| n.set(n.get() + 1));
+    if let Ok(dir) = std::env::var("SHOTS") {
+        let exe = std::env::current_exe().ok().and_then(|p| p.file_stem().map(|s| s.to_string_lossy().into_owned())).unwrap_or_default();
+        let slug: String = what.chars().map(|c| if c.is_ascii_alphanumeric() { c } else { '_' }).take(60).collect();
+        let screen = unsafe {
+            RECT {
+                left: GetSystemMetrics(SM_XVIRTUALSCREEN),
+                top: GetSystemMetrics(SM_YVIRTUALSCREEN),
+                right: GetSystemMetrics(SM_XVIRTUALSCREEN) + GetSystemMetrics(SM_CXVIRTUALSCREEN),
+                bottom: GetSystemMetrics(SM_YVIRTUALSCREEN) + GetSystemMetrics(SM_CYVIRTUALSCREEN),
+            }
+        };
+        let _ = fs::create_dir_all(&dir);
+        let (n, verdict) = (SHOT.with(|n| n.get()), if ok { "PASS" } else { "FAIL" });
+        capture(&screen, &Path::new(&dir).join(format!("{exe}-{n:03}-{verdict}-{slug}.bmp")));
+    }
 }

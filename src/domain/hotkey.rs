@@ -24,19 +24,23 @@ const RESERVED: [(u32, u32); 11] = [
 pub enum Slot {
     Peek,
     Search,
+    HideAll,
+    NewFence,
+    Settings,
 }
 
 impl Slot {
-    pub const ALL: [Slot; 2] = [Slot::Peek, Slot::Search];
+    pub const ALL: [Slot; 5] = [Slot::Peek, Slot::Search, Slot::HideAll, Slot::NewFence, Slot::Settings];
 
     pub fn id(self) -> i32 {
         self as i32 + 1
     }
 
-    pub fn default_key(self) -> Hotkey {
+    pub fn default_key(self) -> Option<Hotkey> {
         match self {
-            Slot::Peek => Hotkey::PEEK,
-            Slot::Search => Hotkey::SEARCH,
+            Slot::Peek => Some(Hotkey::PEEK),
+            Slot::Search => Some(Hotkey::SEARCH),
+            _ => None,
         }
     }
 
@@ -94,10 +98,23 @@ impl Hotkey {
 }
 
 impl Config {
+    fn slot(&mut self, s: Slot) -> &mut Option<Hotkey> {
+        match s {
+            Slot::Peek => &mut self.peek_key,
+            Slot::Search => &mut self.search_key,
+            Slot::HideAll => &mut self.hide_key,
+            Slot::NewFence => &mut self.new_key,
+            Slot::Settings => &mut self.settings_key,
+        }
+    }
+
     pub fn key(&self, s: Slot) -> Option<Hotkey> {
         match s {
             Slot::Peek => self.peek_key,
             Slot::Search => self.search_key,
+            Slot::HideAll => self.hide_key,
+            Slot::NewFence => self.new_key,
+            Slot::Settings => self.settings_key,
         }
     }
 
@@ -105,16 +122,17 @@ impl Config {
         if k.is_some() && Slot::ALL.iter().any(|o| *o != s && self.key(*o) == k) {
             return false;
         }
-        *match s {
-            Slot::Peek => &mut self.peek_key,
-            Slot::Search => &mut self.search_key,
-        } = k.filter(Hotkey::valid);
+        *self.slot(s) = k.filter(Hotkey::valid);
         true
     }
 
     pub(super) fn sanitize_keys(&mut self) {
-        let (peek, search) = (self.peek_key.filter(Hotkey::valid), self.search_key.filter(Hotkey::valid));
-        (self.peek_key, self.search_key) = (peek, search.filter(|k| Some(*k) != peek));
+        let mut used = vec![];
+        for s in Slot::ALL {
+            let k = self.key(s).filter(|k| k.valid() && !used.contains(k));
+            used.extend(k);
+            *self.slot(s) = k;
+        }
     }
 }
 
@@ -140,7 +158,8 @@ mod tests {
     fn slots_never_share_a_shortcut() {
         let mut c = Config::default();
         assert_eq!((Slot::of(1), Slot::of(2), Slot::of(9)), (Some(Slot::Peek), Some(Slot::Search), None));
-        assert!(Slot::ALL.iter().all(|s| c.key(*s) == Some(s.default_key())));
+        assert!(Slot::ALL.iter().all(|s| c.key(*s) == s.default_key()));
+        assert!(c.set_key(Slot::HideAll, Some(Hotkey { mods: CTRL | ALT, vk: 0x48 })) && c.key(Slot::HideAll).is_some());
         assert!(!c.set_key(Slot::Search, Some(Hotkey::PEEK)) && c.key(Slot::Search) == Some(Hotkey::SEARCH));
         assert!(c.set_key(Slot::Search, None) && c.key(Slot::Search).is_none());
         assert!(c.set_key(Slot::Peek, Some(Hotkey::SEARCH)));

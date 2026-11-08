@@ -1,4 +1,4 @@
-use super::{PEEK, anim, flagged, layout, update, view};
+use super::{PEEK, anim, flagged, layout, read, update, view};
 use crate::domain::side::Side;
 use crate::win::{cursor_pos, window_rect};
 use windows::Win32::{
@@ -10,7 +10,14 @@ use windows::Win32::{
 pub(super) fn enter(h: HWND) {
     if view(h, |v| !std::mem::replace(&mut v.inside, true)) == Some(true) {
         anim::start(h);
+        bar_hover(h);
         unsafe { SetTimer(Some(h), PEEK, 200, None) };
+    }
+}
+
+fn bar_hover(h: HWND) {
+    if read(h, |f| f.look.bar_hover && !f.rolled) == Some(true) && !anim::animating(h) {
+        super::render(h);
     }
 }
 
@@ -27,6 +34,7 @@ pub(super) fn check(h: HWND) {
     let _ = unsafe { KillTimer(Some(h), PEEK) };
     view(h, |v| (v.inside, v.hold) = (false, false));
     anim::start(h);
+    bar_hover(h);
 }
 
 pub(super) fn toggle(h: HWND) {

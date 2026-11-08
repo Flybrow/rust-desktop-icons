@@ -1,22 +1,38 @@
-use super::{ANIM, layout, paint, view};
-use crate::domain::Fence;
+use super::{ANIM, layout, paint, read, view};
+use crate::app::View;
 use crate::{app::with, domain::anim, win::now_ms};
 use windows::Win32::{
     Foundation::HWND,
     UI::WindowsAndMessaging::{KillTimer, SetTimer},
 };
 
+fn targets((rolled, chameleon): (bool, bool), v: &View) -> (f32, f32) {
+    let unroll = if !rolled || (v.inside && !v.hold) { 1. } else { 0. };
+    (unroll, if !chameleon || v.inside { 1. } else { 0. })
+}
+
 pub(super) fn start(h: HWND) {
+    let side = layout::side(h);
     layout::orient(h);
+    let still = with(|a| {
+        let kind = a.fence_of(h).map(|f| (f.rolled, f.look.chameleon))?;
+        let v = a.view(h)?;
+        Some(v.tick.is_none() && targets(kind, v) == (v.unroll, v.glow))
+    })
+    .flatten();
+    if still == Some(true) && layout::side(h) == side {
+        return;
+    }
     let idle = view(h, |v| v.tick.replace(v.tick.unwrap_or_else(now_ms)).is_none());
     if idle == Some(true) {
         unsafe { SetTimer(Some(h), ANIM, 10, None) };
     }
 }
 
-pub(super) fn cached(h: HWND, f: &Fence) -> bool {
+pub(super) fn cached(h: HWND) -> bool {
+    let Some((rolled, chameleon)) = read(h, |f| (f.rolled, f.look.chameleon)) else { return false };
     let busy = view(h, |v| v.inside || v.tick.is_some()).unwrap_or(false);
-    if f.rolled { busy } else { f.look.chameleon }
+    if rolled { busy } else { chameleon }
 }
 
 pub(super) fn animating(h: HWND) -> bool {
@@ -33,8 +49,7 @@ pub(super) fn tick(h: HWND) {
         if dt < 1. {
             return None;
         }
-        let unroll = if !f.rolled || (v.inside && !v.hold) { 1. } else { 0. };
-        let glow = if !f.look.chameleon || v.inside { 1. } else { 0. };
+        let (unroll, glow) = targets((f.rolled, f.look.chameleon), v);
         let opening = unroll > v.unroll;
         if opening != v.opening && v.unroll > 0. && v.unroll < 1. {
             v.unroll = anim::retarget(v.unroll, v.opening, opening);
@@ -52,6 +67,9 @@ pub(super) fn tick(h: HWND) {
     let (open, size) = (layout::open_size(h, &f), layout::size(h, &f));
     if done {
         let _ = unsafe { KillTimer(Some(h), ANIM) };
+        if f.rolled && view(h, |v| v.unroll == 0.) == Some(true) {
+            super::browse::home(h);
+        }
     }
     let cached = with(|a| a.view(h)?.frame.take()).flatten().filter(|fr| (fr.w, fr.h) == open);
     if done && size != open {

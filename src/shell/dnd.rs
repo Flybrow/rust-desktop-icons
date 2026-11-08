@@ -9,7 +9,7 @@ use windows::{
         Foundation::{COLORREF, DRAGDROP_S_CANCEL, DRAGDROP_S_DROP, DRAGDROP_S_USEDEFAULTCURSORS, HWND, POINT, S_OK, SIZE},
         Graphics::Gdi::{DeleteObject, HBITMAP},
         System::{
-            Com::{CLSCTX_INPROC_SERVER, CoCreateInstance, CoTaskMemFree, IDataObject},
+            Com::{CLSCTX_INPROC_SERVER, CoCreateInstance, IDataObject},
             Ole::{DROPEFFECT, DROPEFFECT_COPY, DROPEFFECT_LINK, DROPEFFECT_MOVE, IDropSource, IDropSource_Impl, IDropTarget},
             SystemServices::{MK_LBUTTON, MK_RBUTTON, MODIFIERKEYS_FLAGS},
         },
@@ -17,18 +17,6 @@ use windows::{
     },
     core::{BOOL, HRESULT, Result, implement},
 };
-
-pub fn pick_folder(h: HWND) -> Option<PathBuf> {
-    unsafe {
-        let d: IFileOpenDialog = CoCreateInstance(&FileOpenDialog, None, CLSCTX_INPROC_SERVER).ok()?;
-        d.SetOptions(d.GetOptions().ok()? | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM).ok()?;
-        d.Show(Some(h)).ok()?;
-        let p = d.GetResult().ok()?.GetDisplayName(SIGDN_FILESYSPATH).ok()?;
-        let s = p.to_string().ok();
-        CoTaskMemFree(Some(p.0 as _));
-        s.map(PathBuf::from)
-    }
-}
 
 pub struct DragImage {
     pub bitmap: HBITMAP,

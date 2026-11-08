@@ -1,6 +1,6 @@
 use super::{View, with};
 use crate::{domain::Fence, fence, i18n::T, report, shell, store, win::*};
-use windows::Win32::UI::WindowsAndMessaging::*;
+use windows::Win32::{Foundation::RECT, UI::WindowsAndMessaging::*};
 
 pub fn register_verb() {
     if let Some(label) = with(|a| a.t(T::DesktopVerb)).filter(|_| !cfg!(debug_assertions)) {
@@ -23,6 +23,19 @@ pub fn new_fence() {
     open(&f);
 }
 
+pub fn duplicate(id: u64) {
+    let Some(f) = super::edit(|a| {
+        let src = a.cfg.fence(id)?;
+        let r = work_area(&RECT { left: src.x, top: src.y, right: src.x + src.w, bottom: src.y + src.h });
+        a.cfg.duplicate(id, [r.left, r.top, r.right - r.left, r.bottom - r.top], sys_scale(16))
+    })
+    .flatten() else {
+        return;
+    };
+    open(&f);
+    crate::visibility::desks::sync();
+}
+
 fn open(f: &Fence) {
     let Some(h) = fence::create(f) else {
         return report::log(&format!("cannot create the window of fence {}", f.id));
@@ -43,4 +56,5 @@ pub fn rebuild() {
         unsafe { DestroyWindow(v.hwnd).ok() };
     }
     fences.iter().for_each(open);
+    crate::visibility::desks::sync();
 }

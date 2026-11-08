@@ -2,7 +2,7 @@ mod support;
 
 use serde_json::json;
 use std::{env, fs, thread, time::Duration};
-use support::{app, chord, fences, point, quit, wait, windows, work};
+use support::{app, chord, fences, quit, right_click, wait, windows, work};
 use windows::Win32::Foundation::{HWND, POINT, RECT};
 use windows::Win32::UI::Input::KeyboardAndMouse::VK_ESCAPE;
 use windows::Win32::UI::WindowsAndMessaging::*;
@@ -34,13 +34,6 @@ fn blocker(r: RECT) {
     });
 }
 
-fn right_click(p: (i32, i32)) {
-    point(p);
-    thread::sleep(Duration::from_millis(150));
-    support::right(true);
-    support::right(false);
-}
-
 fn on_top(h: HWND) -> bool {
     let r = support::rect(h);
     let c = POINT { x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2 };
@@ -60,10 +53,7 @@ fn main() {
     let pid = app.id();
     let mut fails = vec![];
     let mut check = |ok: bool, what: &str| {
-        println!("[{}] {what}", if ok { "PASS" } else { "FAIL" });
-        if !ok {
-            fails.push(what.to_string());
-        }
+        support::verdict(ok, what, &mut fails);
     };
     check(wait(10, || fences(pid).len() == 1), "fence shown");
     let f = fences(pid)[0];

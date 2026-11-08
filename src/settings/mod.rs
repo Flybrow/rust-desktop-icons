@@ -1,7 +1,9 @@
 mod act;
 mod layout;
+mod pages;
 mod paint;
 mod rows;
+mod rules;
 
 use crate::{
     app::with,
@@ -46,8 +48,9 @@ fn height(h: HWND) -> i32 {
 
 pub fn refresh() {
     let Some(h) = hwnd() else { return };
-    let r = window_rect(h);
-    popup::resize(h, (r.right - r.left, height(h)), None);
+    let (r, ht) = (window_rect(h), height(h));
+    let area = work_area(&r);
+    popup::resize(h, (r.right - r.left, ht), Some(r.top.min(area.bottom - ht).max(area.top)));
     paint::render(h);
 }
 
@@ -170,6 +173,11 @@ unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESU
         WM_KEYDOWN | WM_SYSKEYDOWN if capturing().is_some() => capture(wp.0 as u16),
         WM_CHAR | WM_SYSCHAR if capturing().is_some() => {}
         WM_KEYDOWN if wp.0 as u16 == VK_ESCAPE.0 => close(),
+        WM_EXITSIZEMOVE | WM_DISPLAYCHANGE => refresh(),
+        WM_KEYDOWN if crate::undo::shortcut(wp.0 as u16) => {
+            crate::undo::undo();
+            refresh();
+        }
         WM_DPICHANGED => {
             popup::follow_dpi(h, lp);
             refresh();

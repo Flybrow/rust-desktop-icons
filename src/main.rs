@@ -1,6 +1,7 @@
 #![windows_subsystem = "windows"]
 
 mod app;
+mod backup;
 mod dialog;
 mod domain;
 mod fence;
@@ -17,6 +18,7 @@ mod settings;
 mod shell;
 mod store;
 mod tray;
+mod undo;
 mod uninstall;
 mod update;
 mod visibility;

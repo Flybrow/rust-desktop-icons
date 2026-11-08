@@ -19,6 +19,7 @@ pub struct Layout {
     pub bar: Option<Rect>,
     pub buttons: Vec<Rect>,
     pub height: i32,
+    pub text: i32,
 }
 
 pub fn layout(m: &Metrics, text: i32, progress: bool, buttons: usize) -> Layout {
@@ -39,7 +40,7 @@ pub fn layout(m: &Metrics, text: i32, progress: bool, buttons: usize) -> Layout 
     if buttons > 0 {
         y += bh + m.gap;
     }
-    Layout { body, status, bar, buttons: rects, height: y + m.pad / 2 }
+    Layout { body, status, bar, buttons: rects, height: y + m.pad / 2, text }
 }
 
 pub fn fill((x0, y0, x1, y1): Rect, value: Option<f32>, phase: u32) -> Rect {

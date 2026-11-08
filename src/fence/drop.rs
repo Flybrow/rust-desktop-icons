@@ -9,7 +9,7 @@ use windows::Win32::Foundation::HWND;
 
 pub(super) fn target_tab(h: HWND, pt: (i32, i32)) -> Option<Tab> {
     let f = fence_of(h)?;
-    Some(tabs::at(h, pt).and_then(|i| f.tabs.get(i)).unwrap_or(f.active()).clone())
+    Some(super::browse::tab(h, tabs::at(h, pt).and_then(|i| f.tabs.get(i)).unwrap_or(f.active()).clone()))
 }
 
 pub(super) fn files(h: HWND, paths: Vec<PathBuf>, pt: (i32, i32)) {
@@ -24,11 +24,25 @@ pub(super) fn files(h: HWND, paths: Vec<PathBuf>, pt: (i32, i32)) {
     let dir = store::tab_dir(&tab);
     let is = |q: Option<&Path>, d: &Path| q.is_some_and(|q| shell::same_path(q, d));
     if header.is_none() && !paths.is_empty() && paths.iter().all(|p| is(p.parent(), &dir) || tab.pinned(p)) {
+        if super::browse::current(h).is_some() {
+            return;
+        }
         return arrange::move_within(h, &paths, items::item_at(h, pt));
     }
+    let Some(fence) = fence_of(h).map(|f| f.id) else { return };
+    put(h, fence, &tab, paths, false);
+}
+
+pub(super) fn put(h: HWND, fence: u64, tab: &Tab, paths: Vec<PathBuf>, force: bool) {
+    let dir = store::tab_dir(tab);
+    let is = |q: Option<&Path>, d: &Path| q.is_some_and(|q| shell::same_path(q, d));
     if keep::on() && tab.portal.is_none() {
-        let Some(fence) = fence_of(h).map(|f| f.id) else { return };
-        let moving: Vec<PathBuf> = paths.into_iter().filter(|p| !tab.pinned(p)).collect();
+        let desk = shell::desktop();
+        let to_desk = |p: PathBuf| match &desk {
+            Some(d) if force && shell::on_desktop(&p).is_none() && !store::in_fences(&p) => store::move_into(&p, d).unwrap_or(p),
+            _ => p,
+        };
+        let moving: Vec<PathBuf> = paths.into_iter().filter(|p| !tab.pinned(p)).map(to_desk).collect();
         let errors = keep::place(&moving, fence, tab.id);
         reload_all();
         return report::failures(T::ErrMove, &errors);
@@ -36,7 +50,7 @@ pub(super) fn files(h: HWND, paths: Vec<PathBuf>, pt: (i32, i32)) {
     let mut errors = vec![];
     for p in paths.iter().filter(|p| !is(p.parent(), &dir)) {
         let desk = shell::on_desktop(p);
-        let (own, public) = (desk == Some(0) || store::in_fences(p), desk == Some(1));
+        let (own, public) = ((force && desk.is_none()) || desk == Some(0) || store::in_fences(p), desk == Some(1));
         let result = if own {
             store::move_into(p, &dir).map(|_| ()).map_err(|e| e.to_string())
         } else if public {

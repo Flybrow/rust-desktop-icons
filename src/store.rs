@@ -28,7 +28,7 @@ pub fn save(c: &Config) -> io::Result<()> {
 }
 
 fn parse(p: &Path) -> Option<Config> {
-    serde_json::from_slice::<Config>(&fs::read(p).ok()?).ok()
+    Config::parse(&fs::read(p).ok()?).ok()
 }
 
 fn load_from(dir: &Path) -> (Config, Option<PathBuf>) {
@@ -107,6 +107,7 @@ pub fn move_into(src: &Path, dir: &Path) -> io::Result<PathBuf> {
     let dst = unique(dir, name);
     fs::rename(src, &dst).or_else(|e| if e.kind() == io::ErrorKind::CrossesDevices { relocate(src, &dst) } else { Err(e) })?;
     crate::shell::notify_moved(src, &dst);
+    crate::undo::moved(src, &dst);
     Ok(dst)
 }
 

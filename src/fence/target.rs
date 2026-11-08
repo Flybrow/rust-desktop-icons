@@ -20,6 +20,7 @@ struct Target {
     helper: Option<IDropTargetHelper>,
     data: RefCell<Option<(IDataObject, Vec<PathBuf>, bool)>>,
     inner: RefCell<Option<(PathBuf, Option<IDropTarget>)>>,
+    checked: RefCell<Option<(PathBuf, bool)>>,
 }
 
 impl Target {
@@ -62,11 +63,23 @@ impl Target {
         entered
     }
 
+    fn accepts(&self, p: &PathBuf) -> bool {
+        if let Some((_, ok)) = self.checked.borrow().as_ref().filter(|(q, _)| q == p) {
+            return *ok;
+        }
+        let ok = Sys::of(p).is_none()
+            && self
+                .data
+                .borrow()
+                .as_ref()
+                .is_none_or(|(_, dragged, internal)| !dragged.iter().any(|x| shell::same_path(x, p)) && (!internal || p.is_dir()));
+        *self.checked.borrow_mut() = Some((p.clone(), ok));
+        ok
+    }
+
     fn aim(&self, keys: MODIFIERKEYS_FLAGS, pt: &POINTL, effect: *mut DROPEFFECT) -> bool {
         let at = to_client(self.h(), (pt.x, pt.y));
-        let (dragged, internal) = self.data.borrow().as_ref().map(|(_, d, i)| (d.clone(), *i)).unwrap_or_default();
-        let accepts = |p: &PathBuf| Sys::of(p).is_none() && !dragged.iter().any(|x| shell::same_path(x, p)) && (!internal || p.is_dir());
-        let item = items::item_at(self.h(), at).filter(accepts);
+        let item = items::item_at(self.h(), at).filter(|p| self.accepts(p));
         let same = matches!((&*self.inner.borrow(), &item), (Some((a, _)), Some(b)) if a == b);
         let delegated = if same {
             let inner = self.inner.borrow().as_ref().and_then(|(_, t)| t.clone());
@@ -94,6 +107,7 @@ impl Target {
 
 impl IDropTarget_Impl for Target_Impl {
     fn DragEnter(&self, data: Ref<IDataObject>, keys: MODIFIERKEYS_FLAGS, pt: &POINTL, effect: *mut DROPEFFECT) -> Result<()> {
+        self.checked.borrow_mut().take();
         *self.data.borrow_mut() = data.as_ref().map(|d| {
             let files = shell::files(d);
             let ours = |p: &PathBuf| store::in_fences(p) || with(|a| a.cfg.is_pinned(p)) == Some(true);
@@ -128,6 +142,12 @@ impl IDropTarget_Impl for Target_Impl {
     }
 
     fn Drop(&self, data: Ref<IDataObject>, keys: MODIFIERKEYS_FLAGS, pt: &POINTL, effect: *mut DROPEFFECT) -> Result<()> {
+        crate::undo::step(|| self.drop_inner(data, keys, pt, effect))
+    }
+}
+
+impl Target_Impl {
+    fn drop_inner(&self, data: Ref<IDataObject>, keys: MODIFIERKEYS_FLAGS, pt: &POINTL, effect: *mut DROPEFFECT) -> Result<()> {
         if let (Some(helper), Some(d)) = (&self.helper, data.as_ref()) {
             let _ = unsafe { helper.Drop(d, &POINT { x: pt.x, y: pt.y }, *effect) };
         }
@@ -150,7 +170,8 @@ impl IDropTarget_Impl for Target_Impl {
 
 pub(super) fn register(h: HWND) {
     let helper = unsafe { CoCreateInstance(&CLSID_DragDropHelper, None, CLSCTX_INPROC_SERVER) }.ok();
-    let target: IDropTarget = Target { hwnd: h.0 as isize, helper, data: RefCell::new(None), inner: RefCell::new(None) }.into();
+    let target: IDropTarget =
+        Target { hwnd: h.0 as isize, helper, data: RefCell::new(None), inner: RefCell::new(None), checked: RefCell::new(None) }.into();
     if let Err(e) = unsafe { RegisterDragDrop(h, &target) } {
         crate::report::log(&format!("drag and drop unavailable on a fence: {e}"));
     }

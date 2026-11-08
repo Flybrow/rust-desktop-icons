@@ -73,10 +73,7 @@ fn main() {
     unsafe { GetCursorPos(&mut saved).unwrap() };
     let mut fails = vec![];
     let mut check = |ok: bool, what: String| {
-        println!("[{}] {what}", if ok { "PASS" } else { "FAIL" });
-        if !ok {
-            fails.push(what);
-        }
+        support::verdict(ok, &what, &mut fails);
     };
 
     let (sw, sh) = unsafe { (GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN)) };

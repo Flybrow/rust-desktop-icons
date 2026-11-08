@@ -1,5 +1,8 @@
+pub mod age;
+
 use crate::{
     app::with,
+    domain::Config,
     domain::kind::{candidates, ignored},
     fence,
     i18n::T,
@@ -37,7 +40,16 @@ fn movable(p: &Path) -> bool {
     !ignored(&store::name(p), hidden, OWN_SHORTCUT)
 }
 
+fn put(cfg: &Config, p: &Path, (f, t): (u64, u64), keep: bool) -> Result<bool, String> {
+    if keep {
+        return keep::place(std::slice::from_ref(&p.to_path_buf()), f, t).into_iter().next().map_or(Ok(true), Err);
+    }
+    let Some(tab) = cfg.tab(f, t) else { return Ok(false) };
+    store::move_into(p, &store::tab_dir(tab)).map(|_| true).map_err(|e| format!("{} ({e})", store::name(p)))
+}
+
 pub fn watch(tray: HWND) {
+    age::start();
     let Some(desk) = shell::desktop() else { return };
     let (seen, w) = (entries(&desk), shell::Watch::new(tray, &desk, WM_DESK));
     with(|a| (a.seen, a.desk) = (seen, w));
@@ -51,7 +63,7 @@ pub fn ignore(p: PathBuf) {
     with(|a| a.seen.insert(p));
 }
 
-fn uncover(paths: &[PathBuf]) -> bool {
+pub fn uncover(paths: &[PathBuf]) -> bool {
     if paths.is_empty() || !keep::live() {
         return true;
     }
@@ -65,6 +77,10 @@ fn uncover(paths: &[PathBuf]) -> bool {
 }
 
 pub fn run(tray: bool, all: bool) {
+    crate::undo::step(|| sort(tray, all));
+}
+
+fn sort(tray: bool, all: bool) {
     if tray {
         tray::timers::set(TIMER, None);
     }
@@ -83,15 +99,10 @@ pub fn run(tray: bool, all: bool) {
             }
             let target = shell::link_target(&p);
             let kinds = candidates(p.extension().and_then(|e| e.to_str()), p.is_dir(), target.as_deref());
-            let target = cfg.rule_for(&kinds);
-            if let (Some((f, t)), true) = (target, keep) {
-                errors.extend(keep::place(std::slice::from_ref(&p), f, t));
-                moved += 1;
-            } else if let Some(tab) = target.and_then(|(f, t)| cfg.tab(f, t)) {
-                match store::move_into(&p, &store::tab_dir(tab)) {
-                    Ok(_) => moved += 1,
-                    Err(e) => errors.push(format!("{} ({e})", store::name(&p))),
-                }
+            match cfg.target_for(&store::name(&p), &kinds).map(|ft| put(&cfg, &p, ft, keep)) {
+                Some(Ok(true)) => moved += 1,
+                Some(Err(e)) => errors.push(e),
+                _ => {}
             }
         }
     }

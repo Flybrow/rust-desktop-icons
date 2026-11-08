@@ -73,6 +73,10 @@ pub(super) fn item(h: HWND, path: &PathBuf) {
 }
 
 pub(super) fn finish(h: HWND, commit: bool) {
+    crate::undo::step(|| commit_edit(h, commit));
+}
+
+fn commit_edit(h: HWND, commit: bool) {
     let Some((e, target)) = with(|a| a.view(h)?.edit.take()).flatten() else {
         return;
     };
@@ -95,7 +99,10 @@ pub(super) fn finish(h: HWND, commit: bool) {
                     fs::rename(&path, &dest)
                 };
                 match result {
-                    Ok(()) => reload(h),
+                    Ok(()) => {
+                        crate::undo::moved(&path, &dest);
+                        reload(h)
+                    }
                     Err(err) => report::alert(T::ErrRename, &format!("{file} → {name} ({err})")),
                 }
             }

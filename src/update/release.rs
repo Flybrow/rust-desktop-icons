@@ -1,10 +1,11 @@
+use super::notes::{Notes, parse as notes};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Release {
     pub version: [u64; 3],
-    pub notes: String,
+    pub notes: Notes,
     pub msi: String,
     pub sum: String,
 }
@@ -37,20 +38,10 @@ pub fn from_json(rel: &Value) -> Option<Release> {
     };
     Some(Release {
         version: parse(rel["tag_name"].as_str()?)?,
-        notes: plain(rel["body"].as_str().unwrap_or_default()),
+        notes: notes(rel["body"].as_str().unwrap_or_default()),
         msi: asset(".msi")?,
         sum: asset(".msi.sha256")?,
     })
-}
-
-pub fn plain(md: &str) -> String {
-    md.lines()
-        .map(|l| l.trim_start_matches('#').trim_start().replace("**", "").replace('`', ""))
-        .map(|l| l.strip_prefix("- ").map_or(l.clone(), |r| format!("•  {r}")))
-        .collect::<Vec<_>>()
-        .join("\n")
-        .trim()
-        .to_string()
 }
 
 pub fn verify(data: &[u8], sum: &str) -> bool {
@@ -90,7 +81,7 @@ mod tests {
             ]
         });
         let r = from_json(&rel).unwrap();
-        assert_eq!((r.label(), r.notes.as_str()), ("0.9.4".to_string(), "What's new\n•  Fast thing"));
+        assert_eq!((r.label(), r.notes.title.as_str(), r.notes.blocks.len()), ("0.9.4".to_string(), "What's new", 1));
         assert_eq!((r.msi, r.sum), (format!("{base}a.msi"), format!("{base}a.msi.sha256")));
         assert!(from_json(&rel).unwrap().newer_than("0.9.3") && !from_json(&rel).unwrap().newer_than("0.9.4"));
         assert_eq!(from_json(&json!({"tag_name": "v1.0.0", "assets": []})), None);
@@ -98,8 +89,7 @@ mod tests {
     }
 
     #[test]
-    fn notes_and_progress() {
-        assert_eq!(plain("## What's new\n\n### Fixes\n- **Safe** `x`"), "What's new\n\nFixes\n•  Safe x");
+    fn progress() {
         assert_eq!((permille(0, 0), permille(50, 200), permille(300, 200)), (0, 250, 1000));
     }
 

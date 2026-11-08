@@ -13,6 +13,10 @@ pub enum Kind {
     Other,
 }
 
+pub fn thumbable(ext: &str) -> bool {
+    Kind::Images.exts().iter().chain(Kind::Videos.exts()).chain(&["pdf"]).any(|e| e.eq_ignore_ascii_case(ext))
+}
+
 impl Kind {
     pub const ALL: [Kind; 9] =
         [Kind::Games, Kind::Apps, Kind::Images, Kind::Documents, Kind::Videos, Kind::Music, Kind::Archives, Kind::Folders, Kind::Other];
@@ -104,6 +108,7 @@ mod tests {
         assert_eq!(Kind::of(None, true), Some(Kind::Folders));
         assert_eq!(Kind::of(Some("xyz"), false), None);
         assert_eq!(Kind::of(None, false), None);
+        assert!(thumbable("JPG") && thumbable("mp4") && thumbable("pdf") && !thumbable("docx") && !thumbable("exe"));
         assert!(transient(Some("CRDOWNLOAD")) && !transient(Some("zip")) && !transient(None));
         let own = "Rust Desktop Icons.lnk";
         assert!(ignored("Desktop.ini", false, own) && ignored("rust desktop icons.LNK", false, own) && ignored("a.part", false, own));

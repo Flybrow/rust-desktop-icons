@@ -33,10 +33,7 @@ struct Run {
 
 impl Run {
     fn check(&mut self, ok: bool, what: &str) {
-        println!("[{}] {what}", if ok { "PASS" } else { "FAIL" });
-        if !ok {
-            self.fails.push(what.into());
-        }
+        support::verdict(ok, what, &mut self.fails);
     }
 
     fn data(&self) -> PathBuf {

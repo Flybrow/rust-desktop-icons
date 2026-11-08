@@ -9,7 +9,7 @@ use windows::Win32::{Foundation::HWND, UI::Input::KeyboardAndMouse::*};
 
 fn paste(h: HWND) {
     let (Some((files, cut)), Some(f)) = (clip::get(), fence_of(h)) else { return };
-    let t = f.active();
+    let t = &super::browse::tab(h, f.active().clone());
     let done = if keep::on() && t.portal.is_none() {
         keep::paste(h, &files, cut, f.id, t.id)
     } else {
@@ -30,8 +30,12 @@ pub(super) fn handle(h: HWND, vk: u16) -> bool {
             }
         }
         VK_F2 => sel.first().iter().for_each(|p| edit::item(h, p)),
+        VK_RETURN if sel.len() == 1 => super::browse::open(h, &sel[0], ctrl),
         VK_RETURN => sel.iter().for_each(|p| shell::open(p)),
+        VK_BACK if super::browse::back(h) => {}
         VK_F5 => reload(h),
+        VK_TAB if ctrl => super::nav::tab(h, shift),
+        _ if super::nav::key(h, k, shift) => {}
         VK_ESCAPE => select::replace(h, Default::default()),
         VK_A if ctrl => select::all(h),
         VK_C if ctrl && !sel.is_empty() => {

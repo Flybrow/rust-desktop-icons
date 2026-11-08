@@ -38,10 +38,7 @@ fn main() {
     let pid = app.id();
     let mut fails = vec![];
     let mut check = |ok: bool, what: &str| {
-        println!("[{}] {what}", if ok { "PASS" } else { "FAIL" });
-        if !ok {
-            fails.push(what.to_string());
-        }
+        support::verdict(ok, what, &mut fails);
     };
     check(wait(10, || fences(pid).len() == 2), "two fences shown");
     thread::sleep(Duration::from_millis(800));

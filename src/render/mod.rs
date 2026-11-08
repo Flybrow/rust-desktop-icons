@@ -4,7 +4,7 @@ mod turn;
 
 pub use blur::blur;
 pub use pixels::{gray, opaque_if_flat, straight, tint};
-pub use turn::{blit, rotate_cw};
+pub use turn::{blit, blit_fit, rotate_cw};
 
 pub fn premul(c: u32, a: u8) -> u32 {
     let k = |v: u32| v * a as u32 / 255;

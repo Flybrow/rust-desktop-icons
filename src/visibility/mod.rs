@@ -1,4 +1,5 @@
 mod dblclick;
+pub mod desks;
 pub mod hotkeys;
 mod overlay;
 
@@ -26,7 +27,7 @@ pub fn peeking() -> bool {
 
 fn show_all(show: bool) {
     let cmd = if show { SW_SHOWNOACTIVATE } else { SW_HIDE };
-    for h in fence::hwnds() {
+    for h in fence::hwnds().into_iter().filter(|h| !show || desks::shown(*h)) {
         let _ = unsafe { ShowWindow(h, cmd) };
     }
     if let Some(lv) = listview().filter(|_| keep::live()) {
@@ -63,7 +64,7 @@ pub fn toggle_peek() {
     }
     PEEKING.set(true);
     overlay::show();
-    let fences = fence::hwnds();
+    let fences: Vec<HWND> = fence::hwnds().into_iter().filter(|h| desks::shown(*h)).collect();
     fences.iter().for_each(|h| fence::raise(*h, true));
     if let Some(h) = fences.first() {
         let _ = unsafe { SetForegroundWindow(*h) };
@@ -104,6 +105,8 @@ pub fn message(m: u32, wp: WPARAM, lp: LPARAM) -> bool {
         }
         dblclick::WM_DESKDBL => dblclick::received(lp),
         WM_TIMER if wp.0 == dblclick::TIMER => dblclick::check(),
+        WM_TIMER if wp.0 == desks::TIMER => desks::poll(),
+        desks::WM_DESKS => desks::poll(),
         _ => return false,
     }
     true

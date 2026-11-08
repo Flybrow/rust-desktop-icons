@@ -1,4 +1,4 @@
-use super::{guides, items, layout, metrics, read, view};
+use super::{group, guides, items, layout, metrics, read, view};
 use crate::{
     app::with,
     domain::{Fence, snap},
@@ -32,7 +32,13 @@ fn area(r: snap::Rect) -> snap::Rect {
 }
 
 fn others(h: HWND) -> Vec<snap::Rect> {
-    items::windows().into_iter().filter(|w| *w != h).map(window_rect).map(|r| [r.left, r.top, r.right, r.bottom]).collect()
+    let mates = group::mates(h);
+    items::windows()
+        .into_iter()
+        .filter(|w| *w != h && !mates.contains(w))
+        .map(window_rect)
+        .map(|r| [r.left, r.top, r.right, r.bottom])
+        .collect()
 }
 
 fn free() -> bool {
@@ -55,11 +61,13 @@ pub(super) fn press(h: HWND, at: (i32, i32), f: impl FnOnce() -> LRESULT) -> LRE
 pub(super) fn begin(h: HWND) {
     let start = anchor(h, cursor_pos());
     view(h, |v| v.drag = v.drag.or(Some(start)));
+    group::grab(h);
 }
 
 pub(super) fn end(h: HWND) {
     view(h, |v| v.drag = None);
     guides::hide();
+    group::release();
 }
 
 pub(super) fn moving(h: HWND, lp: LPARAM) {
@@ -67,10 +75,12 @@ pub(super) fn moving(h: HWND, lp: LPARAM) {
     let r = drag.map_or(get(lp), |(start, c0)| snap::follow(start, c0, cursor_pos()));
     if free() {
         set(lp, r);
+        group::follow(r[0], r[1]);
         return guides::hide();
     }
     let (out, lines) = snap::moving(r, area(r), &others(h), scale(h, DIST), scale(h, GAP));
     set(lp, out);
+    group::follow(out[0], out[1]);
     guides::show(h, &lines);
 }
 

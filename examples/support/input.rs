@@ -94,6 +94,7 @@ pub fn drag(from: (i32, i32), to: (i32, i32)) {
     point(from);
     thread::sleep(Duration::from_millis(150));
     press(true);
+    thread::sleep(Duration::from_millis(150));
     glide(from, to);
     press(false);
 }
@@ -101,4 +102,35 @@ pub fn drag(from: (i32, i32), to: (i32, i32)) {
 pub fn show_desktop() {
     chord(&[VK_LWIN, VK_D]);
     thread::sleep(Duration::from_millis(800));
+}
+
+pub fn ctrl_wheel(up: bool) {
+    let wheel = INPUT {
+        r#type: INPUT_MOUSE,
+        Anonymous: INPUT_0 {
+            mi: MOUSEINPUT { dwFlags: MOUSEEVENTF_WHEEL, mouseData: if up { 120 } else { -120i32 as u32 }, ..Default::default() },
+        },
+    };
+    send(&[key(VK_CONTROL, 0, KEYBD_EVENT_FLAGS(0))]);
+    send(&[wheel]);
+    send(&[key(VK_CONTROL, 0, KEYEVENTF_KEYUP)]);
+    thread::sleep(Duration::from_millis(200));
+}
+
+pub fn right_click(p: (i32, i32)) {
+    point(p);
+    thread::sleep(Duration::from_millis(150));
+    right(true);
+    right(false);
+}
+
+pub fn click(p: (i32, i32)) {
+    point(p);
+    thread::sleep(Duration::from_millis(150));
+    press(true);
+    press(false);
+}
+
+pub fn hold(vk: VIRTUAL_KEY, down: bool) {
+    send(&[key(vk, 0, if down { KEYBD_EVENT_FLAGS(0) } else { KEYEVENTF_KEYUP })]);
 }

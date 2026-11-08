@@ -1,132 +1,18 @@
-use crate::domain::{Kind, Sort, grid::Align};
+use crate::domain::{
+    Kind, Sort,
+    grid::Align,
+    icons::{LabelSize, Spacing},
+};
 
-#[derive(Clone, Copy)]
-pub enum T {
-    NewFence,
-    Rename,
-    Color,
-    Opacity,
-    Roll,
-    OpenFolder,
-    DeleteFence,
-    Language,
-    Autostart,
-    AutoUpdate,
-    CheckUpdates,
-    About,
-    Quit,
-    ConfirmDelete,
-    UpToDate,
-    Fence,
-    UpdateFailed,
-    Auto,
-    IconSize,
-    DesktopVerb,
-    NewTab,
-    NewPortal,
-    DeleteTab,
-    ConfirmDeleteTab,
-    Tint,
-    None,
-    Chameleon,
-    Settings,
-    Appearance,
-    ApplyAll,
-    RollSpeed,
-    Instant,
-    Rules,
-    AutoSort,
-    SortNow,
-    General,
-    KApps,
-    KImages,
-    KDocuments,
-    KVideos,
-    KMusic,
-    KArchives,
-    KFolders,
-    Behavior,
-    SortBy,
-    SortName,
-    SortType,
-    SortDate,
-    SortCustom,
-    AutoHeight,
-    ErrConfig,
-    ErrSave,
-    ErrMove,
-    ErrRename,
-    ErrDelete,
-    ErrInstall,
-    Lock,
-    KGames,
-    SystemIcons,
-    KeepOnDesktop,
-    Vertical,
-    UpdateAvailable,
-    UpdateVersion,
-    Install,
-    Later,
-    Downloading,
-    Installing,
-    GotIt,
-    KOther,
-    Desktop,
-    ScreenChange,
-    ScreenKeep,
-    ScreenScale,
-    ScreenRemember,
-    SnapHint,
-    SortSize,
-    Labels,
-    DblClickHide,
-    PeekKey,
-    PressKeys,
-    Search,
-    SearchHint,
-    NoResults,
-    Layouts,
-    SaveLayout,
-    DeleteLayout,
-    LookMenu,
-    Tabs,
-    Restore,
-    ResetDefault,
-    DColor,
-    DOpacity,
-    DIconSize,
-    DTint,
-    DLabels,
-    DApplyAll,
-    DChameleon,
-    DAutoHeight,
-    DRollSpeed,
-    DPeekKey,
-    DSearchKey,
-    DKeep,
-    DScreens,
-    DDblClick,
-    DAutoSort,
-    DRule,
-    DSortNow,
-    DLanguage,
-    DAutostart,
-    DAutoUpdate,
-    DCheck,
-    ConfirmApplyAll,
-    LookNote,
-    Align,
-    AlignLeft,
-    AlignCenter,
-    AlignRight,
-    DAlign,
-}
+mod keys;
+
+pub use keys::T;
 
 mod table;
 
 use table::S;
 
-const N: usize = 118;
+const N: usize = 180;
 
 pub const LANGS: [(&str, &str); 25] = [
     ("en", "English"),
@@ -178,6 +64,22 @@ pub fn align(a: Align) -> T {
     }
 }
 
+pub fn label_size(s: LabelSize) -> T {
+    match s {
+        LabelSize::Small => T::SizeSmall,
+        LabelSize::Normal => T::SizeNormal,
+        LabelSize::Large => T::SizeLarge,
+    }
+}
+
+pub fn spacing(s: Spacing) -> T {
+    match s {
+        Spacing::Compact => T::SpacingCompact,
+        Spacing::Normal => T::SizeNormal,
+        Spacing::Wide => T::SpacingWide,
+    }
+}
+
 pub fn sort(s: Sort) -> T {
     match s {
         Sort::Name => T::SortName,
@@ -211,7 +113,7 @@ mod tests {
     #[test]
     fn complete_tables() {
         assert!(S.iter().flatten().all(|s| !s.trim().is_empty()));
-        assert_eq!(T::DAlign as usize, N - 1);
+        assert_eq!(T::OpenInFence as usize, N - 1);
     }
 
     #[test]
