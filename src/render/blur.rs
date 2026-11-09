@@ -57,4 +57,19 @@ mod tests {
         assert_eq!(blur(&px, w as i32, h as i32, 2), blur_all(&px, w, h, 2));
         assert_eq!(blur(&vec![0; w * h], w as i32, h as i32, 2), vec![0; w * h]);
     }
+
+    #[test]
+    fn exact_box_blur_and_tiny_images() {
+        let mut px = vec![0u32; 49];
+        px[24] = 0xFF;
+        let b = blur(&px, 7, 7, 1);
+        let rows: Vec<&[u8]> = b.chunks(7).collect();
+        assert_eq!(rows[3], [0, 9, 18, 28, 18, 9, 0]);
+        assert_eq!((rows[1], rows[2], rows[0]), (&[0, 3, 6, 9, 6, 3, 0][..], &[0, 6, 12, 18, 12, 6, 0][..], &[0u8; 7][..]));
+        assert_eq!(blur(&[0xFF; 4], 2, 2, 3), vec![1; 4]);
+        let (w, h) = (9, 30);
+        let mut px = vec![0u32; w * h];
+        px[12 * w..13 * w].fill(0xFF);
+        assert_eq!(blur(&px, w as i32, h as i32, 3), blur_all(&px, w, h, 3));
+    }
 }

@@ -17,6 +17,8 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
 
 ## Commands (verified)
 - Test: `cargo test` — single: `cargo test grid_layout`
+- Mutation testing (host only, unit tests, ~2 h for all pure code): `cargo mutants --jobs 3 --timeout 90 --file src/domain/<f>.rs ...`;
+  `--iterate` re-tests only the previous survivors. Coverage: `cargo llvm-cov --summary-only`.
 - Lint / format: `cargo clippy --all-targets -- -D warnings` / `cargo fmt`
 - Build: `cargo build --release`
 - MSI (local): needs WiX 5.0.2 (`dotnet tool install wix --version 5.0.2`) + `wix extension add -g WixToolset.UI.wixext/5.0.2 WixToolset.Util.wixext/5.0.2`:
@@ -50,7 +52,7 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   released shape (`fixtures/v*.json`, add one when the config format changes), `props.rs` proptest invariants (grid,
   bar sides, screen scaling, `beside`, snapping, globs, search, random/damaged JSON configs: unique fence/tab ids,
   `sanitized` idempotent).
-- `store.rs` persistence (`Config::parse` accepts a UTF-8 BOM; `tab_dir`: portal path or `fences/<tab id>`); `i18n/` (`mod.rs` logic, `keys.rs` the `T` enum, `table.rs` 25 languages);
+- `store/` persistence (`mod.rs`, tests in `tests.rs`; `Config::parse` accepts a UTF-8 BOM; `tab_dir`: portal path or `fences/<tab id>`); `i18n/` (`mod.rs` logic, `keys.rs` the `T` enum, `table.rs` 25 languages);
   `backup.rs` export/import of the config JSON (file dialogs in `shell/pick.rs`; import confirms; `adopt` empties orphan tab folders to the desktop and rebuilds, shared with undo);
   `undo.rs` (`step(|| action)` around every user action entry point: fence/tray menus, drop, keys, moves, settings acts, prompts, rules;
   `store::move_into`, `link_into` and item renames note file ops; `undo()` moves files back in reverse (`revert`, unit-tested: never overwrites, skips what is gone, reports locked files) then `adopt(rewind)`; Ctrl+Z via `undo::shortcut`);

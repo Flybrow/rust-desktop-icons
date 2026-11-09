@@ -160,4 +160,32 @@ mod tests {
         assert_eq!(resize([100, 100, 350, 300], [false, false, true, true], (Some(240), Some(206))), [100, 100, 340, 306]);
         assert_eq!(resize([100, 100, 350, 300], [true, true, false, false], (Some(240), None)), [110, 100, 350, 300]);
     }
+
+    #[test]
+    fn spacing_only_counts_fences_side_by_side() {
+        let other = [500, 500, 800, 700];
+        assert_eq!(snap([812, 100, 1012, 300], &[other]), [800, 100, 1000, 300]);
+        assert_eq!(snap([812, 300, 1012, 500], &[other]), [800, 300, 1000, 500]);
+        assert_eq!(snap([812, 690, 1012, 890], &[other]), [810, 700, 1010, 900]);
+        assert_eq!(snap([290, 550, 488, 650], &[other]), [292, 550, 490, 650]);
+        assert_eq!((snap([16, 300, 376, 540], &[]), snap([15, 300, 375, 540], &[])), ([16, 300, 376, 540], [0, 300, 360, 540]));
+        let (a, b) = ([400, 100, 600, 300], [640, 100, 840, 300]);
+        let (r, g) = moving([160, 100, 360, 300], AREA, &[a, b], 16, 10);
+        assert_eq!(r, [160, 100, 360, 300]);
+        assert!(g.contains(&Guide { from: (360, 200), to: (400, 200) }), "{g:?}");
+        assert_eq!(sizing([100, 100, 500, 500], AREA, 16, [true; 4]), [100, 100, 500, 500]);
+        assert_eq!(sizing([16, 100, 1904, 500], AREA, 16, [true; 4]), [16, 100, 1904, 500]);
+        assert_eq!(grid_len(330, 46, 80, 80, 300), 286);
+        assert_eq!(resize([100, 100, 350, 300], [false; 4], (Some(240), Some(100))), [100, 100, 350, 300]);
+    }
+
+    #[test]
+    fn touching_fences_are_not_side_by_side() {
+        let other = [500, 500, 800, 700];
+        assert_eq!(snap([812, 700, 1012, 900], &[other]), [800, 700, 1000, 900]);
+        let (l, a) = ([0, 100, 100, 300], [370, 100, 570, 300]);
+        let (r, g) = moving([160, 100, 360, 300], AREA, &[l, a], 16, 10);
+        assert_eq!(r, [160, 100, 360, 300]);
+        assert!(g.contains(&Guide { from: (360, 200), to: (370, 200) }), "{g:?}");
+    }
 }

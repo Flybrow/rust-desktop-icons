@@ -171,4 +171,31 @@ mod tests {
         c.sanitize_keys();
         assert_eq!((c.peek_key, c.search_key), (Some(Hotkey::SEARCH), None));
     }
+
+    #[test]
+    fn every_named_key_has_its_label() {
+        let names = [
+            (0x41, "A"),
+            (0x35, "5"),
+            (0x63, "Num 3"),
+            (0x7B, "F12"),
+            (0x0D, "Enter"),
+            (0x09, "Tab"),
+            (0x2D, "Insert"),
+            (0x2E, "Delete"),
+            (0x24, "Home"),
+            (0x23, "End"),
+            (0x21, "PageUp"),
+            (0x22, "PageDown"),
+            (0x25, "←"),
+            (0x26, "↑"),
+            (0x27, "→"),
+            (0x28, "↓"),
+        ];
+        for (vk, name) in names {
+            assert_eq!(Hotkey { mods: CTRL, vk }.label(), format!("Ctrl+{name}"));
+        }
+        assert!(Hotkey { mods: WIN, vk: 0x41 }.valid() && Hotkey { mods: ALT, vk: 0x41 }.valid() && !Hotkey { mods: CTRL, vk: 0 }.valid());
+        assert!(!Hotkey { mods: CTRL | ALT, vk: 0x2E }.valid() && Hotkey { mods: CTRL, vk: 0x2E }.valid());
+    }
 }

@@ -43,4 +43,10 @@ mod tests {
         assert!(!trusted("https://github.com/someone/else/releases/download/v1.0.0/a.msi"));
         assert!(!trusted("http://github.com/Flybrow/rust-desktop-icons/releases/download/v1.0.0/a.msi"));
     }
+
+    #[test]
+    fn other_hosts_are_refused_before_any_connection() {
+        let err = get("https://evil.invalid/rust-desktop-icons.msi", 1 << 20).unwrap_err();
+        assert_eq!(err.to_string(), "untrusted url");
+    }
 }

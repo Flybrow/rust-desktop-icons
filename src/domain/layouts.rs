@@ -181,4 +181,31 @@ mod tests {
         c.restore(0);
         assert_eq!((c.fences[0].x, c.fences[0].w), (1000, 150));
     }
+
+    #[test]
+    fn a_copy_goes_left_then_below_then_above() {
+        let f = Fence { x: 400, y: 400, w: 100, h: 100, ..Fence::default() };
+        let (own, area) = ([400, 400, 100, 100], [0, 0, 1000, 1000]);
+        let (right, left, below) = ([510, 400, 100, 100], [290, 400, 100, 100], [400, 510, 100, 100]);
+        assert_eq!(beside(&f, area, 10, &[own, right]), (290, 400));
+        assert_eq!(beside(&f, area, 10, &[own, right, left]), (400, 510));
+        assert_eq!(beside(&f, area, 10, &[own, right, left, below]), (400, 290));
+        let ring = [own, right, left, below, [400, 290, 100, 100]];
+        let (x, y) = beside(&f, area, 10, &ring);
+        assert!((x - 400).abs() <= 250 && (y - 400).abs() <= 250 && (x, y) != (400, 400), "{x} {y}");
+        let mut a = Fence::new(1, "A", (400, 400, 100, 100), Look::default());
+        a.tabs.push(Tab { id: 2, pins: vec![crate::domain::pins::Pin { path: "x".into(), id: 1 }], ..Tab::default() });
+        a.tab = 1;
+        let mut c = Config {
+            fences: vec![a, Fence { id: 3, x: 510, y: 400, w: 100, h: 100, ..Fence::new(3, "B", (510, 400, 100, 100), Look::default()) }],
+            ..Config::default()
+        };
+        c.fences.push(Fence::new(4, "C", (290, 400, 100, 100), Look::default()));
+        let d = c.duplicate(1, area, 10).unwrap();
+        assert_eq!((d.x, d.y, d.tab), (400, 510, 0));
+        assert!(d.tabs.iter().all(|t| t.pins.is_empty()));
+        c.snapshot("A".into());
+        c.forget_snapshot(1);
+        assert_eq!(c.snapshots.len(), 1);
+    }
 }

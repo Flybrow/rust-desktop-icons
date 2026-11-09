@@ -143,4 +143,18 @@ mod tests {
         assert!(revert(&[Op::Created(d.join("missing.lnk"))]).is_empty());
         fs::remove_dir_all(d).unwrap();
     }
+
+    #[test]
+    fn file_operations_are_recorded_in_the_running_step() {
+        assert!(!available());
+        super::moved(Path::new("a"), Path::new("b"));
+        assert!(!available());
+        step(|| {
+            super::moved(Path::new("a"), Path::new("b"));
+            created(Path::new("c"));
+        });
+        assert!(available());
+        let ops = HISTORY.with(|h| h.borrow_mut().pop()).unwrap().ops;
+        assert_eq!(ops, vec![Op::Moved("a".into(), "b".into()), Op::Created("c".into())]);
+    }
 }

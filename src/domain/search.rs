@@ -105,4 +105,11 @@ mod tests {
     fn selection_wraps() {
         assert_eq!((step(0, 3, true), step(2, 3, true), step(0, 3, false), step(0, 0, true)), (1, 0, 2, 0));
     }
+
+    #[test]
+    fn a_double_click_stays_within_half_a_cell() {
+        let c = |time, at| Click { time, at };
+        assert!(double(Some(c(0, (0, 0))), c(100, (40, 30)), 500, (80, 60)));
+        assert!(!double(Some(c(0, (0, 0))), c(100, (41, 0)), 500, (80, 60)) && !double(Some(c(0, (0, 0))), c(100, (0, 31)), 500, (80, 60)));
+    }
 }

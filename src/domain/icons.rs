@@ -85,4 +85,10 @@ mod tests {
         );
         assert_eq!((cell(24, None, Spacing::Compact), LabelSize::Small.px()), (36, 11));
     }
+
+    #[test]
+    fn sizes_have_readable_labels() {
+        assert_eq!(label(48), "48 px");
+        assert_eq!(LabelSize::ALL.map(LabelSize::title_px), [12, 14, 17]);
+    }
 }

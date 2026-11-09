@@ -215,4 +215,12 @@ mod tests {
         assert_eq!((Side::pick(false, true), Side::pick(true, true), Side::pick(true, false)), (Side::Bottom, Side::Right, Side::Left));
         assert!(Side::Bottom.flipped() && Side::Left.flipped() && !Side::Right.flipped() && Side::Right.far());
     }
+
+    #[test]
+    fn far_also_works_on_a_screen_that_does_not_start_at_zero() {
+        let area = (1000, 2040);
+        assert!(far(1520, 34, 600, area, 16) && !far(1100, 34, 1000, area, 16));
+        assert!(!far(1520, 34, 504, area, 16) && !far(1503, 34, 600, area, 16) && far(1520, 34, 520, area, 16));
+        assert!(!Side::Top.far() && !Side::Left.far() && Side::Bottom.far());
+    }
 }

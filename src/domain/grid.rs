@@ -220,4 +220,30 @@ mod tests {
         assert_eq!(split(300, 3, 300), None);
         assert_eq!(split(300, 1, 10), Some(0));
     }
+
+    #[test]
+    fn every_arrow_moves_one_cell_on_any_bar_side() {
+        let go = |at, m, flip| step(8, 3, Some(at), m, flip);
+        let plain = (false, false);
+        assert_eq!(
+            (go(4, Move::Up, plain), go(3, Move::Up, plain), go(4, Move::Down, plain), go(5, Move::Down, plain)),
+            (Some(1), Some(0), Some(7), Some(7))
+        );
+        assert_eq!((go(1, Move::Down, plain), go(2, Move::Down, plain), go(6, Move::Down, plain)), (Some(4), Some(5), Some(6)));
+        assert_eq!((go(4, Move::Right, (true, false)), go(4, Move::Left, (true, false))), (Some(3), Some(5)));
+        assert_eq!((go(4, Move::Down, (false, true)), go(4, Move::Up, (false, true))), (Some(1), Some(7)));
+        assert_eq!((go(4, Move::Page(1), (false, true)), go(4, Move::Page(1), plain)), (Some(1), Some(7)));
+        assert_eq!((go(4, Move::Right, (false, true)), go(4, Move::Up, (true, false))), (Some(5), Some(1)));
+        assert_eq!((step(5, 2, Some(2), Move::Down, plain), step(5, 2, Some(1), Move::Down, plain)), (Some(4), Some(3)));
+        assert_eq!((row_span(5, 3, 80), row_span(2, 3, 80)), ((80, 160), (0, 80)));
+    }
+
+    #[test]
+    fn hits_and_bands_stop_at_cell_edges() {
+        let flow = |n| Flow { w: 250, cell: 80, n, align: Align::Left };
+        assert_eq!((flow(5).index_at((170, 90)), flow(5).index_at((90, 90))), (None, Some(4)));
+        assert_eq!((flow(3).in_rect((0, 0, 80, 80)), flow(5).in_rect((0, 0, 250, 80))), (vec![0], vec![0, 1, 2]));
+        assert!(flow(5).in_rect((160, 160, 300, 300)).is_empty() && flow(5).in_rect((0, 160, 250, 300)).is_empty());
+        assert_eq!(step(8, 3, Some(3), Move::Down, (false, false)), Some(6));
+    }
 }

@@ -90,4 +90,12 @@ mod tests {
         assert_eq!(hit(&[(0, 0, 10, 10), (20, 0, 30, 10)], (25, 5)), Some(1));
         assert_eq!(hit(&[(0, 0, 10, 10)], (15, 5)), None);
     }
+
+    #[test]
+    fn the_busy_bar_slides_across_and_wraps() {
+        let r = (100, 0, 400, 8);
+        assert_eq!(fill(r, Some(0.5), 0), (100, 0, 250, 8));
+        let at = |p| fill(r, None, p);
+        assert_eq!((at(0), at(40), at(70), at(120)), ((100, 0, 100, 8), (240, 0, 340, 8), (100, 0, 120, 8), (320, 0, 400, 8)));
+    }
 }

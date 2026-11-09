@@ -93,4 +93,12 @@ mod tests {
         assert_eq!((Look::alpha_for(30), Look::alpha_for(100), Look::alpha_for(500)), (76, 255, 255));
         assert_eq!(Look { alpha: Look::alpha_for(70), ..Look::default() }.percent(), 70);
     }
+
+    #[test]
+    fn colors_lose_their_alpha_byte_and_labels_read_well() {
+        let l =
+            Look { label_color: Some(0xFF12_3456), bar_color: Some(0x8001_0203), tint: Some(0xFF00_0001), ..Look::default() }.sanitized();
+        assert_eq!((l.label_color, l.bar_color, l.tint), (Some(0x12_3456), Some(0x01_0203), Some(1)));
+        assert_eq!(Look::label(50), "50%");
+    }
 }

@@ -65,4 +65,26 @@ mod tests {
         blit(&mut dst, 2, &[7, 7, 7, 7], 2, (-1, -1));
         assert_eq!(dst, vec![7, 0, 0, 0]);
     }
+
+    #[test]
+    fn thumbnails_are_centered_in_their_box() {
+        let mut dst = vec![0u32; 8 * 8];
+        blit_fit(&mut dst, 8, &[7, 8], (1, 2), (2, 2), 4);
+        let at = |x: usize, y: usize, d: &[u32]| d[y * 8 + x];
+        assert_eq!((at(3, 2, &dst), at(4, 3, &dst), at(3, 4, &dst), at(4, 5, &dst), at(2, 2, &dst), at(5, 2, &dst)), (7, 7, 8, 8, 0, 0));
+        let mut dst = vec![0u32; 8 * 8];
+        blit_fit(&mut dst, 8, &[7, 8], (2, 1), (2, 2), 4);
+        assert_eq!((at(2, 3, &dst), at(5, 4, &dst), at(2, 2, &dst), at(2, 5, &dst)), (7, 8, 0, 0));
+    }
+
+    #[test]
+    fn small_thumbnails_sit_in_the_middle() {
+        let at = |x: usize, y: usize, d: &[u32]| d[y * 10 + x];
+        let mut dst = vec![0u32; 100];
+        blit_fit(&mut dst, 10, &[7, 8, 9], (1, 3), (0, 0), 6);
+        assert_eq!((at(2, 0, &dst), at(3, 5, &dst), at(1, 0, &dst), at(4, 0, &dst)), (7, 9, 0, 0));
+        let mut dst = vec![0u32; 100];
+        blit_fit(&mut dst, 10, &[7, 8, 9], (3, 1), (0, 0), 6);
+        assert_eq!((at(0, 2, &dst), at(5, 3, &dst), at(0, 1, &dst), at(0, 4, &dst)), (7, 9, 0, 0));
+    }
 }

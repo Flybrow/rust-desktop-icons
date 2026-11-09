@@ -62,4 +62,20 @@ mod tests {
         tint(&mut px, 0x00_00_FF);
         assert_eq!(px, [0xFF_FF_00_00, 0x80_40_00_00, 0]);
     }
+
+    #[test]
+    fn only_fully_clear_areas_become_opaque() {
+        let mut px = [0xFF00_0001, 0, 0, 0x0012_3456];
+        opaque_if_flat(&mut px, 2, (1, 1, 2, 2));
+        assert_eq!(px, [0xFF00_0001, 0, 0, 0xFF12_3456]);
+        let mut px = [0x0000_0001, 0xFF00_0002];
+        opaque_if_flat(&mut px, 2, (0, 0, 2, 1));
+        assert_eq!(px, [0x0000_0001, 0xFF00_0002]);
+        let mut px = [0x123, 0x456];
+        opaque_if_flat(&mut px, 2, (0, 0, 2, 3));
+        assert_eq!(px, [0xFF00_0123, 0xFF00_0456]);
+        let mut px = [0x80_10_20_30];
+        straight(&mut px);
+        assert_eq!(px, [0x80_1F_3F_5F]);
+    }
 }

@@ -70,4 +70,9 @@ mod tests {
         assert_eq!(opacity(1.), 255);
         assert_eq!(opacity(0.), 56);
     }
+
+    #[test]
+    fn hover_glow_eases_between_rest_and_full() {
+        assert_eq!((opacity(0.), opacity(0.5), opacity(1.)), (56, 156, 255));
+    }
 }

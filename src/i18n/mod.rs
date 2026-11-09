@@ -136,4 +136,10 @@ mod tests {
         assert!(rtl(5) && !rtl(0));
         assert_eq!(get(4, T::Quit), "Quitter");
     }
+
+    #[test]
+    fn unknown_languages_use_the_last_table_row() {
+        assert_eq!(get(999, T::Recovered), get(S.len() - 1, T::Recovered));
+        assert_ne!(get(999, T::Recovered), get(0, T::Recovered));
+    }
 }

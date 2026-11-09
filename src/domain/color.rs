@@ -48,4 +48,11 @@ mod tests {
         assert_eq!((from_wallpaper(0xF0_F0F0), from_wallpaper(0x10_1010), from_wallpaper(0x8A_5A3A)), (0x48_4848, 0x48_4848, 0x48_2E1E));
         assert_eq!(contrast(from_wallpaper(0xFF_FFFF)), 0xF5_F5F5);
     }
+
+    #[test]
+    fn text_contrast_flips_at_mid_brightness_for_each_channel() {
+        assert_eq!((contrast(0x8C_8C8C), contrast(0x8D_8D8D)), (0xF5_F5F5, 0x20_2020));
+        assert_eq!((contrast(0x00_EE00), contrast(0x00_EF00)), (0xF5_F5F5, 0x20_2020));
+        assert_eq!((contrast(0x00_EEFF), contrast(0x03_EE00)), (0x20_2020, 0x20_2020));
+    }
 }

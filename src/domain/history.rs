@@ -113,4 +113,21 @@ mod tests {
         h.end(&cfg(5));
         assert_eq!(h.pop().map(|s| (s.before.roll_ms, s.ops.len())), Some((5, 1)));
     }
+
+    #[test]
+    fn nested_steps_close_with_the_outermost_one() {
+        let (c, mut h) = (Config::default(), History::default());
+        assert!(!h.any());
+        h.begin(&c);
+        h.begin(&c);
+        h.note(Op::Created("a".into()));
+        h.end(&c);
+        assert!(!h.any());
+        h.note(Op::Created("b".into()));
+        h.end(&c);
+        assert!(h.any());
+        assert_eq!(h.pop().unwrap().ops.len(), 2);
+        h.end(&c);
+        assert!(!h.any());
+    }
 }

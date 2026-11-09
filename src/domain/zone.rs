@@ -80,4 +80,20 @@ mod tests {
         assert_eq!(z(100, 10, false).fixed(), Zone::Caption);
         assert_eq!(z(199, 99, false).fixed(), Zone::Client);
     }
+
+    #[test]
+    fn every_edge_and_corner_has_its_zone() {
+        let z = |x, y| zone((200, 100), (x, y), 6, 28, false);
+        assert_eq!(
+            (z(0, 50), z(5, 50), z(6, 50), z(194, 50), z(193, 50)),
+            (Zone::Left, Zone::Left, Zone::Client, Zone::Right, Zone::Client)
+        );
+        assert_eq!(
+            (z(100, 0), z(100, 5), z(100, 6), z(100, 94), z(100, 93)),
+            (Zone::Top, Zone::Top, Zone::Caption, Zone::Bottom, Zone::Client)
+        );
+        assert_eq!((z(199, 0), z(0, 99), z(5, 94), z(194, 5)), (Zone::TopRight, Zone::BottomLeft, Zone::BottomLeft, Zone::TopRight));
+        assert_eq!((z(100, 27), z(100, 28)), (Zone::Caption, Zone::Client));
+        assert_eq!(zone((200, 100), (0, 50), 6, 28, true), Zone::Left);
+    }
 }

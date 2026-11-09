@@ -165,4 +165,46 @@ mod tests {
         assert_eq!(c.adapt(&[screen([0, 0, 1920, 1080], 60)]), Some(false));
         assert_eq!(rects(&c), vec![[100, 100, 300, 200]]);
     }
+
+    #[test]
+    fn each_fence_follows_its_own_monitor() {
+        let two = [screen([0, 0, 1920, 1080], 0), screen([1920, 0, 3840, 1080], 0)];
+        let bigger = [screen([0, 0, 2560, 1440], 0), screen([2560, 0, 4480, 1080], 0)];
+        assert_eq!(scale([2020, 100, 300, 200], &two, &bigger), [2660, 100, 300, 200]);
+        assert_eq!(scale([100, 100, 300, 200], &two, &bigger), [133, 133, 400, 266]);
+        assert_eq!(scale([1800, 100, 300, 200], &two, &bigger), [2560, 100, 300, 200]);
+        assert_eq!(scale([2000, 0, 2500, 100], &two, &bigger), [2560, 0, 1920, 100]);
+        assert_eq!(scale([5000, 100, 300, 200], &two, &bigger), [4180, 100, 300, 200]);
+        assert_eq!(scale([5000, 2000, 300, 200], &two, &bigger), [4180, 880, 300, 200]);
+        assert_eq!(scale([-900, 2000, 300, 200], &two, &bigger), [0, 1174, 400, 266]);
+    }
+
+    #[test]
+    fn unchanged_and_primary_monitors_are_matched_first() {
+        let two = [screen([0, 0, 1920, 1080], 0), screen([1920, 0, 3840, 1080], 0)];
+        let swapped = [screen([1920, 0, 3840, 1080], 0), screen([0, 0, 1600, 900], 0)];
+        assert_eq!(scale([2020, 100, 300, 200], &two, &swapped), [2020, 100, 300, 200]);
+        let primary = [screen([0, 0, 800, 600], 0), screen([800, 0, 2720, 1080], 0)];
+        assert_eq!(scale([100, 100, 300, 200], &two, &primary), [41, 55, 125, 111]);
+    }
+
+    #[test]
+    fn layouts_of_other_setups_are_kept() {
+        let (a, b, d) = (vec![screen([0, 0, 3840, 2160], 0)], vec![screen([0, 0, 1920, 1080], 0)], vec![screen([0, 0, 2560, 1440], 0)]);
+        let mut c = Config { fences: vec![fence(1, [100, 100, 300, 200])], ..Config::default() };
+        c.adapt(&a);
+        c.adapt(&b);
+        c.adapt(&d);
+        assert_eq!(c.layouts.iter().map(|l| l.screens.clone()).collect::<Vec<_>>(), vec![a, b]);
+    }
+
+    #[test]
+    fn the_monitor_holding_most_of_a_fence_wins_over_the_nearest_center() {
+        let tall = [screen([0, -2000, 1920, 1080], 0), screen([1920, 0, 3840, 1080], 0)];
+        let now = [tall[0], screen([1920, 0, 4480, 1440], 0)];
+        assert_eq!(scale([1400, 880, 800, 200], &tall, &now), [1400, 880, 800, 200]);
+        let stacked = [screen([0, 0, 1920, 1080], 0), screen([0, 1080, 1920, 2160], 0)];
+        let now = [stacked[0], screen([0, 1080, 2560, 2520], 0)];
+        assert_eq!(scale([100, 3000, 300, 200], &stacked, &now), [133, 2254, 400, 266]);
+    }
 }

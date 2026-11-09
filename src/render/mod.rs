@@ -145,4 +145,30 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn rounded_corners_cover_the_right_amount() {
+        let near = |a: f32, b: f32| (a - b).abs() < 0.01;
+        for (o, r) in [(0., (0., 0., 20., 20.)), (10., (10., 10., 30., 30.))] {
+            assert!(near(coverage((o + 1.5, o + 1.5), r, 6.), 0.136) && near(coverage((o + 1.5, o + 2.5), r, 6.), 0.799), "{o}");
+            assert!(near(coverage((o + 0.5, o + 0.5), r, 6.), 0.) && near(coverage((o + 10.5, o + 0.5), r, 6.), 1.));
+            assert!(near(coverage((o + 18.5, o + 17.5), r, 6.), 0.799) && near(coverage((o + 25.5, o + 10.5), r, 6.), 0.));
+        }
+    }
+
+    #[test]
+    fn layers_shift_and_tint_their_mask() {
+        let mut mask = vec![0u8; 400];
+        mask[7 * 20 + 5] = 0x80;
+        let mut px = vec![0u32; 400];
+        Canvas { px: &mut px, w: 20, h: 20 }.layer(&mask, (-2, -3), Some(0xFF_10_20_30), (0, 20));
+        assert_eq!((px[4 * 20 + 3], px.iter().filter(|p| **p != 0).count()), (0x80_08_10_18, 1));
+        let mut moved = vec![0u32; 400];
+        Canvas { px: &mut moved, w: 20, h: 20 }.layer(&px, (4, 6), None, (0, 20));
+        assert_eq!((moved[10 * 20 + 7], moved.iter().filter(|p| **p != 0).count()), (0x80_08_10_18, 1));
+        let full = vec![0xFFu8; 400];
+        let mut px = vec![0u32; 400];
+        Canvas { px: &mut px, w: 20, h: 20 }.layer(&full, (-1, -1), Some(0xFF_10_20_30), (0, 20));
+        assert_eq!((px[18 * 20 + 18], px[19 * 20 + 18], px[18 * 20 + 19]), (0xFF_10_20_30, 0, 0));
+    }
 }
