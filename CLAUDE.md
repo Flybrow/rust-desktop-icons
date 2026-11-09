@@ -121,7 +121,7 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   (a blocked UI thread would make Windows drop a low-level hook). Startup re-shows the desktop icon list if a previous run died hidden. Typing in a fence while peeking opens `src/search/`
   (`hits.rs` collects items from every view and tab cache, `paint.rs`, topmost layered window, closes on deactivate).
 - `src/prompt.rs`: one-line text prompt (`ask(initial, done)`), owned by the tray window (EN_KILLFOCUS commits), used to rename layouts.
-- `src/settings/` settings window (custom drawn, sidebar of `pages::PAGES` (7 pages); each row can carry a `desc` explanation
+- `src/settings/` settings window (custom drawn, sidebar of `pages::PAGES` (8 pages); each row can carry a `desc` explanation
   (2 lines max: row heights are fixed) and a `reset` link drawn on its own line, `layout::on_reset` hit test): `rows.rs` `Row`/`Act`/`Ctl`
   + row builders, `pages.rs` content per page (`build(a, page)`, window height = tallest page), `rules.rs` name/age rule editing
   (prompt + menus), `layout.rs` pure row geometry, `paint.rs`, `act.rs`, `mod.rs` window.
