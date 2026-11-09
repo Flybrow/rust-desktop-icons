@@ -31,6 +31,10 @@ pub(super) fn enter(h: HWND, p: &Path) {
     bind(h);
 }
 
+pub(super) fn forget(h: HWND) {
+    view(h, |v| v.browse.clear());
+}
+
 pub(super) fn home(h: HWND) {
     if view(h, |v| !std::mem::take(&mut v.browse).is_empty()) == Some(true) {
         bind(h);
@@ -56,5 +60,12 @@ pub(super) fn watch(h: HWND, active: usize) -> Option<shell::Watch> {
 pub(super) fn bar_click(h: HWND, screen: (i32, i32)) -> bool {
     let g = layout::geo_now(h);
     let along = g.along_bar(to_client(h, screen));
-    current(h).is_some() && along.is_some_and(|a| a < g.length() / 3) && back(h)
+    let backed = current(h).is_some() && along.is_some_and(|a| a < g.length() / 3) && back(h);
+    view(h, |v| v.backed = backed);
+    backed
+}
+
+pub(super) fn bar_double(h: HWND, screen: (i32, i32)) -> bool {
+    let before = view(h, |v| std::mem::take(&mut v.backed)) == Some(true);
+    bar_click(h, screen) || before
 }

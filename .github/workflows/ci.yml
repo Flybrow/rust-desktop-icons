@@ -36,6 +36,8 @@ jobs:
         run: target/debug/examples/update_e2e.exe
       - name: Uninstall gives every fence's items back
         run: target/debug/examples/uninstall_e2e.exe
+      - name: Folders opened inside fences (fixed, rolled, side bar, tabs)
+        run: target/debug/examples/browse_e2e.exe
       - name: Lost fence folders and damaged configs are recovered
         run: target/debug/examples/recover_e2e.exe
       - name: Many fences and files (load)

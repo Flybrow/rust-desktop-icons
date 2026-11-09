@@ -37,13 +37,13 @@ fn text(frame: &Frame, font: HFONT, (f, hint): (&Fence, Option<&str>), t: i32, p
     }
 }
 
-fn shapes(c: &mut Canvas, f: &Fence, active: Option<usize>, flipped: bool, s: impl Fn(i32) -> i32) {
+fn shapes(c: &mut Canvas, f: &Fence, (active, tabs): (Option<usize>, bool), flipped: bool, s: impl Fn(i32) -> i32) {
     let (w, t, n, body) = (c.w, c.h, f.tabs.len(), f.look.alpha);
     let tone = |k, a: u8| premul(color::shade(f.look.bar_color.unwrap_or(f.look.color), k), a);
     let (shape, line) = if flipped { ((0, -s(16), w, t), 0) } else { ((0, 0, w, t + s(16)), t - 1) };
     c.rrect(shape, s(8) as f32, (tone(-20, body.saturating_add(50)), tone(-34, body.saturating_add(60))), (0, t), false);
     c.rrect((s(12), line, w - s(12), line + 1), 0., flat(premul(WHITE, 34)), (0, t), false);
-    if n > 1 {
+    if n > 1 && tabs {
         if let Some(i) = active {
             let (x0, x1) = segment(w, n, i.min(n - 1));
             c.rrect((x0 + s(4), s(4), x1 - s(4), t - s(4)), s(6) as f32, flat(premul(WHITE, 38)), (0, t), false);
@@ -68,7 +68,7 @@ pub(super) fn paint(
     let Some(mut bar) = Frame::new(len, t) else { return };
     text(&bar, font, (f, hint), t, s(8));
     bar.flush();
-    shapes(&mut bar.canvas(), f, active.filter(|_| hint.is_none()), g.side.flipped(), &s);
+    shapes(&mut bar.canvas(), f, (active, hint.is_none()), g.side.flipped(), &s);
     bar.text_layers(fg, shade, s(2), (0, t));
     let (x0, y0, _, _) = g.bar_rect();
     let c = main.canvas();

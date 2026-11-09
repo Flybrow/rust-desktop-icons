@@ -46,9 +46,15 @@ pub(super) fn click(h: HWND, screen: (i32, i32)) -> bool {
 }
 
 pub(super) fn hover(h: HWND, screen: (i32, i32)) {
-    if let Some(i) = at(h, to_client(h, screen)) {
+    let seg = at(h, to_client(h, screen));
+    let entered = view(h, |v| std::mem::replace(&mut v.bar_tab, seg) != seg) == Some(true);
+    if let Some(i) = seg.filter(|_| entered && super::browse::current(h).is_none()) {
         select(h, i);
     }
+}
+
+pub(super) fn off_bar(h: HWND) {
+    view(h, |v| v.bar_tab = None);
 }
 
 pub(super) fn select(h: HWND, i: usize) {
@@ -60,22 +66,23 @@ pub(super) fn select(h: HWND, i: usize) {
         let (old, new) = (f.active().id, f.tabs[i].id);
         f.tab = i;
         let v = a.view(h)?;
-        if !std::mem::take(&mut v.browse).is_empty() {
-            v.cache.retain(|(id, _)| *id != old);
-        }
+        let browsed = !std::mem::take(&mut v.browse).is_empty();
         let items = std::mem::take(&mut v.items);
         v.cache.retain(|(id, _)| *id != old);
-        v.cache.push((old, items));
+        if !browsed {
+            v.cache.push((old, items));
+        }
         v.scroll = 0;
         let found = v.cache.iter().position(|(id, _)| *id == new).map(|k| v.cache.remove(k).1);
         let hit = found.is_some();
         v.items = found.unwrap_or_default();
-        Some(hit)
+        Some((hit, browsed))
     })
     .flatten();
     match hit {
-        Some(true) => layout::apply(h),
-        Some(false) => reload(h),
+        Some((_, true)) => bind(h),
+        Some((true, _)) => layout::apply(h),
+        Some((false, _)) => reload(h),
         None => {}
     }
 }
@@ -91,6 +98,7 @@ fn add(h: HWND, portal: Option<PathBuf>) {
     });
     report::failures(T::ErrSave, &store::ensure(&dir.flatten().into_iter().collect::<Vec<_>>()));
     update(h, |_| {});
+    super::browse::forget(h);
     bind(h);
 }
 
@@ -134,5 +142,6 @@ pub(super) fn remove(h: HWND) {
     });
     keep::soon();
     super::system::released(std::slice::from_ref(&tab));
+    super::browse::forget(h);
     bind(h);
 }

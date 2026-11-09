@@ -2,11 +2,11 @@ use std::path::Path;
 use windows::Win32::{
     Foundation::{HANDLE, HGLOBAL},
     System::{
-        DataExchange::{CloseClipboard, EmptyClipboard, OpenClipboard, SetClipboardData},
+        DataExchange::{CloseClipboard, EmptyClipboard, GetClipboardData, OpenClipboard, SetClipboardData},
         Memory::{GMEM_MOVEABLE, GlobalAlloc, GlobalLock, GlobalUnlock},
         Ole::CF_HDROP,
     },
-    UI::Shell::DROPFILES,
+    UI::Shell::{DROPFILES, DragQueryFileW, HDROP},
 };
 
 pub fn set_files(paths: &[&Path]) -> bool {
@@ -29,4 +29,44 @@ pub fn set_files(paths: &[&Path]) -> bool {
         let _: HGLOBAL = mem;
         ok
     }
+}
+
+fn open() -> bool {
+    for _ in 0..20 {
+        if unsafe { OpenClipboard(None) }.is_ok() {
+            return true;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+    false
+}
+
+pub fn clear() {
+    if open() {
+        unsafe {
+            let _ = EmptyClipboard();
+            let _ = CloseClipboard();
+        }
+    }
+}
+
+pub fn names() -> Vec<String> {
+    if !open() {
+        return vec![];
+    }
+    let mut out = vec![];
+    unsafe {
+        if let Ok(h) = GetClipboardData(CF_HDROP.0 as u32) {
+            let drop = HDROP(h.0);
+            for i in 0..DragQueryFileW(drop, u32::MAX, None) {
+                let mut buf = vec![0u16; DragQueryFileW(drop, i, None) as usize + 1];
+                let n = DragQueryFileW(drop, i, Some(&mut buf)) as usize;
+                let path = String::from_utf16_lossy(&buf[..n]);
+                out.push(Path::new(&path).file_name().map(|f| f.to_string_lossy().into_owned()).unwrap_or(path));
+            }
+        }
+        let _ = CloseClipboard();
+    }
+    out.sort();
+    out
 }

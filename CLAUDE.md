@@ -101,7 +101,9 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   Ctrl+click, rubber band, drag out), `arrange.rs` (per-tab sort and rules submenus), `browse.rs` (folders opened inside
   the fence: `View.browse` stack, `browse::tab` swaps the active tab for a portal-like view used by loader/drop/paste, back via
   a click on the left third of the bar ("← folder" is always left-aligned there) or Backspace; a rolled fence goes `home` once
-  it has rolled up; the fence menu's "Open folders ▸ In the fence / In File Explorer" sets `look.browse`, a folder's own
+  it has rolled up; hovering the bar switches tabs only when the mouse enters another tab's part of it (`View.bar_tab`) and
+  never while browsing (the tabs are hidden); a double click on the back arrow goes back instead of rolling the fence (`View.backed`);
+  leaving the tab (click, Ctrl+Tab, add, remove) drops the folder without caching its items as the tab's own; the fence menu's "Open folders ▸ In the fence / In File Explorer" sets `look.browse`, a folder's own
   right-click menu starts with "Open in the fence"), `moveto.rs` ("Move to" submenu of an item's menu), `group.rs` (group submenu; mates follow
   WM_MOVING via `grab`/`follow`/`release` and are left out of snapping), `desks.rs` ("Show on" virtual desktop submenu), `titlebar.rs` (title bar submenu),
   `wallpaper.rs` (fence color from the wallpaper behind it: `PaintDesktop` into a DIB, cached per rect in `View.wall`, reset on
@@ -140,7 +142,8 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   `display_e2e` (thumbnails, title alignment/size, bar on hover, wallpaper color, filtered portal, arrow keys, Ctrl+Tab; reads the
   `RDI_DUMP` canvases, `KEEP_DUMPS=<dir>` keeps them), `rules_e2e` (name/kind/"Everything else" rules and Sort now on the real Desktop, `*.rdie2e` files only; Sort now is tested
   with a name rule only so no user file can move), `vdesk_e2e` (temporary virtual desktop, closed at the end), `uninstall_e2e`,
-  `recover_e2e` (orphan fence folders come back in a "Recovered files" fence, damaged config restored from `.bak`, BOM config),
+  `browse_e2e` (folders opened in a fixed fence with tabs, a rolled fence and a side bar: back arrow, double click, tab switches,
+  Ctrl+Tab, Backspace, deleted folder, roll-up; reads what is shown through Ctrl+A/Ctrl+C), `recover_e2e` (orphan fence folders come back in a "Recovered files" fence, damaged config restored from `.bak`, BOM config),
   `soak_e2e` (`SOAK_MIN` minutes of everyday actions; GDI/USER/handles/private bytes must stay flat: `support::usage`),
   `load_e2e` (41 fences, 3,800 files: time to draw, memory, idle CPU). Debug builds tag every layered window with the
   `RDI_DRAWN` prop (last present had visible pixels); `support::fences` only lists drawn fences, so every E2E fails on a fence

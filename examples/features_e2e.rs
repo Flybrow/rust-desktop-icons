@@ -30,7 +30,9 @@ fn main() {
         fs::create_dir_all(d).unwrap();
     }
     fs::create_dir_all(docs.join("Sub")).unwrap();
-    let browse = data.join("fences").join("4").join("Sub");
+    let browse = data.join("fences").join("6").join("Sub");
+    fs::create_dir_all(data.join("fences").join("4")).unwrap();
+    fs::write(data.join("fences").join("4").join("first.txt"), "x").unwrap();
     fs::create_dir_all(&browse).unwrap();
     fs::write(browse.join("inner.txt"), "x").unwrap();
     for f in ["old.txt", "new.txt"] {
@@ -48,7 +50,8 @@ fn main() {
         "settings_key": {"mods": 7, "vk": 121},
         "name_rules": [{"pattern": "facture*.pdf", "fence": 2, "tab": 2}],
         "fences": [fence(1, 20, "Docs", expire), fence(2, 330, "Archive", json!({})), fence(3, 1320, "Mate", json!({"group": 1})),
-            fence(4, 20, "Browse", json!({"y": w.top + 620}))]});
+            fence(4, 20, "Browse", json!({"y": w.top + 620, "tab": 2,
+                "tabs": [{"id": 4, "title": "One"}, {"id": 5, "title": "Two"}, {"id": 6, "title": "Three"}]}))]});
     fs::write(data.join("config.json"), serde_json::to_vec_pretty(&cfg).unwrap()).unwrap();
     let mut app = app(&root, &[("RDI_TOP", "1"), ("RDI_AGE_MS", "1500")], &[]);
     let pid = app.id();
@@ -106,6 +109,39 @@ fn main() {
         type_text("Sub2");
         chord(&[VK_RETURN]);
         check(wait(3, || browse.with_file_name("Sub2").is_dir()), "Backspace goes back to the fence's own items");
+        let bar = b.top + 12 * k / 96;
+        let rename = |to: &str| {
+            point(cell);
+            press(true);
+            press(false);
+            thread::sleep(Duration::from_millis(300));
+            chord(&[VK_F2]);
+            thread::sleep(Duration::from_millis(300));
+            chord(&[VK_CONTROL, VK_A]);
+            type_text(to);
+            chord(&[VK_RETURN]);
+        };
+        let click = |x: i32| {
+            point((x, bar));
+            press(true);
+            press(false);
+            thread::sleep(Duration::from_millis(600));
+        };
+        double_click(cell);
+        thread::sleep(Duration::from_millis(800));
+        for x in (b.left + 20..b.right - 20).rev().step_by(10) {
+            point((x, bar));
+            thread::sleep(Duration::from_millis(15));
+        }
+        click(b.left + 30);
+        rename("Sub3");
+        check(wait(3, || browse.with_file_name("Sub3").is_dir()), "with several tabs, the back arrow stays under the mouse and goes back");
+        double_click(cell);
+        thread::sleep(Duration::from_millis(800));
+        click((b.left + b.right) / 2);
+        click(b.right - 30);
+        rename("Sub4");
+        check(wait(3, || browse.with_file_name("Sub4").is_dir()), "leaving a tab while in a folder brings that tab back to its own items");
         if let Some(dir) = &shots {
             capture(&b, &dir.join("browse_back.bmp"));
         }

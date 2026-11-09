@@ -44,6 +44,8 @@ pub struct View {
     pub loading: bool,
     pub queued: Vec<crate::domain::Tab>,
     pub browse: Vec<PathBuf>,
+    pub backed: bool,
+    pub bar_tab: Option<usize>,
     pub selected: HashSet<PathBuf>,
     pub band: Option<((i32, i32), (i32, i32))>,
 }
@@ -82,6 +84,8 @@ impl View {
             loading: false,
             queued: vec![],
             browse: vec![],
+            backed: false,
+            bar_tab: None,
             selected: HashSet::new(),
             band: None,
         }

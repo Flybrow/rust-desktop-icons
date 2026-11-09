@@ -159,7 +159,7 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
         }
         WM_NCLBUTTONDOWN if wp.0 as u32 == HTCAPTION && (browse::bar_click(h, xy(lp)) || tabs::click(h, xy(lp))) => {}
         WM_NCLBUTTONDOWN => return snap::press(h, xy(lp), || unsafe { DefWindowProcW(h, m, wp, lp) }),
-        WM_NCLBUTTONDBLCLK if wp.0 as u32 == HTCAPTION => peek::toggle(h),
+        WM_NCLBUTTONDBLCLK if wp.0 as u32 == HTCAPTION && !browse::bar_double(h, xy(lp)) => peek::toggle(h),
         WM_NCMOUSEMOVE => {
             peek::enter(h);
             tabs::hover(h, xy(lp));
@@ -171,6 +171,7 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
         WM_CONTEXTMENU => peek::keep_open(h, || crate::undo::step(|| menu::context(h))),
         WM_MOUSEMOVE => {
             track_leave(h);
+            tabs::off_bar(h);
             peek::enter(h);
             if !select::track(h, xy(lp)) {
                 items::hover(h, items::index_at(h, xy(lp)));
