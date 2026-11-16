@@ -73,8 +73,17 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   and deletes the app folder only once they are gone).
 - `src/keep/` optional "keep files on the desktop" mode (`keep_on_desktop`, off by default): `mod.rs` toggle + migration both ways (`sync`) + `reconcile` (follows renames via file id),
   `migrate.rs` runs the migration (`sync`) on a thread and applies it on the tray thread (`WM_KEEP` -> `finish`),
-  `place.rs` drop/paste/rules place files on the Desktop and pin them to a tab, `keeper.rs` hides pinned icons (SetWinEventHook + 3 s timer, Explorer re-shows them on F5/restart) and restores desktop flags.
-  Hidden icons are stacked in one free cell at the bottom-right of the primary work area (`corner_slot`) under `cover.rs`, a small window painting the wallpaper (`PaintDesktop`).
+  `place.rs` drop/paste/rules place files on the Desktop and pin them to a tab, `keeper.rs` hides pinned icons (3 s timer) and restores desktop flags.
+  Preferred hiding (like Fences): `inject.rs` loads `hook/` (crate `rdi-hook`, cdylib built by `build.rs` with a nested `cargo build --release`,
+  embedded in the exe and extracted to `<data>/hook/rdi_hook-<sha>.dll`, older copies deleted) into explorer.exe with `SetWindowsHookExW(WH_GETMESSAGE)` on the
+  desktop thread only. Commands are messages posted to `SHELLDLL_DefView` (wParam = our pid; never do the work inside a sent message: COM refuses
+  outgoing calls there); the pinned paths travel through a shared-memory section `Local\RustDesktopIcons.Hide.<pid>` (`hook/src/map.rs`, seqlock,
+  stats + `STAGE`, `DONE` = success). In explorer, `view.rs` gets the desktop IShellView (WM_GETISHELLBROWSER, else IShellWindows), `filter.rs` wraps
+  the desktop view callback through `IShellFolderView::SetCallback` so its `IFolderFilter::ShouldShow` refuses pinned items at insertion (F5, new
+  files, renames never flash), and `RemoveObject`/`AddObject` handle pins that change. `guard.rs` pins the DLL (the wrapper stays referenced by the
+  view) before anything else and watches our process: when it dies, the filter lets everything through and the view is refreshed. The hook code
+  must never panic (it would take explorer down). If the hook cannot load, `keeper` falls back to the stack below.
+  Fallback: hidden icons are stacked in one free cell at the bottom-right of the primary work area (`corner_slot`) under `cover.rs`, a small window painting the wallpaper (`PaintDesktop`).
   When the stack moves to another cell, the cover spans both cells for 250 ms (Explorer moves the icons after the cover).
   Never park icons off-screen: Explorer pulls every item that is not fully on a monitor back on screen at each drop (visible flash). Hidden icons that get selected are deselected at once.
   `domain/pins.rs` (pure, tested) holds `Pin` + reconcile + free slots + the hidden stack cell; `shell/hide.rs` is the IFolderView2 wrapper. Debug builds only touch the real desktop with `RDI_REAL_DESKTOP=1`.

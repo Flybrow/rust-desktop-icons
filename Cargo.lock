@@ -290,6 +290,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rdi-hook"
+version = "0.1.0"
+dependencies = [
+ "windows",
+]
+
+[[package]]
 name = "regex-syntax"
 version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -314,6 +321,7 @@ name = "rust-desktop-icons"
 version = "1.0.1"
 dependencies = [
  "proptest",
+ "rdi-hook",
  "serde",
  "serde_json",
  "sha2",

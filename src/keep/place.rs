@@ -42,6 +42,7 @@ pub fn release(paths: &[PathBuf], at: (i32, i32)) -> Vec<String> {
     out.iter().cloned().for_each(rules::ignore);
     change(|c| c.unpin(&out));
     if live() {
+        super::apply();
         let _ = Desk::open().map(|d| d.show_at(&out, at));
     }
     errors

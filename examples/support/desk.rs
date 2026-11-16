@@ -85,11 +85,18 @@ pub fn stacked(pt: POINT) -> bool {
     cover().is_some_and(|r| (r.left..r.right).contains(&x) && (r.top..r.bottom).contains(&y))
 }
 
+fn named(p: &str, n: &str) -> bool {
+    p.to_lowercase().ends_with(&format!("\\{}", n.to_lowercase()))
+}
+
+pub fn removed(names: &[String]) -> usize {
+    let shown = positions();
+    names.iter().filter(|n| desktop().join(n).exists() && !shown.iter().any(|(p, _)| named(p, n))).count()
+}
+
 pub fn hidden(names: &[String]) -> usize {
-    positions()
-        .iter()
-        .filter(|(p, pt)| stacked(*pt) && names.iter().any(|n| p.to_lowercase().ends_with(&format!("\\{}", n.to_lowercase()))))
-        .count()
+    let stacked = positions().iter().filter(|(p, pt)| stacked(*pt) && names.iter().any(|n| named(p, n))).count();
+    stacked + removed(names)
 }
 
 pub fn follow(pid: u32) {

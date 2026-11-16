@@ -73,6 +73,9 @@ pub fn apply() {
     }
     let Some(paths) = with(|a| a.cfg.keep_on_desktop.then(|| a.cfg.pinned())).flatten().filter(|_| live()) else { return };
     timer(TICK, Some(TICK_MS));
+    if super::inject::push(&paths) {
+        return unstack();
+    }
     hook();
     let ready = Desk::open().filter(|_| HOOK.get().0 != 0);
     let Some(d) = ready else { return timer(SOON, Some(RETRY_MS)) };
@@ -95,9 +98,7 @@ pub fn apply() {
     }
 }
 
-pub fn restore() {
-    timer(TICK, None);
-    timer(SOON, None);
+fn unstack() {
     unhook();
     super::cover::hide();
     STACK.set(None);
@@ -107,4 +108,11 @@ pub fn restore() {
     d.sync(&[], None, &[]);
     d.set_flags(flags);
     change(|c| c.desk_flags = None);
+}
+
+pub fn restore() {
+    timer(TICK, None);
+    timer(SOON, None);
+    super::inject::stop();
+    unstack();
 }

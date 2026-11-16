@@ -8,7 +8,11 @@ repository = "https://github.com/Flybrow/rust-desktop-icons"
 authors = ["Flybrow", "vincentxjoubert-lang"]
 publish = false
 
+[workspace]
+members = ["hook"]
+
 [dependencies]
+rdi-hook = { path = "hook" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 sha2 = "0.11.0"
