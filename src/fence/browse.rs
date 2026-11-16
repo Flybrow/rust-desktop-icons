@@ -19,11 +19,10 @@ pub(super) fn tab(h: HWND, tab: Tab) -> Tab {
 }
 
 pub(super) fn open(h: HWND, p: &Path, ctrl: bool) {
-    let inside = !ctrl && openable(p) && read(h, |f| f.look.browse) == Some(true);
-    if !inside {
-        return shell::open(p);
+    match folder(p).filter(|_| !ctrl && read(h, |f| f.look.browse) == Some(true)) {
+        Some(dir) => enter(h, &dir),
+        None => shell::open(p),
     }
-    enter(h, p);
 }
 
 pub(super) fn enter(h: HWND, p: &Path) {
@@ -41,8 +40,11 @@ pub(super) fn home(h: HWND) {
     }
 }
 
-pub(super) fn openable(p: &Path) -> bool {
-    p.is_dir() && Sys::of(p).is_none()
+pub(super) fn folder(p: &Path) -> Option<PathBuf> {
+    match p.is_dir() {
+        true => Sys::of(p).is_none().then(|| p.to_path_buf()),
+        false => shell::folder_target(p),
+    }
 }
 
 pub(super) fn back(h: HWND) -> bool {

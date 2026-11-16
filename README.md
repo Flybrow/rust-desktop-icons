@@ -67,8 +67,8 @@ updates are automatic again afterwards.
 | --- | --- |
 | Create a fence | Tray icon → **New fence**, right-click the desktop → **Create an RDI fence**, or right-click a fence |
 | Add icons | Drag them onto a fence (from the desktop, Start menu, Explorer…) |
-| Open an item | Double-click it (a folder opens inside the fence: the title-bar arrow or **Backspace** goes back; **Ctrl+double-click** opens Explorer) |
-| Where folders open | Right-click a fence → **Open folders** → **In the fence** / **In File Explorer** (Settings → Behavior for every fence); a folder's own menu has **Open in the fence** |
+| Open an item | Double-click it (a folder, or a shortcut to one, opens inside the fence: the title-bar arrow or **Backspace** goes back; **Ctrl+double-click** opens Explorer) |
+| Where folders open | Right-click a fence → **Open folders** → **In the fence** / **In File Explorer** (Settings → Behavior for every fence); the menu of a folder or folder shortcut has **Open in the fence** |
 | Undo | **Ctrl+Z** in a fence or the settings, or **Undo** at the top of a fence's or the tray icon's menu (last 20 actions) |
 | Keyboard | Arrow keys move between icons (Shift extends), Home/End, Page Up/Down, **Ctrl+Tab** switches tabs |
 | Move an item elsewhere | Right-click it → **Move to** → any fence, tab or the desktop |
@@ -146,7 +146,9 @@ End-to-end checks on a real desktop (isolated data, test files only): `cargo bui
 `cargo run --example keep_e2e`, `cargo run --example unroll_e2e`, `cargo run --example system_e2e`, `cargo run --example relaunch_e2e`,
 `cargo run --example update_e2e`, `cargo run --example layout_e2e [-- --desktop]`, `cargo run --example peek_e2e`,
 `menu_e2e`, `actions_e2e` (every fence and item menu command), `settings_e2e` (every settings page), `tray_e2e`, `features_e2e`,
-`rules_e2e`, `vdesk_e2e` (creates and closes a temporary virtual desktop) and `uninstall_e2e`. They move the mouse and press keys:
+`rules_e2e`, `browse_e2e` (folders and folder shortcuts opened inside fences), `display_e2e`, `undo_e2e`, `recover_e2e`,
+`load_e2e` (41 fences, 3,800 files), `soak_e2e` (resources stay flat), `vdesk_e2e` (creates and closes a temporary virtual desktop)
+and `uninstall_e2e`. They move the mouse and press keys:
 don't touch the PC while they run. CI runs the ones that need no input on every push.
 
 Pushing a `vX.Y.Z` tag builds and publishes the MSI with [GitHub Actions](.github/workflows/release.yml).
@@ -160,9 +162,10 @@ Pushing a `vX.Y.Z` tag builds and publishes the MSI with [GitHub Actions](.githu
 | `fence/` | Fence window: layout, painting, tabs, drag & drop, selection, menus, roll animation |
 | `keep/` | "Keep files on the desktop" mode: migration, placement, hiding desktop icons |
 | `shell/` | Windows Shell wrappers: icons, shortcuts, folder watch, drag & drop, system icons, desktop view |
-| `app/`, `tray/`, `settings/` | Global state and screen changes, tray icon, layouts menu and update scheduling, settings window |
+| `app/`, `tray/`, `settings/`, `dialog/` | Global state and screen changes, tray icon, layouts menu and update scheduling, settings window, themed popups (what's new, updates) |
 | `visibility/`, `search/`, `prompt.rs` | Quick hide (desktop double-click), peek shortcut and dim layer, search window, text prompt (layout names) |
-| `store.rs`, `rules.rs`, `update.rs` | Persistence and safe moves, desktop auto-sort, release check and silent install |
+| `store/`, `rules/`, `update/` | Persistence and safe moves, desktop auto-sort and age rules, release check and silent install |
+| `undo.rs`, `backup.rs`, `uninstall.rs` | Undo (Ctrl+Z), export / import, moving fenced files back to the desktop on uninstall |
 
 ## Known limitations
 

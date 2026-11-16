@@ -20,7 +20,7 @@ pub(super) fn show(h: HWND, paths: &[PathBuf], at: (i32, i32)) {
     if let Some(label) = with(|a| a.t(T::MoveTo)) {
         native.prepend(label, sub);
     }
-    let folder = paths.first().filter(|p| paths.len() == 1 && super::browse::openable(p)).cloned();
+    let folder = paths.first().filter(|_| paths.len() == 1).and_then(|p| super::browse::folder(p));
     if let Some(label) = with(|a| a.t(T::OpenInFence)).filter(|_| folder.is_some()) {
         native.prepend_item(label, HERE);
     }

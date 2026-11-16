@@ -2,7 +2,9 @@ mod support;
 
 use serde_json::json;
 use std::{env, fs, path::Path, thread, time::Duration};
-use support::{app, capture, chord, clip, fence_cfg, glide, point, press, quit, rect, wait, windows, work};
+use support::{
+    app, capture, chord, clip, explorer, fence_cfg, glide, menu, point, press, quit, rect, right_click, shortcut, wait, windows, work,
+};
 use windows::Win32::{
     Foundation::HWND,
     System::Com::{COINIT_APARTMENTTHREADED, CoInitializeEx},
@@ -89,6 +91,9 @@ fn main() {
     files(&dir(4).join("R"), &["r.txt"]);
     files(&dir(5), &["V", "zhome5.txt"]);
     files(&dir(5).join("V"), &["v.txt"]);
+    files(&dir(6), &["zhome6.txt"]);
+    files(&root.join("linked"), &["in.txt"]);
+    shortcut(&root.join("linked"), &dir(6).join("alink.lnk"));
     let at = |x: i32, y: i32| (w.left + x, w.top + y);
     let fence = |id: u64, (x, y): (i32, i32), extra: serde_json::Value| {
         let mut f = json!({"id": id, "x": x, "y": y, "w": 420, "h": 280, "tabs": [{"id": id, "title": format!("F{id}")}]});
@@ -96,8 +101,9 @@ fn main() {
         f
     };
     let tabs = json!({"tab": 2, "tabs": [{"id": 1, "title": "One"}, {"id": 2, "title": "Two"}, {"id": 3, "title": "Three"}]});
-    let cfg = json!({"auto_update": false, "auto_sort": false, "version": env!("CARGO_PKG_VERSION"), "look": {"browse": true},
-        "fences": [fence(1, at(40, 60), tabs), fence(4, at(560, 60), json!({"rolled": true})), fence(5, at(40, 460), json!({"vertical": true}))]});
+    let cfg = json!({"lang": "en", "auto_update": false, "auto_sort": false, "version": env!("CARGO_PKG_VERSION"), "look": {"browse": true},
+        "fences": [fence(1, at(40, 60), tabs), fence(4, at(560, 60), json!({"rolled": true})), fence(5, at(40, 460), json!({"vertical": true})),
+            fence(6, at(560, 460), json!({}))]});
     fs::create_dir_all(&data).unwrap();
     fs::write(data.join("config.json"), serde_json::to_vec_pretty(&cfg).unwrap()).unwrap();
     let mut app = app(&root, &[("RDI_TOP", "1")], &[]);
@@ -108,9 +114,10 @@ fn main() {
         let (x, y) = at(x, y);
         windows(pid, "RustDesktopIcons.Fence").into_iter().find(|h| (rect(*h).left - x).abs() < 40 && (rect(*h).top - y).abs() < 40)
     };
-    check(wait(10, || find(40, 60).is_some() && find(560, 60).is_some() && find(40, 460).is_some()), "three fences shown");
+    let all = || [find(40, 60), find(560, 60), find(40, 460), find(560, 460)];
+    check(wait(10, || all().iter().all(Option::is_some)), "four fences shown");
     sleep(1000);
-    let (Some(fixed), Some(rolled), Some(side)) = (find(40, 60), find(560, 60), find(40, 460)) else {
+    let [Some(fixed), Some(rolled), Some(side), Some(linking)] = all() else {
         quit(&mut app);
         std::process::exit(1);
     };
@@ -130,7 +137,7 @@ fn main() {
     let first = shown(fixed);
     check(first == home3, &format!("the fixed fence shows its tab ({first:?})"));
     open_first(fixed);
-    check(shown(fixed) == names(&["B", "za.txt"]), "Enter on a folder opens it inside the fence");
+    check(wait(3, || shown(fixed) == names(&["B", "za.txt"])), "Enter on a folder opens it inside the fence");
     open_first(fixed);
     check(shown(fixed) == names(&["deep.txt"]), "a folder inside it opens too");
     shot(fixed, "deep");
@@ -213,6 +220,23 @@ fn main() {
     let s = rect(side);
     click_at((s.left + sc(12), s.top + sc(30)));
     check(shown(side) == names(&["V", "zhome5.txt"]), "the start of a side bar is the back arrow");
+
+    let home6 = names(&["alink.lnk", "zhome6.txt"]);
+    check(shown(linking) == home6, "the fence shows its folder shortcut");
+    open_first(linking);
+    check(shown(linking) == names(&["in.txt"]), "Enter on a folder shortcut opens its folder inside the fence");
+    check(explorer("linked").is_none(), "a folder shortcut does not open File Explorer");
+    chord(&[VK_BACK]);
+    sleep(600);
+    check(shown(linking) == home6, "Backspace comes back from a folder shortcut");
+    let l = rect(linking);
+    let item = (l.left + sc(60), l.top + sc(75));
+    click_at(item);
+    right_click(item);
+    check(menu::open() && menu::pick(&["Open in the fence"]), "a folder shortcut's right-click menu offers Open in the fence");
+    sleep(600);
+    check(shown(linking) == names(&["in.txt"]), "Open in the fence on a folder shortcut opens its folder inside the fence");
+    shot(linking, "shortcut");
 
     quit(&mut app);
     let _ = fs::remove_dir_all(&root);

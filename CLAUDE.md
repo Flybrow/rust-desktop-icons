@@ -88,7 +88,7 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
 - `src/shell/` Win32 shell wrappers: `mod.rs` paths/icons/open, `reg.rs` registry (`reg_bytes`), `thumb.rs` (IShellItemImageFactory thumbnails, made in the loader thread for `kind::thumbable` files at the scaled icon size,
   kept in `Item.thumb`, blitted with `render::blit_fit`), `vdesk.rs` virtual desktops
   (current + ids from HKCU VirtualDesktops, Win10 SessionInfo fallback, names), `pick.rs` folder/JSON file dialogs,
-  `menu.rs` (item context menu: `Pick::Shell`/`Own`, our ids from `OWN`, `prepend` adds "Move to"), `link.rs`, `watch.rs` (+ `notify_moved` after every move), `dnd.rs`,
+  `menu.rs` (item context menu: `Pick::Shell`/`Own`, our ids from `OWN`, `prepend` adds "Move to"), `link.rs` (`link_target`, `folder_target`, `link_into`), `watch.rs` (+ `notify_moved` after every move), `dnd.rs`,
   `system.rs` (system icons: Recycle Bin, This PC, User's Files, Network, Control Panel as `::{CLSID}` items,
   name/icon from the shell, desktop visibility via HideDesktopIcons)
   (`drag_out` = OLE drag via SHDoDragDrop with our IDropSource: a drop on the desktop can be cancelled
@@ -98,7 +98,7 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   `tabs.rs` tabs/portals, `anim.rs` unroll + chameleon fade, `peek.rs` hover, `menu.rs`, `actions.rs`, `title.rs` rename,
   `drop.rs` (from outside / onto a tab header / reorder inside a tab), `target.rs` (IDropTarget; an item under the cursor
   that accepts drops gets it through its own shell IDropTarget; drags of items already in fences only go into folders), `select.rs` (click,
-  Ctrl+click, rubber band, drag out), `arrange.rs` (per-tab sort and rules submenus), `browse.rs` (folders opened inside
+  Ctrl+click, rubber band, drag out), `arrange.rs` (per-tab sort and rules submenus), `browse.rs` (folders and folder shortcuts (`.lnk` to a folder without arguments, `shell::folder_target`) opened inside
   the fence: `View.browse` stack, `browse::tab` swaps the active tab for a portal-like view used by loader/drop/paste, back via
   a click on the left third of the bar ("← folder" is always left-aligned there) or Backspace; a rolled fence goes `home` once
   it has rolled up; hovering the bar switches tabs only when the mouse enters another tab's part of it (`View.bar_tab`) and
@@ -142,7 +142,7 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   `display_e2e` (thumbnails, title alignment/size, bar on hover, wallpaper color, filtered portal, arrow keys, Ctrl+Tab; reads the
   `RDI_DUMP` canvases, `KEEP_DUMPS=<dir>` keeps them), `rules_e2e` (name/kind/"Everything else" rules and Sort now on the real Desktop, `*.rdie2e` files only; Sort now is tested
   with a name rule only so no user file can move), `vdesk_e2e` (temporary virtual desktop, closed at the end), `uninstall_e2e`,
-  `browse_e2e` (folders opened in a fixed fence with tabs, a rolled fence and a side bar: back arrow, double click, tab switches,
+  `browse_e2e` (folders opened in a fixed fence with tabs, a rolled fence and a side bar, and a folder shortcut (Enter, right-click): back arrow, double click, tab switches,
   Ctrl+Tab, Backspace, deleted folder, roll-up; reads what is shown through Ctrl+A/Ctrl+C), `recover_e2e` (orphan fence folders come back in a "Recovered files" fence, damaged config restored from `.bak`, BOM config),
   `soak_e2e` (`SOAK_MIN` minutes of everyday actions; GDI/USER/handles/private bytes must stay flat: `support::usage`),
   `load_e2e` (41 fences, 3,800 files: time to draw, memory, idle CPU). Debug builds tag every layered window with the
@@ -156,10 +156,10 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
 
 ## Conventions
 - User wants terse code: no comments, compact formatting (`rustfmt.toml` max_width 140).
-- Business rules go in `domain.rs` with tests; Win32 code stays thin.
+- Business rules go in `domain/` with tests; Win32 code stays thin.
 - Global state is `thread_local RefCell` accessed only via `app::with` (try_borrow). Never call Win32 APIs that
   send messages (DestroyWindow, SetWindowPos, TrackPopupMenu, MessageBox, CreateWindow) inside `with`.
-- New UI string: add a `T` variant and translate it in all 25 rows of `i18n.rs` (tests check completeness).
+- New UI string: add a `T` variant and translate it in all 25 rows of `i18n/table.rs` (tests check completeness).
 
 ## Robustness rules
 - Never ignore a user-visible failure: collect errors and call `report::failures`/`report::alert` outside `app::with`.

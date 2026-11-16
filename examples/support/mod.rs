@@ -2,12 +2,14 @@
 pub mod clip;
 pub mod desk;
 mod input;
+mod link;
 pub mod menu;
 pub mod usage;
 
 pub use input::{
     chord, click, ctrl_wheel, cursor, double_click, drag, glide, hold, point, press, right, right_click, show_desktop, type_text, wheel,
 };
+pub use link::shortcut;
 
 use std::{
     fs,

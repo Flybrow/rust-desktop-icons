@@ -14,20 +14,28 @@ pub fn link_target(p: &Path) -> Option<String> {
         let text = std::fs::read_to_string(p).ok()?;
         return text.lines().find_map(|l| l.strip_prefix("URL=")).map(str::to_string);
     }
-    if ext != "lnk" {
+    let (path, args) = shortcut(p)?;
+    Some(format!("{path} {args}"))
+}
+
+pub fn folder_target(p: &Path) -> Option<PathBuf> {
+    let (path, args) = shortcut(p)?;
+    Some(PathBuf::from(path)).filter(|d| args.trim().is_empty() && d.is_dir())
+}
+
+fn shortcut(p: &Path) -> Option<(String, String)> {
+    if !p.extension().is_some_and(|e| e.eq_ignore_ascii_case("lnk")) {
         return None;
     }
+    let text = |buf: &[u16]| String::from_utf16_lossy(&buf[..buf.iter().position(|&c| c == 0).unwrap_or(buf.len())]);
     unsafe {
         let link: IShellLinkW = CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER).ok()?;
         link.cast::<IPersistFile>().ok()?.Load(PCWSTR(wide_path(p).as_ptr()), STGM_READ).ok()?;
-        let mut buf = [0u16; 1024];
-        link.GetPath(&mut buf, std::ptr::null_mut(), 0).ok()?;
-        let n = buf.iter().position(|&c| c == 0).unwrap_or(0);
-        let path = String::from_utf16_lossy(&buf[..n]);
+        let mut path = [0u16; 1024];
+        link.GetPath(&mut path, std::ptr::null_mut(), 0).ok()?;
         let mut args = [0u16; 1024];
         let _ = link.GetArguments(&mut args);
-        let m = args.iter().position(|&c| c == 0).unwrap_or(0);
-        Some(format!("{path} {}", String::from_utf16_lossy(&args[..m])))
+        Some((text(&path), text(&args)))
     }
 }
 
@@ -82,6 +90,14 @@ mod tests {
         assert_eq!(fs::read_dir(&out).unwrap().count(), 1);
         assert!(same_path(&out, Path::new(&out.to_string_lossy().to_uppercase())));
         assert!(target.exists());
+        assert_eq!(folder_target(&lnk), None);
+        let dir = d.join("folder");
+        fs::create_dir_all(&dir).unwrap();
+        let to_dir = link_into(&dir, &out).unwrap();
+        assert!(folder_target(&to_dir).is_some_and(|t| same_path(&t, &dir)));
+        assert_eq!(folder_target(&dir), None);
+        fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(folder_target(&to_dir), None);
         fs::remove_dir_all(d).unwrap();
     }
 }
