@@ -1,6 +1,7 @@
 #![allow(dead_code, unused_imports)]
 pub mod clip;
 pub mod desk;
+pub mod dump;
 mod input;
 mod link;
 pub mod menu;
@@ -140,7 +141,34 @@ pub fn free_desktop_spot(avoid: &[RECT]) -> Option<(i32, i32)> {
     spots.iter().find(|p| !on_icon(p)).or(spots.first()).copied()
 }
 
+pub const WM_TRAY: u32 = WM_APP + 1;
+
+pub fn tray(pid: u32, event: u32) {
+    for h in windows_all(pid, "RustDesktopIcons.Tray.dev") {
+        let _ = unsafe { PostMessageW(Some(h), WM_TRAY, WPARAM(0), LPARAM(event as isize)) };
+    }
+    thread::sleep(Duration::from_millis(400));
+}
+
 pub fn capture(r: &RECT, path: &Path) {
+    let (w, h, px) = grab(r);
+    let size = 54 + px.len() as u32;
+    let mut out = vec![];
+    out.extend(b"BM");
+    out.extend(size.to_le_bytes());
+    out.extend([0u8; 4]);
+    out.extend(54u32.to_le_bytes());
+    out.extend(40u32.to_le_bytes());
+    out.extend(w.to_le_bytes());
+    out.extend((-h).to_le_bytes());
+    out.extend(1u16.to_le_bytes());
+    out.extend(32u16.to_le_bytes());
+    out.extend([0u8; 24]);
+    out.extend(px);
+    let _ = fs::write(path, out);
+}
+
+pub fn grab(r: &RECT) -> (i32, i32, Vec<u8>) {
     let (w, h) = (r.right - r.left, r.bottom - r.top);
     let mut px = vec![0u8; (w * h * 4) as usize];
     unsafe {
@@ -166,20 +194,7 @@ pub fn capture(r: &RECT, path: &Path) {
         let _ = DeleteDC(dc);
         ReleaseDC(None, screen);
     }
-    let size = 54 + px.len() as u32;
-    let mut out = vec![];
-    out.extend(b"BM");
-    out.extend(size.to_le_bytes());
-    out.extend([0u8; 4]);
-    out.extend(54u32.to_le_bytes());
-    out.extend(40u32.to_le_bytes());
-    out.extend(w.to_le_bytes());
-    out.extend((-h).to_le_bytes());
-    out.extend(1u16.to_le_bytes());
-    out.extend(32u16.to_le_bytes());
-    out.extend([0u8; 24]);
-    out.extend(px);
-    let _ = fs::write(path, out);
+    (w, h, px)
 }
 
 pub fn title(h: HWND) -> String {

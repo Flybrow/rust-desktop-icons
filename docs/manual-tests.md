@@ -15,7 +15,19 @@ These need real hardware the Sandbox does not have. Tick them on the release bui
 ## Windows 10 (22H2)
 - [ ] Install, update from the previous version, uninstall: same results as `msi.ps1` in the Sandbox.
 - [ ] Virtual desktops: "Show on" lists the desktops; switching desktops shows/hides the bound fences.
-- [ ] The desktop right-click entry "Create an RDI fence" works.
+- [ ] The desktop right-click entries "Create an RDI fence" and "Create an RDI portal fence…" work.
+
+## Look at 125 % or 150 % scaling
+- [ ] Ctrl+wheel through every icon size: icons stay sharp (no blur, no jagged edges) at every step.
+- [ ] Ctrl+F in a fence: the search field, its hint, the caret and ✕ are aligned in the title bar; the caret blinks.
+- [ ] A rolled fence with Large corners: all four corners are round, nothing square shows behind them.
+
+## Theme Automatic
+- [ ] Switch Windows between light and dark mode (Settings → Personalization → Colors): the settings window, menus and
+      fences that use the default color follow at once, without restarting the app.
+
+## Privacy mode with two screens
+- [ ] Reveal "When the desktop is in use": clicking the desktop of either screen shows the fences' content, clicking a window masks it again.
 
 ## Daily use for a day
 - [ ] After a few hours: no lag when hovering fences; Task Manager shows memory roughly stable (well under 100 MB).

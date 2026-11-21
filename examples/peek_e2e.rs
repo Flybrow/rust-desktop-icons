@@ -94,6 +94,25 @@ fn main() {
         None => println!("[SKIP] double-click: no empty desktop spot visible"),
     }
     quit(&mut app);
+    let mut cfg = support::saved(&data);
+    cfg["hide_desktop"] = json!(false);
+    fs::write(data.join("config.json"), serde_json::to_vec_pretty(&cfg).unwrap()).unwrap();
+    let mut app = support::app(&root, &[("RDI_REAL_DESKTOP", "1")], &[]);
+    let pid = app.id();
+    check(wait(10, || fences(pid).len() == 2), "fences shown again with Hide all: desktop icons too off");
+    thread::sleep(Duration::from_millis(800));
+    match support::free_desktop_spot(&fences(pid)) {
+        Some(p) => {
+            double_click(p);
+            check(wait(3, || fences(pid).is_empty()), "with Hide all: desktop icons too off, a double-click still hides the fences");
+            check(unsafe { IsWindowVisible(lv) }.as_bool(), "and leaves the desktop icons visible");
+            thread::sleep(Duration::from_millis(600));
+            double_click(p);
+            check(wait(3, || fences(pid).len() == 2), "a second double-click shows the fences again");
+        }
+        None => println!("[SKIP] Hide all without desktop icons: no empty desktop spot visible"),
+    }
+    quit(&mut app);
     if uncovered {
         support::show_desktop();
     }

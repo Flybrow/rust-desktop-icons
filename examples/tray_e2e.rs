@@ -3,23 +3,15 @@ mod support;
 use serde_json::{Value, json};
 use std::{env, fs, thread, time::Duration};
 use support::{app, chord, drag, fences, menu, point, poll, saved, type_text, wait, windows, work};
-use windows::Win32::{
-    Foundation::{LPARAM, WPARAM},
-    UI::{
-        Input::KeyboardAndMouse::{VK_A, VK_CONTROL, VK_ESCAPE, VK_RETURN},
-        WindowsAndMessaging::{PostMessageW, WM_APP, WM_LBUTTONDBLCLK, WM_RBUTTONUP},
-    },
+use windows::Win32::UI::{
+    Input::KeyboardAndMouse::{VK_A, VK_CONTROL, VK_ESCAPE, VK_RETURN},
+    WindowsAndMessaging::{WM_LBUTTONDBLCLK, WM_RBUTTONUP},
 };
-
-const WM_TRAY: u32 = WM_APP + 1;
 
 fn tray(pid: u32, event: u32) {
     let w = work();
     point(((w.left + w.right) / 2, (w.top + w.bottom) / 2));
-    for h in support::windows_all(pid, "RustDesktopIcons.Tray.dev") {
-        let _ = unsafe { PostMessageW(Some(h), WM_TRAY, WPARAM(0), LPARAM(event as isize)) };
-    }
-    thread::sleep(Duration::from_millis(400));
+    support::tray(pid, event);
 }
 
 fn tray_menu(pid: u32, path: &[&str]) -> bool {

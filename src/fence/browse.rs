@@ -37,7 +37,8 @@ pub(super) fn forget(h: HWND) {
 pub(super) fn left(h: HWND, to: HWND) {
     let mut pid = 0;
     unsafe { windows::Win32::UI::WindowsAndMessaging::GetWindowThreadProcessId(to, Some(&mut pid)) };
-    if pid != std::process::id() && super::read(h, |f| f.look.home) == Some(true) {
+    let away = pid != std::process::id() || (to != h && super::hwnds().contains(&to));
+    if away && super::read(h, |f| f.look.home) == Some(true) {
         home(h);
     }
 }

@@ -127,7 +127,7 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   Ctrl+click, rubber band, drag out), `arrange.rs` (per-tab sort and rules submenus), `browse.rs` (folders and folder shortcuts (`.lnk` to a folder without arguments, `shell::folder_target`) opened inside
   the fence: `View.browse` stack, `browse::tab` swaps the active tab for a portal-like view used by loader/drop/paste, back via
   a click on the left third of the bar ("← folder" is always left-aligned there) or Backspace; a rolled fence goes `home` once
-  it has rolled up; hovering the bar switches tabs only when the mouse enters another tab's part of it (`View.bar_tab`) and
+  it has rolled up, and with `look.home` focus moving to another app or another fence does too (`browse::left`; our menus and popups never do); hovering the bar switches tabs only when the mouse enters another tab's part of it (`View.bar_tab`) and
   never while browsing (the tabs are hidden); a double click on the back arrow goes back instead of rolling the fence (`View.backed`);
   leaving the tab (click, Ctrl+Tab, add, remove) drops the folder without caching its items as the tab's own; the fence menu's "Open folders ▸ In the fence / In File Explorer" sets `look.browse`, a folder's own
   right-click menu starts with "Open in the fence"), `moveto.rs` ("Move to" submenu of an item's menu), `group.rs` (group submenu; mates follow
@@ -175,7 +175,10 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   `browse_e2e` (folders opened in a fixed fence with tabs, a rolled fence and a side bar, and a folder shortcut (Enter, right-click): back arrow, double click, tab switches,
   Ctrl+Tab, Backspace, deleted folder, roll-up; reads what is shown through Ctrl+A/Ctrl+C), `recover_e2e` (orphan fence folders come back in a "Recovered files" fence, damaged config restored from `.bak`, BOM config),
   `soak_e2e` (`SOAK_MIN` minutes of everyday actions; GDI/USER/handles/private bytes must stay flat: `support::usage`),
-  `load_e2e` (41 fences, 3,800 files: time to draw, memory, idle CPU). Debug builds tag every layered window with the
+  `load_e2e` (41 fences, 3,800 files: time to draw, memory, idle CPU). `look_e2e` checks what is drawn through the `RDI_DUMP` canvases (`support::dump`): corners, a rolled fence's
+  corners, list rows, a 40 px icon, the search field and its blinking caret, the settings window brightness per theme (`support::grab`),
+  privacy masking (Hover and Never). `peek_e2e` also runs quick hide with `hide_desktop` off, `browse_e2e` the `home` option.
+  `support::tray` posts tray icon messages. Debug builds tag every layered window with the
   `RDI_DRAWN` prop (last present had visible pixels); `support::fences` only lists drawn fences, so every E2E fails on a fence
   that never paints. Installer: `rdi-sandbox/bundle/msi.ps1` (Sandbox: MSI 0.9.4 -> current while running -> uninstall).
   What the Sandbox cannot test (several monitors, mixed DPI, Windows 10) is listed in `docs/manual-tests.md`.

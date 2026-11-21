@@ -102,7 +102,7 @@ fn main() {
     };
     let tabs = json!({"tab": 2, "tabs": [{"id": 1, "title": "One"}, {"id": 2, "title": "Two"}, {"id": 3, "title": "Three"}]});
     let cfg = json!({"lang": "en", "auto_update": false, "auto_sort": false, "version": env!("CARGO_PKG_VERSION"), "look": {"browse": true},
-        "fences": [fence(1, at(40, 60), tabs), fence(4, at(560, 60), json!({"rolled": true})), fence(5, at(40, 460), json!({"vertical": true})),
+        "fences": [fence(1, at(40, 60), tabs), fence(4, at(560, 60), json!({"rolled": true})), fence(5, at(40, 460), json!({"vertical": true, "home": true})),
             fence(6, at(560, 460), json!({}))]});
     fs::create_dir_all(&data).unwrap();
     fs::write(data.join("config.json"), serde_json::to_vec_pretty(&cfg).unwrap()).unwrap();
@@ -237,6 +237,26 @@ fn main() {
     sleep(600);
     check(shown(linking) == names(&["in.txt"]), "Open in the fence on a folder shortcut opens its folder inside the fence");
     shot(linking, "shortcut");
+    open_first(side);
+    check(shown(side) == names(&["v.txt"]), "a folder opens again in the side-bar fence");
+    click_at(empty_spot(linking));
+    check(
+        shown(side) == names(&["V", "zhome5.txt"]),
+        "Back to the start when clicking elsewhere: the folder closes when another fence is clicked",
+    );
+    check(shown(linking) == names(&["in.txt"]), "without that option, a folder stays open when clicking elsewhere");
+    match support::free_desktop_spot(&support::fences(pid)) {
+        Some(p) => {
+            open_first(side);
+            check(shown(side) == names(&["v.txt"]), "the folder opens once more");
+            click_at(p);
+            check(
+                shown(side) == names(&["V", "zhome5.txt"]),
+                "Back to the start when clicking elsewhere: a click on the desktop closes it too",
+            );
+        }
+        None => println!("[SKIP] no empty desktop spot visible"),
+    }
 
     quit(&mut app);
     let _ = fs::remove_dir_all(&root);

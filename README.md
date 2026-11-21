@@ -26,18 +26,21 @@ Organize your Windows desktop into beautiful, translucent groups of icons. Tiny,
 
 |  |  |
 | --- | --- |
-| 🪟 **Translucent fences** | Rounded, semi-transparent groups that sit on your desktop, behind every window |
-| 🎨 **Make it yours** | Any color, opacity, icon size and tint, name size and color, icon spacing, icons aligned left, centered or right, chameleon mode, compact view without names, rename, resize, lock. Settings apply to every fence; any fence can override them from its right-click menu |
+| 🪟 **Translucent fences** | Semi-transparent groups that sit on your desktop, behind every window, with square or rounded corners (4, 6 or 8 px) |
+| 🌗 **Dark, light or automatic** | Fences, menus, settings and popups in a dark or light theme, or following Windows |
+| 🎨 **Make it yours** | Any color, opacity, icon size and tint, name size and color, icon spacing, icons aligned left, centered or right, chameleon mode, compact view without names, list view (one item per row), rename, resize, lock. Settings apply to every fence; any fence can override them from its right-click menu |
 | 🧲 **Snapping** | Fences line up with each other (with guide lines), keep equal spacing and resize to whole rows and columns of icons; hold **Alt** to move freely |
 | 📜 **Roll up** | A rolled fence shows only its title and unrolls on hover, away from the screen edge (upward near the bottom) |
 | ↔️ **Vertical fences** | Put the title on the side and park the fence on a screen edge: it unrolls toward the middle |
-| 🗂️ **Tabs and portals** | Several tabs per fence; a portal tab shows any folder of your PC; folders open right inside the fence |
+| 🗂️ **Tabs and portals** | Several tabs per fence; a portal fence or tab shows any folder of your PC; folders open right inside the fence and can close when you click elsewhere |
+| 🔎 **Filter as you type** | **Ctrl+F** in a fence (or the magnifier of a portal) shows a search field in its title bar: only the matching icons stay |
 | 🔗 **Groups and virtual desktops** | Group fences so they move together; show a fence on every virtual desktop or only on one |
 | 🧹 **Sorting rules** | New desktop files go to the right fence automatically (apps, games, images, documents…); an "Everything else" rule makes any fence an inbox. Rules by name (`invoice*.pdf`) and by age (move items not modified for 30 days to an archive fence). New files never land hidden behind a fence |
 | 👀 **Peek and search** | A shortcut (Ctrl+Alt+Space by default, customizable) brings your fences above all windows; start typing to search every fence, or press Ctrl+Alt+F. Optional shortcuts to hide everything, create a fence or open the settings |
-| 🫥 **Quick hide** | Optional: double-click an empty spot of the desktop to hide all fences and icons, again to bring them back |
+| 🫥 **Quick hide** | Optional: double-click an empty spot of the desktop to hide all fences (and the other desktop icons, unless you turn that off), again to bring them back |
+| 🕶️ **Privacy mode** | For screen sharing or people nearby: names become gray bars, icons plain squares, titles dots, until the mouse is over the fence, the desktop is in use, or never |
 | 🖥️ **Screen changes** | Fences follow resolution and monitor changes: each screen setup keeps its own layout, new setups are scaled. Save and restore named layouts from the tray menu |
-| 🖥️ **Keep files on the desktop** | Optional: fenced files stay in your Desktop folder (visible in Explorer), only their icons are hidden |
+| 🖥️ **Keep files on the desktop** | Optional: fenced files stay in your Desktop folder (visible in Explorer), only their desktop icons are hidden, by Explorer itself |
 | 🗑️ **System icons** | Put the Recycle Bin, This PC, your user folder, Network or Control Panel in a fence instead of the desktop |
 | 🖱️ **Drag & drop anything** | In, out and between fences; apps from the Start menu or anywhere else become shortcuts; drop a file on a folder or an app inside a fence to move it there or open it with that app |
 | ⚡ **Smooth and light** | Native Win32 + Rust, no runtime, no web view |
@@ -66,9 +69,10 @@ updates are automatic again afterwards.
 | Action | How |
 | --- | --- |
 | Create a fence | Tray icon → **New fence**, right-click the desktop → **Create an RDI fence**, or right-click a fence |
+| Create a portal fence | Tray icon → **New portal fence…**, or right-click the desktop → **Create an RDI portal fence…**, then pick a folder |
 | Add icons | Drag them onto a fence (from the desktop, Start menu, Explorer…) |
 | Open an item | Double-click it (a folder, or a shortcut to one, opens inside the fence: the title-bar arrow or **Backspace** goes back; **Ctrl+double-click** opens Explorer) |
-| Where folders open | Right-click a fence → **Open folders** → **In the fence** / **In File Explorer** (Settings → Behavior for every fence); the menu of a folder or folder shortcut has **Open in the fence** |
+| Where folders open | Right-click a fence → **Open folders** → **In the fence** / **In File Explorer** (Settings → Behavior for every fence); the menu of a folder or folder shortcut has **Open in the fence**. Settings → Behavior → **Back to the start when clicking elsewhere** closes an opened folder when you click outside the fence |
 | Undo | **Ctrl+Z** in a fence or the settings, or **Undo** at the top of a fence's or the tray icon's menu (last 20 actions) |
 | Keyboard | Arrow keys move between icons (Shift extends), Home/End, Page Up/Down, **Ctrl+Tab** switches tabs |
 | Move an item elsewhere | Right-click it → **Move to** → any fence, tab or the desktop |
@@ -77,9 +81,14 @@ updates are automatic again afterwards.
 | Move / resize | Drag the title bar / drag an edge (hold **Alt** to turn off snapping) |
 | Peek | **Ctrl+Alt+Space** (change it in Settings → Keyboard shortcuts); **Esc** or a click outside ends it |
 | Search | Type while peeking, or **Ctrl+Alt+F**, or tray icon → **Search…**; **Enter** opens the item |
+| Filter a fence | **Ctrl+F** in it, its menu → **Filter the icons**, or the magnifier at the end of a portal's title bar; type, **Enter** opens the first match, **Esc** or ✕ closes the filter |
+| Privacy mode | Tray icon → **Privacy mode**, or Settings → **Privacy** (what to mask and when to show it again) |
+| Theme | Settings → General → **Theme**: Dark, Light or Automatic (follows Windows) |
 | More shortcuts | Settings → **Keyboard shortcuts**: hide/show everything, new fence, open the settings (none by default) |
-| Hide everything | Turn on Settings → Desktop → **Hide all on desktop double-click**, then double-click an empty spot of the desktop |
+| Hide everything | Turn on Settings → Desktop → **Hide all on desktop double-click**, then double-click an empty spot of the desktop (**Hide all: desktop icons too** decides whether the other desktop icons hide as well) |
 | Show names / compact view | Right-click a fence → **Appearance** → **Show names** |
+| List view | Settings → Icons → **Show as a list**, or per fence from its Appearance menu |
+| Corners | Settings → Default appearance → **Corners** (square, 4, 6 or 8 px), or per fence from its Appearance menu |
 | Thumbnails | Pictures, videos and PDFs show a preview; turn off in Settings → Icons or right-click → **Appearance** → **Show thumbnails** |
 | Title bar | Settings → **Title bar** (alignment, size, color, show on hover), or right-click → **Appearance** → **Title bar** |
 | Wallpaper colors | Settings → Default appearance → **Color from the wallpaper**, or per fence from its Appearance menu |
@@ -113,7 +122,8 @@ If the configuration is ever damaged or loses a fence, the files still stored in
 **Recovered files** fence.
 
 With **Settings → Keep files on the desktop**, fenced files stay in your Desktop folder instead: Explorer → Desktop
-lists them, and only their desktop icons are hidden (stacked in one corner cell under a wallpaper patch; desktop
+lists them, and only their desktop icons are hidden: a small helper loaded into Explorer leaves them out of the desktop view,
+like Fences does. If it cannot load, they are stacked in one corner cell under a wallpaper patch instead (desktop
 auto-arrange is turned off while the option is on). Turning it on moves existing fence contents to the desktop; turning it off moves them back.
 
 ## Languages
@@ -146,7 +156,8 @@ End-to-end checks on a real desktop (isolated data, test files only): `cargo bui
 `cargo run --example keep_e2e`, `cargo run --example unroll_e2e`, `cargo run --example system_e2e`, `cargo run --example relaunch_e2e`,
 `cargo run --example update_e2e`, `cargo run --example layout_e2e [-- --desktop]`, `cargo run --example peek_e2e`,
 `menu_e2e`, `actions_e2e` (every fence and item menu command), `settings_e2e` (every settings page), `tray_e2e`, `features_e2e`,
-`rules_e2e`, `browse_e2e` (folders and folder shortcuts opened inside fences), `display_e2e`, `undo_e2e`, `recover_e2e`,
+`rules_e2e`, `browse_e2e` (folders and folder shortcuts opened inside fences), `display_e2e`, `filter_e2e`, `look_e2e` (corners, list view,
+search field, theme and privacy mode as drawn), `undo_e2e`, `recover_e2e`,
 `load_e2e` (41 fences, 3,800 files), `soak_e2e` (resources stay flat), `vdesk_e2e` (creates and closes a temporary virtual desktop)
 and `uninstall_e2e`. They move the mouse and press keys:
 don't touch the PC while they run. CI runs the ones that need no input on every push.
@@ -157,10 +168,11 @@ Pushing a `vX.Y.Z` tag builds and publishes the MSI with [GitHub Actions](.githu
 
 | Module | Role |
 | --- | --- |
-| `domain/` | Pure, unit-tested logic: model, config, layout grid, title bar side, sorting, rules, animation, pins, system icons, snapping, screen setups and layouts, shortcuts, search ranking |
+| `domain/` | Pure, unit-tested logic: model, config, look inheritance, theme, privacy, layout grid, title bar side, sorting, rules, animation, pins, system icons, snapping, screen setups and layouts, shortcuts, search ranking |
 | `render/`, `layered/` | Pixel compositing (alpha, rounded rectangles, blur) and layered-window painting |
 | `fence/` | Fence window: layout, painting, tabs, drag & drop, selection, menus, roll animation |
 | `keep/` | "Keep files on the desktop" mode: migration, placement, hiding desktop icons |
+| `hook/` | Small DLL loaded into Explorer that leaves pinned icons out of the desktop view (built and embedded by `build.rs`) |
 | `shell/` | Windows Shell wrappers: icons, shortcuts, folder watch, drag & drop, system icons, desktop view |
 | `app/`, `tray/`, `settings/`, `dialog/` | Global state and screen changes, tray icon, layouts menu and update scheduling, settings window, themed popups (what's new, updates) |
 | `visibility/`, `search/`, `prompt.rs` | Quick hide (desktop double-click), peek shortcut and dim layer, search window, text prompt (layout names) |

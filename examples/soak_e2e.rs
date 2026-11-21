@@ -5,25 +5,11 @@ use std::{
     env, fs,
     time::{Duration, Instant},
 };
-use support::{
-    answer, app, chord, drag, fences, menu, point, quit, rect, right_click, type_text, usage::usage, wait, windows, windows_all, work,
+use support::{answer, app, chord, drag, fences, menu, point, quit, rect, right_click, tray, type_text, usage::usage, wait, windows, work};
+use windows::Win32::UI::{
+    Input::KeyboardAndMouse::{VK_CONTROL, VK_ESCAPE, VK_F, VK_MENU, VK_RETURN, VK_SPACE},
+    WindowsAndMessaging::{WM_LBUTTONDBLCLK, WM_RBUTTONUP},
 };
-use windows::Win32::{
-    Foundation::{LPARAM, WPARAM},
-    UI::{
-        Input::KeyboardAndMouse::{VK_CONTROL, VK_ESCAPE, VK_F, VK_MENU, VK_RETURN, VK_SPACE},
-        WindowsAndMessaging::{PostMessageW, WM_APP, WM_LBUTTONDBLCLK, WM_RBUTTONUP},
-    },
-};
-
-const WM_TRAY: u32 = WM_APP + 1;
-
-fn tray(pid: u32, event: u32) {
-    for h in windows_all(pid, "RustDesktopIcons.Tray.dev") {
-        let _ = unsafe { PostMessageW(Some(h), WM_TRAY, WPARAM(0), LPARAM(event as isize)) };
-    }
-    std::thread::sleep(Duration::from_millis(400));
-}
 
 fn pause(ms: u64) {
     std::thread::sleep(Duration::from_millis(ms));
