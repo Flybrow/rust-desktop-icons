@@ -135,7 +135,8 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
 - System icons: `domain/system.rs` (`Sys`, pure) lives in `Tab.system` (legacy `recycle: true` migrates in `Config::sanitized`);
   `app/desk_icons.rs` hides them on the desktop while placed and restores the original HideDesktopIcons value
   (`Config.desk_icons`) when removed; dropping one on the desktop shows it. E2E: `cargo run --example system_e2e`.
-- `src/visibility/`: `mod.rs` hide/show everything (fences + desktop listview, `rescue` from the panic hook) and peek
+- `src/visibility/`: `mod.rs` hide/show everything (fences + desktop listview unless `Config.hide_desktop` is off; only a list it hid
+  is shown again; `rescue` from the panic hook) and peek
   (fences unowned + topmost via `fence::raise`, `overlay.rs` dim layer, ends on Esc, outside click or foreground change),
   `dblclick.rs` (WH_MOUSE_LL double-click on the empty desktop, item hit test through `Desk::item_at` once buttons are up),
   `hotkeys.rs` (RegisterHotKey on the tray, capture from the settings rows), `desks.rs` (virtual desktops, only while a fence
