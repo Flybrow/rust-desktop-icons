@@ -210,4 +210,5 @@ pub enum T {
     DPrivTitles,
     ListView,
     DListView,
+    NewPortalFence,
 }

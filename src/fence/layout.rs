@@ -86,11 +86,14 @@ fn spot(h: HWND, f: &Fence) -> (i32, (i32, i32)) {
 
 pub(super) fn orient(h: HWND) {
     let Some(f) = fence_of(h) else { return };
-    if view(h, |v| if f.rolled { v.unroll > 0. } else { v.unroll < 1. }) != Some(false) {
-        return;
+    if view(h, |v| if f.rolled { v.unroll > 0. } else { v.unroll < 1. }) == Some(false) {
+        reorient(h, &f);
     }
-    let (pos, span) = spot(h, &f);
-    let far = (f.rolled || f.vertical) && side::far(pos, bar(h), fit(h, &f, i32::MAX), span, scale(h, MARGIN));
+}
+
+pub(super) fn reorient(h: HWND, f: &Fence) {
+    let (pos, span) = spot(h, f);
+    let far = (f.rolled || f.vertical) && side::far(pos, bar(h), fit(h, f, i32::MAX), span, scale(h, MARGIN));
     view(h, |v| v.side = Side::pick(f.vertical, far));
 }
 

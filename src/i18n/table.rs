@@ -212,6 +212,7 @@ pub static S: [[&str; N]; 25] = [
         "Fence and tab titles become dots.",
         "Show as a list",
         "One item per row: a small icon with its name beside it.",
+        "New portal fence…",
     ],
     [
         "新建分区",
@@ -424,6 +425,7 @@ pub static S: [[&str; N]; 25] = [
         "分区和标签标题变为圆点。",
         "以列表显示",
         "每行一项：小图标，名称在旁边。",
+        "新建门户分区…",
     ],
     [
         "नया क्षेत्र",
@@ -636,6 +638,7 @@ pub static S: [[&str; N]; 25] = [
         "क्षेत्र और टैब के शीर्षक बिंदु बन जाते हैं।",
         "सूची के रूप में दिखाएँ",
         "हर पंक्ति में एक आइटम: छोटा आइकन और बगल में नाम।",
+        "नया पोर्टल क्षेत्र…",
     ],
     [
         "Nueva zona",
@@ -848,6 +851,7 @@ pub static S: [[&str; N]; 25] = [
         "Los títulos de zonas y pestañas se vuelven puntos.",
         "Mostrar como lista",
         "Un elemento por fila: icono pequeño con su nombre al lado.",
+        "Nueva zona portal…",
     ],
     [
         "Nouvelle zone",
@@ -1060,6 +1064,7 @@ pub static S: [[&str; N]; 25] = [
         "Les titres des zones et des onglets deviennent des points.",
         "Afficher en liste",
         "Un élément par ligne : petite icône avec son nom à côté.",
+        "Nouvelle zone portail…",
     ],
     [
         "منطقة جديدة",
@@ -1272,6 +1277,7 @@ pub static S: [[&str; N]; 25] = [
         "تصبح عناوين المناطق والعلامات نقاطًا.",
         "العرض كقائمة",
         "عنصر واحد في كل صف: أيقونة صغيرة واسمها بجانبها.",
+        "منطقة بوابة جديدة…",
     ],
     [
         "নতুন অঞ্চল",
@@ -1484,6 +1490,7 @@ pub static S: [[&str; N]; 25] = [
         "অঞ্চল ও ট্যাবের শিরোনাম বিন্দু হয়ে যায়।",
         "তালিকা হিসেবে দেখান",
         "প্রতি সারিতে একটি: ছোট আইকন, পাশে নাম।",
+        "নতুন পোর্টাল অঞ্চল…",
     ],
     [
         "Nova área",
@@ -1696,6 +1703,7 @@ pub static S: [[&str; N]; 25] = [
         "Os títulos das áreas e separadores tornam-se pontos.",
         "Mostrar em lista",
         "Um item por linha: ícone pequeno com o nome ao lado.",
+        "Nova área portal…",
     ],
     [
         "Новая область",
@@ -1908,6 +1916,7 @@ pub static S: [[&str; N]; 25] = [
         "Заголовки областей и вкладок становятся точками.",
         "Показывать списком",
         "Один элемент в строке: маленький значок и имя рядом.",
+        "Новая область-портал…",
     ],
     [
         "نیا خطہ",
@@ -2120,6 +2129,7 @@ pub static S: [[&str; N]; 25] = [
         "خطوں اور ٹیبز کے عنوان نقطے بن جاتے ہیں۔",
         "فہرست کی صورت دکھائیں",
         "ہر قطار میں ایک: چھوٹا آئیکن اور ساتھ نام۔",
+        "نیا پورٹل خطہ…",
     ],
     [
         "Area baru",
@@ -2332,6 +2342,7 @@ pub static S: [[&str; N]; 25] = [
         "Judul area dan tab menjadi titik.",
         "Tampilkan sebagai daftar",
         "Satu item per baris: ikon kecil dengan nama di sampingnya.",
+        "Area portal baru…",
     ],
     [
         "Neuer Bereich",
@@ -2544,6 +2555,7 @@ pub static S: [[&str; N]; 25] = [
         "Bereichs- und Registertitel werden zu Punkten.",
         "Als Liste anzeigen",
         "Ein Element pro Zeile: kleines Symbol mit dem Namen daneben.",
+        "Neuer Portal-Bereich…",
     ],
     [
         "新しいフェンス",
@@ -2756,6 +2768,7 @@ pub static S: [[&str; N]; 25] = [
         "フェンスとタブのタイトルが点になります。",
         "一覧で表示",
         "1 行に 1 つ：小さなアイコンと横に名前。",
+        "新しいポータル フェンス…",
     ],
     [
         "Eneo jipya",
@@ -2968,6 +2981,7 @@ pub static S: [[&str; N]; 25] = [
         "Vichwa vya maeneo na vichupo vinakuwa nukta.",
         "Onyesha kama orodha",
         "Kipengee kimoja kwa kila mstari: aikoni ndogo na jina kando.",
+        "Eneo jipya la lango…",
     ],
     [
         "नवीन क्षेत्र",
@@ -3180,6 +3194,7 @@ pub static S: [[&str; N]; 25] = [
         "क्षेत्र आणि टॅबची शीर्षके ठिपके होतात.",
         "यादी म्हणून दाखवा",
         "प्रत्येक ओळीत एक: लहान आयकॉन आणि शेजारी नाव.",
+        "नवीन पोर्टल क्षेत्र…",
     ],
     [
         "కొత్త ప్రాంతం",
@@ -3392,6 +3407,7 @@ pub static S: [[&str; N]; 25] = [
         "ప్రాంతాలు, ట్యాబ్‌ల శీర్షికలు చుక్కలుగా మారతాయి.",
         "జాబితాగా చూపు",
         "ప్రతి వరుసకు ఒకటి: చిన్న ఐకాన్, పక్కన పేరు.",
+        "కొత్త పోర్టల్ ప్రాంతం…",
     ],
     [
         "Yeni alan",
@@ -3604,6 +3620,7 @@ pub static S: [[&str; N]; 25] = [
         "Alan ve sekme başlıkları noktalara dönüşür.",
         "Liste olarak göster",
         "Satır başına bir öğe: küçük simge, yanında adı.",
+        "Yeni portal alanı…",
     ],
     [
         "புதிய பகுதி",
@@ -3816,6 +3833,7 @@ pub static S: [[&str; N]; 25] = [
         "பகுதி, தாவல் தலைப்புகள் புள்ளிகளாகும்.",
         "பட்டியலாகக் காட்டு",
         "வரிசைக்கு ஒன்று: சிறிய ஐகான், அருகில் பெயர்.",
+        "புதிய போர்டல் பகுதி…",
     ],
     [
         "Vùng mới",
@@ -4028,6 +4046,7 @@ pub static S: [[&str; N]; 25] = [
         "Tiêu đề vùng và thẻ thành dấu chấm.",
         "Hiển thị dạng danh sách",
         "Mỗi dòng một mục: biểu tượng nhỏ, tên bên cạnh.",
+        "Vùng cổng mới…",
     ],
     [
         "새 영역",
@@ -4240,6 +4259,7 @@ pub static S: [[&str; N]; 25] = [
         "영역과 탭 제목이 점으로 바뀝니다.",
         "목록으로 표시",
         "한 줄에 하나: 작은 아이콘 옆에 이름.",
+        "새 포털 영역…",
     ],
     [
         "Nuova area",
@@ -4452,6 +4472,7 @@ pub static S: [[&str; N]; 25] = [
         "I titoli di aree e schede diventano puntini.",
         "Mostra come elenco",
         "Un elemento per riga: icona piccola con il nome accanto.",
+        "Nuova area portale…",
     ],
     [
         "พื้นที่ใหม่",
@@ -4664,6 +4685,7 @@ pub static S: [[&str; N]; 25] = [
         "ชื่อพื้นที่และแท็บจะกลายเป็นจุด",
         "แสดงเป็นรายการ",
         "หนึ่งรายการต่อแถว: ไอคอนเล็กพร้อมชื่อข้างๆ",
+        "พื้นที่พอร์ทัลใหม่…",
     ],
     [
         "Nowy obszar",
@@ -4876,6 +4898,7 @@ pub static S: [[&str; N]; 25] = [
         "Tytuły obszarów i kart stają się kropkami.",
         "Pokaż jako listę",
         "Jeden element w wierszu: mała ikona z nazwą obok.",
+        "Nowy obszar portalu…",
     ],
     [
         "Нова область",
@@ -5088,6 +5111,7 @@ pub static S: [[&str; N]; 25] = [
         "Заголовки областей і вкладок стають крапками.",
         "Показувати списком",
         "Один елемент у рядку: малий значок і назва поруч.",
+        "Нова область-портал…",
     ],
     [
         "ناحیه جدید",
@@ -5300,5 +5324,6 @@ pub static S: [[&str; N]; 25] = [
         "عنوان ناحیه‌ها و زبانه‌ها به نقطه تبدیل می‌شوند.",
         "نمایش به صورت فهرست",
         "یک مورد در هر سطر: آیکون کوچک و نام کنار آن.",
+        "ناحیه پورتال جدید…",
     ],
 ];

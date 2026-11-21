@@ -1,6 +1,9 @@
 use super::{View, with};
 use crate::{domain::Fence, fence, i18n::T, report, shell, store, win::*};
-use windows::Win32::{Foundation::RECT, UI::WindowsAndMessaging::*};
+use windows::Win32::{
+    Foundation::{HWND, RECT},
+    UI::WindowsAndMessaging::*,
+};
 
 pub fn recover() {
     let dirs = store::filled_dirs();
@@ -23,12 +26,25 @@ pub fn register_verb() {
 }
 
 pub fn new_fence() {
+    create(None);
+}
+
+pub fn new_portal(owner: HWND) {
+    if let Some(dir) = shell::pick::folder(owner) {
+        create(Some(dir));
+    }
+}
+
+fn create(portal: Option<std::path::PathBuf>) {
     crate::visibility::end_peek();
     crate::visibility::reveal();
     let (px, py) = cursor_pos();
     let s = sys_scale;
     let Some(f) = super::edit(|a| {
-        let f = Fence::new(a.cfg.next_id(), a.t(T::Fence), (px - s(180), py - s(120), s(360), s(240)), a.cfg.look.clone());
+        let title =
+            portal.as_ref().and_then(|p| p.file_name()).map_or_else(|| a.t(T::Fence).to_string(), |n| n.to_string_lossy().into_owned());
+        let mut f = Fence::new(a.cfg.next_id(), &title, (px - s(180), py - s(120), s(360), s(240)), a.cfg.look.clone());
+        f.tabs[0].portal = portal.clone();
         a.cfg.fences.push(f.clone());
         f
     }) else {

@@ -32,12 +32,15 @@ fn main() {
     let root = env::temp_dir().join(format!("rdi-tray-{}", std::process::id()));
     let data = root.join("RustDesktopIcons");
     fs::create_dir_all(data.join("fences").join("1")).unwrap();
+    let portal = root.join("Projects");
+    fs::create_dir_all(&portal).unwrap();
+    fs::write(portal.join("plan.txt"), "x").unwrap();
     let (x0, y0) = (w.left + 200, w.top + 200);
     let cfg = json!({"lang": "en", "auto_update": false, "auto_sort": false, "autostart": true, "version": env!("CARGO_PKG_VERSION"),
         "peek_key": null, "search_key": null,
         "fences": [{"id": 1, "x": x0, "y": y0, "w": 300, "h": 200, "tabs": [{"id": 1, "title": "Tray"}]}]});
     fs::write(data.join("config.json"), serde_json::to_vec_pretty(&cfg).unwrap()).unwrap();
-    let mut child = app(&root, &[("RDI_TOP", "1")], &[]);
+    let mut child = app(&root, &[("RDI_TOP", "1"), ("RDI_PICK", portal.to_str().unwrap())], &[]);
     let pid = child.id();
     let mut fails = vec![];
     let mut check = |ok: bool, what: &str| {
@@ -84,6 +87,13 @@ fn main() {
     thread::sleep(Duration::from_millis(400));
     tray_menu(pid, &["New fence"]);
     check(wait(3, || fences(pid).len() == 2), "New fence creates a fence");
+    tray_menu(pid, &["New portal fence…"]);
+    let made = until(&|c| {
+        c["fences"]
+            .as_array()
+            .is_some_and(|f| f.iter().any(|f| f["tabs"][0]["portal"] == json!(portal) && f["tabs"][0]["title"] == "Projects"))
+    });
+    check(made && wait(3, || fences(pid).len() == 3), "New portal fence… creates a fence showing the picked folder");
     tray_menu(pid, &["Language", "Français"]);
     let fr = until(&|c| c["lang"] == "fr");
     tray_menu(pid, &["Langue", "English"]);

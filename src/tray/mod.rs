@@ -110,6 +110,7 @@ fn menu_at(h: HWND) {
             separator(m);
         }
         a.entry(m, 1, T::NewFence, false, g::ADD);
+        a.entry(m, 11, T::NewPortalFence, false, g::PORTAL);
         a.entry(m, 8, T::Search, false, g::SEARCH);
         a.entry(m, 7, T::Settings, false, g::SETTINGS);
         layouts::submenu(a, m);
@@ -129,6 +130,7 @@ fn menu_at(h: HWND) {
     };
     match popup(h, m, rtl) {
         1 => new_fence(),
+        11 => crate::app::new_portal(h),
         10 => settings::private(|p| p.on ^= true),
         9 => crate::undo::undo(),
         2 => prefs::toggle_autostart(),

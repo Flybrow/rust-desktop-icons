@@ -28,6 +28,9 @@ unsafe fn json(d: &IFileDialog) -> Option<()> {
 }
 
 pub fn folder(h: HWND) -> Option<PathBuf> {
+    if let Some(p) = scripted() {
+        return Some(p);
+    }
     unsafe {
         let d: IFileOpenDialog = CoCreateInstance(&FileOpenDialog, None, CLSCTX_INPROC_SERVER).ok()?;
         d.SetOptions(d.GetOptions().ok()? | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM).ok()?;

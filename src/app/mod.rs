@@ -13,7 +13,7 @@ use crate::{
     report, rules, settings, shell, store, tray,
     win::*,
 };
-pub use fences::{duplicate, new_fence, rebuild, recover, register_verb};
+pub use fences::{duplicate, new_fence, new_portal, rebuild, recover, register_verb};
 use std::{cell::RefCell, collections::HashSet, path::PathBuf};
 pub use view::{Filter, Item, View};
 use windows::{

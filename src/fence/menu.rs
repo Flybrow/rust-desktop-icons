@@ -182,7 +182,9 @@ pub(super) fn context(h: HWND) {
         k @ SYS..=SYS_END => system::toggle(h, Sys::ALL[k - SYS]),
         64 => {
             update(h, |f| f.vertical ^= true);
-            layout::orient(h);
+            if let Some(f) = fence_of(h) {
+                layout::reorient(h, &f);
+            }
             layout::apply(h);
         }
         _ => {}
