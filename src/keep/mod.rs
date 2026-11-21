@@ -9,6 +9,7 @@ use crate::{
     domain::pins::{Pin, reconcile as follow},
     fence, shell,
 };
+pub use inject::reply;
 pub use keeper::{SOON, TICK, apply, restore, soon};
 pub use migrate::{WM_KEEP, finish, sync};
 pub use place::{paste, place, release};

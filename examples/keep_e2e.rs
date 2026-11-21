@@ -205,11 +205,23 @@ fn main() {
         let control = file("rdi-e2e-control");
         fs::write(desk.join(&control), "Rust Desktop Icons e2e test file").unwrap();
         restart_explorer();
-        let listed = waited(60, || positions().iter().any(|(p, _)| p.ends_with(&control)));
-        let t = listed.and_then(|_| waited(60, || hidden(&names) == names.len()));
+        let start = std::time::Instant::now();
+        let (mut shown, mut t) = (None, None);
+        while t.is_none() && start.elapsed() < Duration::from_secs(60) {
+            let listed = positions().iter().any(|(p, _)| p.ends_with(&control));
+            let all = hidden(&names) == names.len();
+            if !all && shown.is_none() {
+                shown = Some(start.elapsed());
+            }
+            if listed && all {
+                t = Some(start.elapsed());
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
         thread::sleep(Duration::from_millis(4000));
         before = flags();
-        println!("      explorer restart: hidden again after {} ms", t.map_or(-1, |m| m as i64));
+        let visible = shown.zip(t).map_or(0, |(s, e)| (e - s).as_millis());
+        println!("      explorer restart: hidden icons visible for {visible} ms (first seen at {shown:?}, all hidden at {t:?})");
         r.check(t.is_some() && hidden(&names) == names.len(), "icons hidden again after Explorer restart (and stay hidden)");
         let _ = fs::remove_file(desk.join(&control));
     }

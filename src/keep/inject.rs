@@ -1,7 +1,20 @@
-use crate::{report, shell::hide::listview, store};
-use rdi_hook::{command, map::Map, shared::*};
+use crate::{
+    domain::flight::{Flight, Next, WAIT_MS},
+    report,
+    shell::hide::listview,
+    store, tray,
+    win::now_ms,
+};
+use rdi_hook::{
+    command,
+    exit::{Watch, watch},
+    map::Map,
+    post,
+    shared::*,
+    wait,
+};
 use sha2::{Digest, Sha256};
-use std::{cell::RefCell, fs, path::PathBuf, time::Duration};
+use std::{cell::RefCell, ffi::c_void, fs, path::PathBuf, time::Duration};
 use windows::{
     Win32::{
         Foundation::{HWND, LPARAM, LRESULT, WPARAM},
@@ -11,14 +24,37 @@ use windows::{
     core::{HSTRING, s},
 };
 
+pub use rdi_hook::reply;
+
 type Proc = unsafe extern "system" fn(i32, WPARAM, LPARAM) -> LRESULT;
 
 static DLL: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/rdi_hook.dll"));
+const WAIT: Duration = Duration::from_millis(WAIT_MS);
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Push {
+    Done,
+    Pending,
+    Absent,
+    Failed,
+}
+
+struct Hook {
+    handle: HHOOK,
+    view: isize,
+    _explorer: Option<Watch>,
+}
+
+impl Drop for Hook {
+    fn drop(&mut self) {
+        let _ = unsafe { UnhookWindowsHookEx(self.handle) };
+    }
+}
 
 struct State {
     map: Map,
-    hook: Option<(HHOOK, isize)>,
-    sent: Option<Vec<String>>,
+    hook: Option<Hook>,
+    flight: Flight,
 }
 
 thread_local! {
@@ -45,67 +81,89 @@ fn defview() -> Option<HWND> {
     unsafe { GetParent(listview()?).ok() }
 }
 
-fn hook(view: HWND) -> Option<HHOOK> {
+unsafe extern "system" fn gone(_: *mut c_void, _: bool) {
+    super::keeper::wake();
+}
+
+fn hook(view: HWND) -> Option<Hook> {
     unsafe {
         let m = LoadLibraryW(&HSTRING::from(dll()?.as_os_str())).ok()?;
         let call = GetProcAddress(m, s!("rdi_get_msg"))?;
-        let tid = GetWindowThreadProcessId(view, None);
+        let mut pid = 0;
+        let tid = GetWindowThreadProcessId(view, Some(&mut pid));
         let proc: HOOKPROC = Some(std::mem::transmute::<unsafe extern "system" fn() -> isize, Proc>(call));
-        SetWindowsHookExW(WH_GETMESSAGE, proc, Some(m.into()), tid).ok()
+        let handle = SetWindowsHookExW(WH_GETMESSAGE, proc, Some(m.into()), tid).ok()?;
+        Some(Hook { handle, view: view.0 as isize, _explorer: watch(pid, Some(gone)) })
     }
-}
-
-fn unhook(s: &mut State) {
-    if let Some((h, _)) = s.hook.take() {
-        let _ = unsafe { UnhookWindowsHookEx(h) };
-    }
-}
-
-fn send(map: &Map, view: HWND) -> bool {
-    command(view, map, Duration::from_secs(2))
 }
 
 fn session(view: HWND) -> Option<State> {
     let mut s = match STATE.take() {
         Some(s) => s,
-        None => State { map: Map::create(std::process::id())?, hook: None, sent: None },
+        None => State { map: Map::create(std::process::id())?, hook: None, flight: Flight::default() },
     };
-    if s.hook.is_some_and(|(_, v)| v != view.0 as isize) {
-        unhook(&mut s);
-        s.sent = None;
-    }
-    if s.hook.is_none() {
-        match hook(view) {
-            Some(h) => s.hook = Some((h, view.0 as isize)),
-            None => report::log("cannot load the desktop hook"),
-        }
+    if s.hook.as_ref().is_some_and(|h| h.view != view.0 as isize) {
+        s.hook = None;
+        s.flight = Flight::default();
     }
     Some(s)
 }
 
-pub fn push(paths: &[PathBuf]) -> bool {
-    let Some(view) = defview() else { return false };
-    let Some(mut s) = session(view) else { return false };
-    let keys: Vec<String> = paths.iter().map(|p| key(&p.to_string_lossy())).collect();
-    let ok = s.hook.is_some()
-        && (s.sent.as_ref() == Some(&keys) || {
-            s.map.write(&keys);
-            let ok = send(&s.map, view);
-            if !ok {
-                report::log(&format!("desktop hook failed at stage {} ({} errors)", s.map.get(STAGE), s.map.get(ERRORS)));
+impl State {
+    fn send(&mut self, view: HWND, keys: Vec<String>, now: u64) -> Push {
+        if self.hook.is_none() {
+            self.hook = hook(view);
+        }
+        if self.hook.is_none() {
+            report::log("cannot load the desktop hook");
+            self.flight.fail(now);
+            return Push::Failed;
+        }
+        self.map.write(&keys);
+        self.map.set(TRAY, tray::hwnd().map_or(0, |h| h.0 as isize as u32));
+        match post(view, &self.map) {
+            Some(before) => {
+                self.flight.sending(keys, before, now);
+                Push::Pending
             }
-            s.sent = ok.then_some(keys);
-            ok
-        });
+            None => {
+                self.flight.fail(now);
+                Push::Failed
+            }
+        }
+    }
+
+    fn push(&mut self, view: HWND, keys: Vec<String>) -> Push {
+        let now = now_ms() as u64;
+        match self.flight.next(&keys, self.map.get(PASSES), self.map.get(STAGE) == DONE, now) {
+            Next::Wait => Push::Pending,
+            Next::Done => Push::Done,
+            Next::Failed => Push::Failed,
+            Next::Broke => {
+                report::log(&format!("desktop hook failed at stage {} ({} errors)", self.map.get(STAGE), self.map.get(ERRORS)));
+                Push::Failed
+            }
+            Next::Send => self.send(view, keys, now),
+        }
+    }
+}
+
+pub fn push(paths: &[PathBuf]) -> Push {
+    let Some(view) = defview() else { return Push::Absent };
+    let Some(mut s) = session(view) else { return Push::Failed };
+    let r = s.push(view, paths.iter().map(|p| key(&p.to_string_lossy())).collect());
     STATE.set(Some(s));
-    ok
+    r
 }
 
 pub fn stop() {
-    let Some(mut s) = STATE.take() else { return };
-    if let Some((_, v)) = s.hook {
+    let Some(s) = STATE.take() else { return };
+    if let Some(h) = &s.hook {
+        if let Some(before) = s.flight.pending() {
+            wait(&s.map, before, WAIT);
+        }
         s.map.write::<&str>(&[]);
-        send(&s.map, HWND(v as _));
+        s.map.set(TRAY, 0);
+        command(HWND(h.view as _), &s.map, WAIT);
     }
-    unhook(&mut s);
 }

@@ -72,7 +72,7 @@ fn shell_view(map: Option<&Map>, defview: HWND) -> Option<IShellView> {
     from_browser(map, defview).or_else(|| from_windows(map))
 }
 
-fn path(folder: &IShellFolder, pidl: *const ITEMIDLIST) -> Option<String> {
+pub fn display(folder: &IShellFolder, pidl: *const ITEMIDLIST) -> Option<String> {
     unsafe {
         let mut sr = STRRET::default();
         folder.GetDisplayNameOf(pidl, SHGDN_FORPARSING, &mut sr).ok()?;
@@ -80,8 +80,12 @@ fn path(folder: &IShellFolder, pidl: *const ITEMIDLIST) -> Option<String> {
         StrRetToStrW(&mut sr, Some(pidl), &mut s).ok()?;
         let text = s.to_string().ok();
         CoTaskMemFree(Some(s.0 as _));
-        text.map(|t| key(&t))
+        text
     }
+}
+
+fn path(folder: &IShellFolder, pidl: *const ITEMIDLIST) -> Option<String> {
+    display(folder, pidl).map(|t| key(&t))
 }
 
 fn items(view: &IFolderView) -> Vec<Pidl> {
@@ -131,14 +135,15 @@ pub fn pass(defview: HWND, map: &Map, hidden: &mut Vec<String>) -> Option<()> {
     }
     let folder: IShellFolder = record(Some(map), 33, unsafe { fv.GetFolder() })?;
     let mut refresh = false;
-    for p in hidden.iter().filter(|p| !list.contains(*p) && Path::new(p).exists()) {
+    let (show, hide) = changes(hidden, &list);
+    for p in show.into_iter().filter(|p| Path::new(p).exists()) {
         match child(&folder, p) {
             Some(pidl) if unsafe { sfv.AddObject(pidl.0) }.is_ok() => map.bump(ADDED, 1),
             _ => refresh = true,
         }
     }
     let mut lost = HashSet::new();
-    for p in list.iter().filter(|p| !hidden.contains(*p) && Path::new(p).exists()) {
+    for p in hide.into_iter().filter(|p| Path::new(p).exists()) {
         match child(&folder, p) {
             Some(pidl) => {
                 if unsafe { sfv.RemoveObject(Some(pidl.0)) }.is_ok() {

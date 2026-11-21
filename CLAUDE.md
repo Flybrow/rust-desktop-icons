@@ -81,8 +81,12 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   stats + `STAGE`, `DONE` = success). In explorer, `view.rs` gets the desktop IShellView (WM_GETISHELLBROWSER, else IShellWindows), `filter.rs` wraps
   the desktop view callback through `IShellFolderView::SetCallback` so its `IFolderFilter::ShouldShow` refuses pinned items at insertion (F5, new
   files, renames never flash), and `RemoveObject`/`AddObject` handle pins that change. `guard.rs` pins the DLL (the wrapper stays referenced by the
-  view) before anything else and watches our process: when it dies, the filter lets everything through and the view is refreshed. The hook code
-  must never panic (it would take explorer down). If the hook cannot load, `keeper` falls back to the stack below.
+  view) before anything else and watches our process (`hook/src/exit.rs`, shared with `inject.rs`, which watches explorer the same way and wakes the
+  keeper when it dies): when RDI dies, the filter lets everything through and the view is refreshed. The hook code
+  must never panic (it would take explorer down). The tray never waits for a pass: `inject::push` posts it and returns `Pending`; the DLL posts
+  `rdi_hook::reply()` to the tray (`TRAY` slot) when done, which runs `keep::apply` again. `domain/flight.rs` (pure, tested) decides send / wait /
+  done / failed (no answer in 2 s or a pass that stopped early: stack fallback, retried after 60 s). No desktop view yet (Explorer restarting):
+  retried every 100 ms. If the hook cannot load, `keeper` falls back to the stack below.
   Fallback: hidden icons are stacked in one free cell at the bottom-right of the primary work area (`corner_slot`) under `cover.rs`, a small window painting the wallpaper (`PaintDesktop`).
   When the stack moves to another cell, the cover spans both cells for 250 ms (Explorer moves the icons after the cover).
   Never park icons off-screen: Explorer pulls every item that is not fully on a monitor back on screen at each drop (visible flash). Hidden icons that get selected are deselected at once.

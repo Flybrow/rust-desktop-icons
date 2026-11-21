@@ -3,6 +3,7 @@ pub mod backup;
 pub mod color;
 mod compat;
 mod config;
+pub mod flight;
 pub mod grid;
 pub mod groups;
 pub mod history;

@@ -1,3 +1,4 @@
+pub mod exit;
 mod filter;
 mod guard;
 pub mod map;
@@ -25,22 +26,37 @@ use windows::{
 static PID: AtomicU32 = AtomicU32::new(0);
 static HIDDEN: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
-pub fn message() -> u32 {
-    static M: OnceLock<u32> = OnceLock::new();
-    *M.get_or_init(|| unsafe { RegisterWindowMessageW(&HSTRING::from(MESSAGE)) })
+fn registered(cell: &OnceLock<u32>, name: &str) -> u32 {
+    *cell.get_or_init(|| unsafe { RegisterWindowMessageW(&HSTRING::from(name)) })
 }
 
-pub fn command(view: HWND, map: &Map, wait: Duration) -> bool {
+pub fn message() -> u32 {
+    static M: OnceLock<u32> = OnceLock::new();
+    registered(&M, MESSAGE)
+}
+
+pub fn reply() -> u32 {
+    static M: OnceLock<u32> = OnceLock::new();
+    registered(&M, REPLY)
+}
+
+pub fn post(view: HWND, map: &Map) -> Option<u32> {
     let before = map.get(PASSES);
     map.set(STAGE, 0);
-    if unsafe { PostMessageW(Some(view), message(), WPARAM(std::process::id() as usize), LPARAM(0)) }.is_err() {
-        return false;
-    }
+    unsafe { PostMessageW(Some(view), message(), WPARAM(std::process::id() as usize), LPARAM(0)) }.ok()?;
+    Some(before)
+}
+
+pub fn wait(map: &Map, before: u32, timeout: Duration) -> bool {
     let t = Instant::now();
-    while map.get(PASSES) == before && t.elapsed() < wait {
+    while map.get(PASSES) == before && t.elapsed() < timeout {
         thread::sleep(Duration::from_millis(2));
     }
-    map.get(STAGE) == DONE
+    map.get(PASSES) != before && map.get(STAGE) == DONE
+}
+
+pub fn command(view: HWND, map: &Map, timeout: Duration) -> bool {
+    post(view, map).is_some_and(|before| wait(map, before, timeout))
 }
 
 fn run(defview: HWND) {
@@ -58,6 +74,10 @@ fn run(defview: HWND) {
     }
     map.set(MICROS, t.elapsed().as_micros() as u32);
     map.bump(PASSES, 1);
+    let tray = map.get(TRAY);
+    if tray != 0 {
+        let _ = unsafe { PostMessageW(Some(HWND(tray as i32 as isize as _)), reply(), WPARAM(0), LPARAM(0)) };
+    }
 }
 
 /// # Safety
@@ -76,4 +96,31 @@ pub unsafe extern "system" fn rdi_get_msg(code: i32, w: WPARAM, l: LPARAM) -> LR
         run(m.hwnd);
     }
     CallNextHookEx(None, code, w, l)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wait_needs_a_new_pass_that_finished() {
+        let map = Map::create(u32::MAX - 1).unwrap();
+        map.set(STAGE, DONE);
+        assert!(!wait(&map, map.get(PASSES), Duration::from_millis(20)), "a stale DONE is not an answer");
+        let before = map.get(PASSES);
+        map.set(STAGE, 3);
+        map.bump(PASSES, 1);
+        assert!(!wait(&map, before, Duration::from_millis(20)), "a pass that stopped early failed");
+        let before = map.get(PASSES);
+        let t = thread::spawn(|| {
+            let open = Map::open(u32::MAX - 1).unwrap();
+            thread::sleep(Duration::from_millis(30));
+            open.set(STAGE, DONE);
+            open.bump(PASSES, 1);
+        });
+        assert!(wait(&map, before, Duration::from_secs(5)));
+        t.join().unwrap();
+        assert_ne!(message(), reply());
+        assert!(message() >= 0xC000);
+    }
 }

@@ -86,3 +86,35 @@ impl Map {
         (h[SEQ].load(SeqCst) == before).then(|| decode(&buf))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn both_sides_see_the_same_list_and_counters() {
+        let a = Map::create(u32::MAX - 2).unwrap();
+        let b = Map::open(u32::MAX - 2).unwrap();
+        a.write(&["C:/D/One.txt", "c:/d/two.lnk"]);
+        let list = b.read().unwrap();
+        assert_eq!(list.len(), 2);
+        assert!(list.contains("c:/d/one.txt") && list.contains("c:/d/two.lnk"));
+        assert_eq!(b.get(SEQ) % 2, 0);
+        b.bump(PASSES, 2);
+        b.set(STAGE, DONE);
+        assert_eq!((a.get(PASSES), a.get(STAGE)), (2, DONE));
+        a.write::<&str>(&[]);
+        assert!(b.read().unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_list_being_written_is_never_read() {
+        let a = Map::create(u32::MAX - 4).unwrap();
+        a.write(&["x"]);
+        a.bump(SEQ, 1);
+        assert!(a.read().is_none());
+        a.bump(SEQ, 1);
+        assert_eq!(a.read().unwrap().len(), 1);
+        assert!(Map::open(u32::MAX - 5).is_none());
+    }
+}

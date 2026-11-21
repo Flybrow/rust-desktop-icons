@@ -1,4 +1,4 @@
-use crate::{guard::alive, shared::key};
+use crate::{guard::alive, shared::refused, view::display};
 use std::{
     collections::HashSet,
     ffi::c_void,
@@ -10,7 +10,6 @@ use std::{
 use windows::{
     Win32::{
         Foundation::{E_NOINTERFACE, E_NOTIMPL, E_POINTER, HWND, LPARAM, S_FALSE, S_OK, WPARAM},
-        System::Com::CoTaskMemFree,
         UI::Shell::{Common::*, *},
     },
     core::*,
@@ -108,25 +107,8 @@ unsafe extern "system" fn message(this: *mut c_void, msg: u32, w: WPARAM, l: LPA
 }
 
 fn hidden(psf: *mut c_void, item: *const ITEMIDLIST) -> bool {
-    if !alive() {
-        return false;
-    }
-    let Ok(list) = LIST.read() else { return false };
-    let Some(list) = list.as_ref().filter(|l| !l.is_empty()) else { return false };
-    unsafe {
-        let Some(folder) = IShellFolder::from_raw_borrowed(&psf) else { return false };
-        let mut sr = STRRET::default();
-        if folder.GetDisplayNameOf(item, SHGDN_FORPARSING, &mut sr).is_err() {
-            return false;
-        }
-        let mut s = PWSTR::null();
-        if StrRetToStrW(&mut sr, Some(item), &mut s).is_err() {
-            return false;
-        }
-        let text = s.to_string().ok();
-        CoTaskMemFree(Some(s.0 as _));
-        text.is_some_and(|t| list.contains(&key(&t)))
-    }
+    let name = || unsafe { IShellFolder::from_raw_borrowed(&psf) }.and_then(|f| display(f, item));
+    LIST.read().is_ok_and(|list| refused(alive(), list.as_ref(), name))
 }
 
 unsafe extern "system" fn show(this: *mut c_void, psf: *mut c_void, folder: *const ITEMIDLIST, item: *const ITEMIDLIST) -> HRESULT {

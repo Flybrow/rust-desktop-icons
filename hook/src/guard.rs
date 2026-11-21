@@ -68,10 +68,8 @@ pub fn watch(pid: u32) {
     if PID.swap(pid, SeqCst) == pid || window().is_none() {
         return;
     }
-    unsafe {
-        let Ok(h) = OpenProcess(PROCESS_SYNCHRONIZE, false, pid) else { return };
-        PROC.store(h.0 as isize, SeqCst);
-        let mut wait = HANDLE::default();
-        let _ = RegisterWaitForSingleObject(&mut wait, h, Some(died), None, INFINITE, WT_EXECUTEONLYONCE);
+    if let Some(w) = crate::exit::watch(pid, Some(died)) {
+        PROC.store(w.process.0 as isize, SeqCst);
+        std::mem::forget(w);
     }
 }
