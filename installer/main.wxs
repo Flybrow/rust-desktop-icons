@@ -26,6 +26,7 @@
             <RegistryValue Root="HKCU" Key="Software\RustDesktopIcons" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
             <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="RustDesktopIcons" Type="string" Value="&quot;[INSTALLFOLDER]rust-desktop-icons.exe&quot;" />
             <RemoveRegistryKey Root="HKCU" Key="Software\Classes\DesktopBackground\Shell\RustDesktopIcons" Action="removeOnUninstall" />
+            <RemoveRegistryKey Root="HKCU" Key="Software\Classes\DesktopBackground\Shell\RustDesktopIcons.Portal" Action="removeOnUninstall" />
             <RemoveFolder Id="RemoveInstall" Directory="INSTALLFOLDER" On="uninstall" />
             <RemoveFolder Id="RemovePrograms" Directory="ProgramsDir" On="uninstall" />
           </Component>

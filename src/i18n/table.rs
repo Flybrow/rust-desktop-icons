@@ -213,6 +213,7 @@ pub static S: [[&str; N]; 25] = [
         "Show as a list",
         "One item per row: a small icon with its name beside it.",
         "New portal fence…",
+        "Create an RDI portal fence…",
     ],
     [
         "新建分区",
@@ -426,6 +427,7 @@ pub static S: [[&str; N]; 25] = [
         "以列表显示",
         "每行一项：小图标，名称在旁边。",
         "新建门户分区…",
+        "创建 RDI 门户区域…",
     ],
     [
         "नया क्षेत्र",
@@ -639,6 +641,7 @@ pub static S: [[&str; N]; 25] = [
         "सूची के रूप में दिखाएँ",
         "हर पंक्ति में एक आइटम: छोटा आइकन और बगल में नाम।",
         "नया पोर्टल क्षेत्र…",
+        "RDI पोर्टल क्षेत्र बनाएँ…",
     ],
     [
         "Nueva zona",
@@ -852,6 +855,7 @@ pub static S: [[&str; N]; 25] = [
         "Mostrar como lista",
         "Un elemento por fila: icono pequeño con su nombre al lado.",
         "Nueva zona portal…",
+        "Crear una zona portal RDI…",
     ],
     [
         "Nouvelle zone",
@@ -1065,6 +1069,7 @@ pub static S: [[&str; N]; 25] = [
         "Afficher en liste",
         "Un élément par ligne : petite icône avec son nom à côté.",
         "Nouvelle zone portail…",
+        "Créer une zone portail RDI…",
     ],
     [
         "منطقة جديدة",
@@ -1278,6 +1283,7 @@ pub static S: [[&str; N]; 25] = [
         "العرض كقائمة",
         "عنصر واحد في كل صف: أيقونة صغيرة واسمها بجانبها.",
         "منطقة بوابة جديدة…",
+        "إنشاء منطقة بوابة RDI…",
     ],
     [
         "নতুন অঞ্চল",
@@ -1491,6 +1497,7 @@ pub static S: [[&str; N]; 25] = [
         "তালিকা হিসেবে দেখান",
         "প্রতি সারিতে একটি: ছোট আইকন, পাশে নাম।",
         "নতুন পোর্টাল অঞ্চল…",
+        "RDI পোর্টাল এলাকা তৈরি করুন…",
     ],
     [
         "Nova área",
@@ -1704,6 +1711,7 @@ pub static S: [[&str; N]; 25] = [
         "Mostrar em lista",
         "Um item por linha: ícone pequeno com o nome ao lado.",
         "Nova área portal…",
+        "Criar uma área portal RDI…",
     ],
     [
         "Новая область",
@@ -1917,6 +1925,7 @@ pub static S: [[&str; N]; 25] = [
         "Показывать списком",
         "Один элемент в строке: маленький значок и имя рядом.",
         "Новая область-портал…",
+        "Создать зону-портал RDI…",
     ],
     [
         "نیا خطہ",
@@ -2130,6 +2139,7 @@ pub static S: [[&str; N]; 25] = [
         "فہرست کی صورت دکھائیں",
         "ہر قطار میں ایک: چھوٹا آئیکن اور ساتھ نام۔",
         "نیا پورٹل خطہ…",
+        "RDI پورٹل حصہ بنائیں…",
     ],
     [
         "Area baru",
@@ -2343,6 +2353,7 @@ pub static S: [[&str; N]; 25] = [
         "Tampilkan sebagai daftar",
         "Satu item per baris: ikon kecil dengan nama di sampingnya.",
         "Area portal baru…",
+        "Buat area portal RDI…",
     ],
     [
         "Neuer Bereich",
@@ -2556,6 +2567,7 @@ pub static S: [[&str; N]; 25] = [
         "Als Liste anzeigen",
         "Ein Element pro Zeile: kleines Symbol mit dem Namen daneben.",
         "Neuer Portal-Bereich…",
+        "RDI-Portal-Bereich erstellen…",
     ],
     [
         "新しいフェンス",
@@ -2769,6 +2781,7 @@ pub static S: [[&str; N]; 25] = [
         "一覧で表示",
         "1 行に 1 つ：小さなアイコンと横に名前。",
         "新しいポータル フェンス…",
+        "RDI ポータル エリアを作成…",
     ],
     [
         "Eneo jipya",
@@ -2982,6 +2995,7 @@ pub static S: [[&str; N]; 25] = [
         "Onyesha kama orodha",
         "Kipengee kimoja kwa kila mstari: aikoni ndogo na jina kando.",
         "Eneo jipya la lango…",
+        "Unda eneo la lango la RDI…",
     ],
     [
         "नवीन क्षेत्र",
@@ -3195,6 +3209,7 @@ pub static S: [[&str; N]; 25] = [
         "यादी म्हणून दाखवा",
         "प्रत्येक ओळीत एक: लहान आयकॉन आणि शेजारी नाव.",
         "नवीन पोर्टल क्षेत्र…",
+        "RDI पोर्टल क्षेत्र तयार करा…",
     ],
     [
         "కొత్త ప్రాంతం",
@@ -3408,6 +3423,7 @@ pub static S: [[&str; N]; 25] = [
         "జాబితాగా చూపు",
         "ప్రతి వరుసకు ఒకటి: చిన్న ఐకాన్, పక్కన పేరు.",
         "కొత్త పోర్టల్ ప్రాంతం…",
+        "RDI పోర్టల్ ప్రాంతాన్ని సృష్టించు…",
     ],
     [
         "Yeni alan",
@@ -3621,6 +3637,7 @@ pub static S: [[&str; N]; 25] = [
         "Liste olarak göster",
         "Satır başına bir öğe: küçük simge, yanında adı.",
         "Yeni portal alanı…",
+        "RDI portal alanı oluştur…",
     ],
     [
         "புதிய பகுதி",
@@ -3834,6 +3851,7 @@ pub static S: [[&str; N]; 25] = [
         "பட்டியலாகக் காட்டு",
         "வரிசைக்கு ஒன்று: சிறிய ஐகான், அருகில் பெயர்.",
         "புதிய போர்டல் பகுதி…",
+        "RDI போர்டல் பகுதியை உருவாக்கு…",
     ],
     [
         "Vùng mới",
@@ -4047,6 +4065,7 @@ pub static S: [[&str; N]; 25] = [
         "Hiển thị dạng danh sách",
         "Mỗi dòng một mục: biểu tượng nhỏ, tên bên cạnh.",
         "Vùng cổng mới…",
+        "Tạo vùng cổng RDI…",
     ],
     [
         "새 영역",
@@ -4260,6 +4279,7 @@ pub static S: [[&str; N]; 25] = [
         "목록으로 표시",
         "한 줄에 하나: 작은 아이콘 옆에 이름.",
         "새 포털 영역…",
+        "RDI 포털 영역 만들기…",
     ],
     [
         "Nuova area",
@@ -4473,6 +4493,7 @@ pub static S: [[&str; N]; 25] = [
         "Mostra come elenco",
         "Un elemento per riga: icona piccola con il nome accanto.",
         "Nuova area portale…",
+        "Crea un'area portale RDI…",
     ],
     [
         "พื้นที่ใหม่",
@@ -4686,6 +4707,7 @@ pub static S: [[&str; N]; 25] = [
         "แสดงเป็นรายการ",
         "หนึ่งรายการต่อแถว: ไอคอนเล็กพร้อมชื่อข้างๆ",
         "พื้นที่พอร์ทัลใหม่…",
+        "สร้างพื้นที่พอร์ทัล RDI…",
     ],
     [
         "Nowy obszar",
@@ -4899,6 +4921,7 @@ pub static S: [[&str; N]; 25] = [
         "Pokaż jako listę",
         "Jeden element w wierszu: mała ikona z nazwą obok.",
         "Nowy obszar portalu…",
+        "Utwórz obszar portalu RDI…",
     ],
     [
         "Нова область",
@@ -5112,6 +5135,7 @@ pub static S: [[&str; N]; 25] = [
         "Показувати списком",
         "Один елемент у рядку: малий значок і назва поруч.",
         "Нова область-портал…",
+        "Створити зону-портал RDI…",
     ],
     [
         "ناحیه جدید",
@@ -5325,5 +5349,6 @@ pub static S: [[&str; N]; 25] = [
         "نمایش به صورت فهرست",
         "یک مورد در هر سطر: آیکون کوچک و نام کنار آن.",
         "ناحیه پورتال جدید…",
+        "ایجاد ناحیه پورتال RDI…",
     ],
 ];

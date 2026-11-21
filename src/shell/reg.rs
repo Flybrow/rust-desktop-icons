@@ -6,6 +6,7 @@ const RUN: &str = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
 const NAME: &str = "RustDesktopIcons";
 const VERB: &str = "Software\\Classes\\DesktopBackground\\Shell\\RustDesktopIcons";
 pub const NEW_ARG: &str = "--new";
+pub const PORTAL_ARG: &str = "--portal";
 pub const UNINSTALL_ARG: &str = "--uninstall";
 pub const RELAUNCH_ARG: &str = "--relaunch";
 
@@ -61,9 +62,11 @@ pub fn set_autostart(on: bool) {
     }
 }
 
-pub fn set_desktop_verb(label: &str) {
+pub fn set_desktop_verbs(fence: &str, portal: &str) {
     let Some(exe) = exe() else { return };
-    reg_set(VERB, "MUIVerb", label);
-    reg_set(VERB, "Icon", &format!("\"{exe}\",0"));
-    reg_set(&format!("{VERB}\\command"), "", &format!("\"{exe}\" {NEW_ARG}"));
+    for (key, label, arg) in [(VERB.to_string(), fence, NEW_ARG), (format!("{VERB}.Portal"), portal, PORTAL_ARG)] {
+        reg_set(&key, "MUIVerb", label);
+        reg_set(&key, "Icon", &format!("\"{exe}\",0"));
+        reg_set(&format!("{key}\\command"), "", &format!("\"{exe}\" {arg}"));
+    }
 }

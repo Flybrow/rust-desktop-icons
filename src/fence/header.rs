@@ -44,11 +44,12 @@ fn text(frame: &Frame, font: HFONT, (f, hint): (&Fence, Option<&str>), t: i32, p
     }
 }
 
-fn shapes(c: &mut Canvas, f: &Fence, (active, tabs): (Option<usize>, bool), flipped: bool, s: impl Fn(i32) -> i32) {
+fn shapes(c: &mut Canvas, f: &Fence, (active, tabs): (Option<usize>, bool), (flipped, rest): (bool, i32), s: impl Fn(i32) -> i32) {
     let (w, t, n, body) = (c.w, c.h, f.tabs.len(), f.look.alpha);
     let base = f.look.bar_color.unwrap_or(f.look.color);
     let (tone, ink) = (|k, a: u8| premul(color::shade(base, k), a), color::ink(base));
-    let (shape, line) = if flipped { ((0, -s(16), w, t), 0) } else { ((0, 0, w, t + s(16)), t - 1) };
+    let ext = rest.clamp(0, s(16));
+    let (shape, line) = if flipped { ((0, -ext, w, t), 0) } else { ((0, 0, w, t + ext), t - 1) };
     let r = f.look.corner.px();
     c.rrect(shape, s(r) as f32, (tone(-20, body.saturating_add(50)), tone(-34, body.saturating_add(60))), (0, t), false);
     c.rrect((s(12), line, w - s(12), line + 1), 0., flat(premul(ink, 34)), (0, t), false);
@@ -124,7 +125,9 @@ pub(super) fn paint(
         bar.text(g, &crate::layered::glyph::SEARCH.to_string(), r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
     }
     bar.flush();
-    shapes(&mut bar.canvas(), f, (active, hint.is_none()), g.side.flipped(), &s);
+    let (bx0, by0, bx1, by1) = g.body();
+    let rest = if side_bar { bx1 - bx0 } else { by1 - by0 };
+    shapes(&mut bar.canvas(), f, (active, hint.is_none()), (g.side.flipped(), rest), &s);
     bar.text_layers(fg, shade, s(2), (0, t));
     let (x0, y0, _, _) = g.bar_rect();
     if !side_bar {

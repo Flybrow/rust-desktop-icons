@@ -94,6 +94,12 @@ fn main() {
             .is_some_and(|f| f.iter().any(|f| f["tabs"][0]["portal"] == json!(portal) && f["tabs"][0]["title"] == "Projects"))
     });
     check(made && wait(3, || fences(pid).len() == 3), "New portal fence… creates a fence showing the picked folder");
+    let _ = app(&root, &[], &["--portal"]).wait();
+    let portals = |c: &Value| c["fences"].as_array().map_or(0, |f| f.iter().filter(|f| f["tabs"][0]["portal"] == json!(portal)).count());
+    check(
+        until(&|c| portals(c) == 2) && wait(3, || fences(pid).len() == 4),
+        "the desktop verb (--portal) asks the running app for a portal fence",
+    );
     tray_menu(pid, &["Language", "Français"]);
     let fr = until(&|c| c["lang"] == "fr");
     tray_menu(pid, &["Langue", "English"]);

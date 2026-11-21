@@ -245,8 +245,8 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   `cmd /c ... & start exe --relaunch` (`update::chain`, tested) and the MSI `Launch` action also passes `--relaunch`;
   with that flag `app::instance::claim` waits up to 15 s for the old instance's mutex, then exits quietly if one still runs.
   Start and close reasons go to `errors.log`. E2E: `cargo run --example relaunch_e2e`.
-- The desktop right-click verb (`HKCU\Software\Classes\DesktopBackground\Shell\RustDesktopIcons`) is written by the
-  release app at startup (localized, runs `exe --new`), removed by the MSI on uninstall. On Windows 11 it only shows under
+- The desktop right-click verbs (`HKCU\Software\Classes\DesktopBackground\Shell\RustDesktopIcons` and `RustDesktopIcons.Portal`) are written by the
+  release app at startup (localized, run `exe --new` / `exe --portal`; a running instance gets them as `tray::Ask` through `WM_ASK`), removed by the MSI on uninstall. On Windows 11 it only shows under
   "Show more options" (the modern menu needs a packaged IExplorerCommand).
 - `store::move_into` refuses to move a folder into itself and only falls back to copy+delete across volumes (never deletes a
   complete copy). Use `fence::view(h, ..)` for per-window state, `Config::tab` for fence/tab lookups.

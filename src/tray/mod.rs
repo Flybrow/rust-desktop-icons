@@ -3,7 +3,7 @@ pub mod timers;
 pub mod updates;
 
 use crate::{
-    app::{new_fence, rebuild, save_now, screens, with},
+    app::{new_fence, new_portal, rebuild, save_now, screens, with},
     i18n::T,
     keep,
     layered::glyph as g,
@@ -19,8 +19,7 @@ use windows::{
 };
 
 const WM_TRAY: u32 = WM_APP + 1;
-const WM_NEW: u32 = WM_APP + 3;
-const WM_SETTINGS: u32 = WM_APP + 4;
+const WM_ASK: u32 = WM_APP + 3;
 const CLASS: PCWSTR = if cfg!(debug_assertions) { w!("RustDesktopIcons.Tray.dev") } else { w!("RustDesktopIcons.Tray") };
 const URL: &str = "https://github.com/Flybrow/rust-desktop-icons";
 
@@ -28,9 +27,41 @@ pub fn hwnd() -> Option<HWND> {
     unsafe { FindWindowW(CLASS, None) }.ok()
 }
 
-pub fn request(new: bool) {
+#[derive(Clone, Copy)]
+pub enum Ask {
+    Settings,
+    Fence,
+    Portal,
+}
+
+impl Ask {
+    pub fn from(new: bool, portal: bool) -> Self {
+        if portal {
+            Ask::Portal
+        } else if new {
+            Ask::Fence
+        } else {
+            Ask::Settings
+        }
+    }
+}
+
+pub fn request(ask: Ask) {
     if let Some(h) = hwnd() {
-        let _ = unsafe { PostMessageW(Some(h), if new { WM_NEW } else { WM_SETTINGS }, WPARAM(0), LPARAM(0)) };
+        let mut pid = 0;
+        unsafe {
+            GetWindowThreadProcessId(h, Some(&mut pid));
+            let _ = AllowSetForegroundWindow(pid);
+            let _ = PostMessageW(Some(h), WM_ASK, WPARAM(ask as usize), LPARAM(0));
+        }
+    }
+}
+
+pub fn launch(h: HWND, ask: Ask) {
+    match ask {
+        Ask::Settings => {}
+        Ask::Fence => new_fence(),
+        Ask::Portal => new_portal(h),
     }
 }
 
@@ -65,8 +96,11 @@ unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESU
     match m {
         WM_TRAY if lp.0 as u32 == WM_RBUTTONUP => crate::undo::step(|| menu_at(h)),
         WM_TRAY if lp.0 as u32 == WM_LBUTTONDBLCLK => settings::open(),
-        WM_NEW => new_fence(),
-        WM_SETTINGS => settings::open(),
+        WM_ASK => match wp.0 {
+            1 => launch(h, Ask::Fence),
+            2 => launch(h, Ask::Portal),
+            _ => settings::open(),
+        },
         WM_COMMAND if (wp.0 >> 16) as u32 == EN_KILLFOCUS => crate::prompt::finish(true),
         WM_QUERYENDSESSION => return LRESULT(1),
         WM_ENDSESSION if wp.0 != 0 => {

@@ -20,8 +20,8 @@ pub fn recover() {
 }
 
 pub fn register_verb() {
-    if let Some(label) = with(|a| a.t(T::DesktopVerb)).filter(|_| !cfg!(debug_assertions)) {
-        shell::set_desktop_verb(label);
+    if let Some((fence, portal)) = with(|a| (a.t(T::DesktopVerb), a.t(T::DesktopPortalVerb))).filter(|_| !cfg!(debug_assertions)) {
+        shell::set_desktop_verbs(fence, portal);
     }
 }
 

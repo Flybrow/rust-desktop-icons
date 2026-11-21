@@ -211,4 +211,5 @@ pub enum T {
     ListView,
     DListView,
     NewPortalFence,
+    DesktopPortalVerb,
 }

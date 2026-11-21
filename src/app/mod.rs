@@ -131,10 +131,11 @@ pub fn run() {
     }
     unsafe {
         let _ = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-        let (new, relaunch) = (std::env::args().any(|a| a == shell::NEW_ARG), std::env::args().any(|a| a == shell::RELAUNCH_ARG));
+        let has = |arg| std::env::args().any(|a| a == arg);
+        let (relaunch, ask) = (has(shell::RELAUNCH_ARG), tray::Ask::from(has(shell::NEW_ARG), has(shell::PORTAL_ARG)));
         let Some(_mutex) = instance::claim(relaunch) else {
             if !relaunch {
-                tray::request(new);
+                tray::request(ask);
             }
             return;
         };
@@ -175,9 +176,7 @@ pub fn run() {
         crate::visibility::hotkeys::register();
         crate::visibility::sync_dblclick();
         crate::visibility::privacy::sync(false);
-        if new {
-            new_fence();
-        }
+        tray::launch(tray, ask);
         crate::whatsnew::show(existed);
         tray::updates::spawn(tray);
         let mut msg = MSG::default();
