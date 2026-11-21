@@ -1,6 +1,6 @@
 use crate::{
-    domain::{Fence, color, grid::Align, side::Geo, vertical},
-    layered::{Frame, measure},
+    domain::{Fence, Style, color, grid::Align, side::Geo, vertical},
+    layered::{ACCENT, Frame, measure},
     render::{Canvas, blit, flat, premul, rotate_cw},
 };
 use windows::Win32::{
@@ -50,6 +50,15 @@ fn shapes(c: &mut Canvas, f: &Fence, (active, tabs): (Option<usize>, bool), flip
     let (tone, ink) = (|k, a: u8| premul(color::shade(base, k), a), color::ink(base));
     let (shape, line) = if flipped { ((0, -s(16), w, t), 0) } else { ((0, 0, w, t + s(16)), t - 1) };
     let r = f.look.corner.px();
+    if f.look.style == Style::Fluent {
+        c.rrect((s(12), line, w - s(12), line + 1), 0., flat(premul(ink, 22)), (0, t), false);
+        if let Some(i) = active.filter(|_| n > 1 && tabs) {
+            let (x0, x1) = segment(w, n, i.min(n - 1));
+            let y = if flipped { s(3) } else { t - s(6) };
+            c.rrect((x0 + s(16), y, x1 - s(16), y + s(3)), s(1) as f32 + 0.5, flat(premul(ACCENT, 255)), (0, t), false);
+        }
+        return;
+    }
     c.rrect(shape, s(r) as f32, (tone(-20, body.saturating_add(50)), tone(-34, body.saturating_add(60))), (0, t), false);
     c.rrect((s(12), line, w - s(12), line + 1), 0., flat(premul(ink, 34)), (0, t), false);
     if n > 1 && tabs {

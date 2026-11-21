@@ -27,7 +27,8 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
 
 ## Layout
 - `src/domain/` pure logic, all unit-tested: `model.rs` (Fence/Tab), `look.rs` (Look: colors, icons, names, title bar, wallpaper, thumbnails,
-  `Corner` radius 0/4/6/8 px, `mica`), `theme.rs` (`Theme` Dark/Light/Auto, `Config::retheme` swaps only the default fence color),
+  `Corner` radius 0/4/6/8 px, `mica`, `Style` Classic/Fluent: Fluent = flat body, no bar band (a thin line, the active tab
+  underlined in the accent color), softer hover tiles, a lighter outline), `theme.rs` (`Theme` Dark/Light/Auto, `Config::retheme` swaps only the default fence color),
   `history.rs` (undo steps: config before + file ops, nesting, cap 20, `rebase` so an undo is never recorded), `config.rs` (Config, recycle placement), `kind.rs` (file types + game
   shortcut detection for rules; `Kind::Other` = "Everything else", the inbox rule `Config::rule_for` falls back to),
   `order.rs` (per-tab sort + custom order), `anim.rs`, `grid.rs` (`Flow`: item positions with `Align` left/center/right,

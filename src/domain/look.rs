@@ -31,6 +31,17 @@ impl Corner {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Style {
+    #[default]
+    Classic,
+    Fluent,
+}
+
+impl Style {
+    pub const ALL: [Style; 2] = [Style::Classic, Style::Fluent];
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Look {
@@ -62,6 +73,8 @@ pub struct Look {
     pub mica: bool,
     pub home: bool,
     pub list: bool,
+    #[serde(deserialize_with = "compat::or_default")]
+    pub style: Style,
 }
 
 impl Default for Look {
@@ -89,6 +102,7 @@ impl Default for Look {
             mica: false,
             home: false,
             list: false,
+            style: Style::Classic,
         }
     }
 }
@@ -144,7 +158,9 @@ mod tests {
         assert_eq!((Corner::Square.label("Square"), Corner::Medium.label("Square")), ("Square".into(), "6 px".into()));
         let l: Look = serde_json::from_str(r#"{"corner": "Pill"}"#).unwrap();
         assert_eq!(l.corner, Corner::Round);
-        let l: Look = serde_json::from_str(r#"{"corner": "Square"}"#).unwrap();
-        assert_eq!(l.corner, Corner::Square);
+        let l: Look = serde_json::from_str(r#"{"corner": "Square", "style": "Glass"}"#).unwrap();
+        assert_eq!((l.corner, l.style), (Corner::Square, Style::Classic));
+        let l: Look = serde_json::from_str(r#"{"style": "Fluent"}"#).unwrap();
+        assert_eq!(l.style, Style::Fluent);
     }
 }

@@ -36,7 +36,7 @@ mod zone;
 
 pub use config::Config;
 pub use kind::Kind;
-pub use look::{Corner, Look};
+pub use look::{Corner, Look, Style};
 pub use model::{Fence, Tab};
 pub use order::Sort;
 pub use zone::{Zone, zone};

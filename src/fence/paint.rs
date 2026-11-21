@@ -135,9 +135,11 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
         let bar = !(f.look.bar_hover && !f.rolled && !v.inside);
         let (full, rad, rows) = (if bar { (0, 0, w, ht) } else { (bx0, by0, bx1, by1) }, s(f.look.corner.px()) as f32, (0, ht));
         let tone = |k, a: u8| premul(color::shade(f.look.color, k), a);
+        let fluent = f.look.style == domain::Style::Fluent;
         let mut c = frame.canvas();
         match &mica {
             Some(m) => c.rrect_with(full, rad, rows, false, |x, y| m.at(x, y)),
+            None if fluent => c.rrect(full, rad, flat(tone(0, body)), rows, false),
             None => c.rrect(full, rad, (tone(10, body), tone(-14, body.saturating_add(20))), rows, false),
         }
         for &(i, x, y) in &cells {
@@ -149,9 +151,17 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
                     0
                 };
                 let r = cell::tile((x, y), shape, icon, label, s);
-                let (fill, line) = if sel { (premul(ACCENT, 90), premul(ACCENT, 200)) } else { (premul(ink, 40), premul(ink, 60)) };
-                c.rrect(r, rad, flat(fill), (by0, by1), false);
-                c.rrect(r, rad, flat(line), (by0, by1), true);
+                let (fill, line) = match (sel, fluent) {
+                    (true, false) => (premul(ACCENT, 90), Some(premul(ACCENT, 200))),
+                    (false, false) => (premul(ink, 40), Some(premul(ink, 60))),
+                    (true, true) => (premul(ACCENT, 70), Some(premul(ACCENT, 140))),
+                    (false, true) => (premul(ink, 22), None),
+                };
+                let tile = if fluent { rad.min(s(6) as f32) } else { rad };
+                c.rrect(r, tile, flat(fill), (by0, by1), false);
+                if let Some(line) = line {
+                    c.rrect(r, tile, flat(line), (by0, by1), true);
+                }
             }
         }
         for &(_, x, y) in cells.iter().filter(|_| mask.any()) {
@@ -198,7 +208,7 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
             let (hf, hint) = (hidden.as_ref().unwrap_or(f), hint.filter(|_| !mask.titles));
             header::paint(&mut frame, &g, (ft, loupe), (hf, hint.as_deref()), (!rolled).then_some(f.tab), s);
         }
-        frame.canvas().rrect(full, rad, flat(premul(ink, 48)), rows, true);
+        frame.canvas().rrect(full, rad, flat(premul(ink, if fluent { 30 } else { 48 })), rows, true);
         #[cfg(debug_assertions)]
         frame.dump(&f.id.to_string());
         Some(domain::anim::opacity(v.glow))

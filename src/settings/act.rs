@@ -102,6 +102,13 @@ fn perform(h: HWND, act: rows::Act) {
                 restyle(|l| l.spacing = s);
             }
         }
+        Style => {
+            if let Some(st) =
+                pick(h, &crate::domain::Style::ALL, l.style, |st| with(|a| a.t(i18n::style(st)).to_string()).unwrap_or_default())
+            {
+                restyle(|l| l.style = st);
+            }
+        }
         Corners => {
             if let Some(c) = pick(h, &Corner::ALL, l.corner, |c| with(|a| c.label(a.t(T::CornerSquare))).unwrap_or_default()) {
                 restyle(|l| l.corner = c);

@@ -140,7 +140,7 @@ fn main() {
     u.pick(&["64 px"]);
     u.check(u.until(|c| c["look"]["icon"] == 64 && f(c, 1, "icon") == 64), "Icons → Icon size applies to the fences");
 
-    let look = [HEADER, NOTE, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
+    let look = [HEADER, NOTE, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
     u.page(0);
     u.row(&look, 3);
     u.check(
@@ -159,13 +159,16 @@ fn main() {
         u.until(|c| c["look"]["corner"] == "Square" && f(c, 1, "corner") == "Square"),
         "Default appearance → Corners apply to the fences",
     );
+    u.row(&look, 7);
+    u.pick(&["Fluent"]);
+    u.check(u.until(|c| c["look"]["style"] == "Fluent" && f(c, 1, "style") == "Fluent"), "Default appearance → Style Fluent applies to the fences");
     u.row(&look, 5);
     u.pick(&["70%"]);
     u.check(u.until(|c| c["look"]["alpha"].as_u64().is_some_and(|a| a.abs_diff(178) <= 2)), "Default appearance → Opacity is saved");
-    u.row(&look, 7);
+    u.row(&look, 8);
     u.pick(&["None"]);
     u.check(u.until(|c| c["look"]["tint"].is_null()), "Default appearance → Icon tint None");
-    u.row(&look, 8);
+    u.row(&look, 9);
     let asked = support::answer(pid, &[VK_RETURN]);
     u.check(
         asked && u.until(|c| f(c, 0, "custom") == json!([]) && f(c, 0, "spacing") == "Wide"),

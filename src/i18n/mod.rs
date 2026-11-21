@@ -14,7 +14,7 @@ mod table;
 
 use table::S;
 
-const N: usize = 212;
+const N: usize = 216;
 
 pub const LANGS: [(&str, &str); 25] = [
     ("en", "English"),
@@ -90,6 +90,13 @@ pub fn theme(t: Theme) -> T {
     }
 }
 
+pub fn style(s: crate::domain::Style) -> T {
+    match s {
+        crate::domain::Style::Classic => T::StyleClassic,
+        crate::domain::Style::Fluent => T::StyleFluent,
+    }
+}
+
 pub fn reveal(r: Reveal) -> T {
     match r {
         Reveal::Hover => T::RevealHover,
@@ -131,7 +138,7 @@ mod tests {
     #[test]
     fn complete_tables() {
         assert!(S.iter().flatten().all(|s| !s.trim().is_empty()));
-        assert_eq!(T::DListView as usize, N - 1);
+        assert_eq!(T::StyleFluent as usize, N - 1);
     }
 
     #[test]

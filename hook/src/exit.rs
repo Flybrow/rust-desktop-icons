@@ -33,6 +33,7 @@ pub fn watch(pid: u32, done: WAITORTIMERCALLBACK) -> Option<Watch> {
 mod tests {
     use super::*;
     use std::{
+        os::windows::process::CommandExt,
         process::Command,
         sync::atomic::{AtomicU32, Ordering::SeqCst},
         thread,
@@ -62,7 +63,7 @@ mod tests {
 
     #[test]
     fn calls_back_once_when_the_process_ends() {
-        let mut child = Command::new("cmd").args(["/c", "exit"]).spawn().unwrap();
+        let mut child = Command::new("cmd").args(["/c", "exit"]).creation_flags(0x0800_0000).spawn().unwrap();
         child.wait().unwrap();
         let w = watch(child.id(), Some(ended)).unwrap();
         assert_eq!(settle(&ENDED, 1), 1);
@@ -73,7 +74,7 @@ mod tests {
 
     #[test]
     fn a_dropped_watch_never_calls_back() {
-        let mut child = Command::new("cmd").args(["/c", "ping -n 30 127.0.0.1 >nul"]).spawn().unwrap();
+        let mut child = Command::new("cmd").args(["/c", "ping -n 30 127.0.0.1 >nul"]).creation_flags(0x0800_0000).spawn().unwrap();
         drop(watch(child.id(), Some(stayed)).unwrap());
         child.kill().unwrap();
         child.wait().unwrap();

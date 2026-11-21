@@ -24,6 +24,7 @@ pub enum Act {
     LabelColor,
     Spacing,
     Corners,
+    Style,
     Mica,
     Align,
     Browse,
