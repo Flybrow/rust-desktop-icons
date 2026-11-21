@@ -114,6 +114,7 @@ pub fn build(a: &App, page: usize) -> Vec<Row> {
         6 => Slot::ALL.iter().map(|s| key_row(a, *s)).chain(capturing(a).map(|_| note(a.t(T::PressKeys)))).collect(),
         _ => vec![
             row(a.t(T::Language), Ctl::Value(prefs::lang_name(a).into()), Act::Lang, g::GLOBE).about(a.t(T::DLanguage)),
+            row(a.t(T::Theme), Ctl::Value(a.t(i18n::theme(c.theme)).into()), Act::Theme, g::COLOR).about(a.t(T::DTheme)),
             row(a.t(T::Autostart), Ctl::Toggle(c.autostart), Act::Autostart, g::POWER).about(a.t(T::DAutostart)),
             row(a.t(T::AutoUpdate), Ctl::Toggle(c.auto_update), Act::AutoUpdate, g::DOWNLOAD).about(a.t(T::DAutoUpdate)),
             row(a.t(T::CheckUpdates), Ctl::Value(format!("v{}", env!("CARGO_PKG_VERSION"))), Act::Check, g::REFRESH).about(a.t(T::DCheck)),

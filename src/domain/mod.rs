@@ -27,6 +27,7 @@ pub mod side;
 pub mod snap;
 pub mod stack;
 pub mod system;
+pub mod theme;
 #[cfg(test)]
 mod upgrade;
 pub mod vertical;

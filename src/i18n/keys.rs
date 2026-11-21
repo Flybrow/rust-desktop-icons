@@ -186,4 +186,8 @@ pub enum T {
     CornerSquare,
     HideDesktop,
     DHideDesktop,
+    Theme,
+    DTheme,
+    ThemeDark,
+    ThemeLight,
 }

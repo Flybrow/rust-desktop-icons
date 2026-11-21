@@ -3,6 +3,7 @@ mod fences;
 mod instance;
 mod res;
 pub mod screens;
+pub mod theme;
 mod view;
 
 use crate::{
@@ -158,6 +159,7 @@ pub fn run() {
         tray::updates::enable(cfg.auto_update);
         let taskbar = RegisterWindowMessageW(w!("TaskbarCreated"));
         APP.with(|a| *a.borrow_mut() = Some(App::new(cfg, taskbar)));
+        theme::apply(false);
         tray::icon(tray, NIM_ADD);
         recover();
         crate::keep::sync(false);

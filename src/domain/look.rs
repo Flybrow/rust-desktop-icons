@@ -64,7 +64,7 @@ pub struct Look {
 impl Default for Look {
     fn default() -> Self {
         Self {
-            color: 0x302820,
+            color: super::theme::DARK,
             alpha: 217,
             icon: icons::DEFAULT,
             tint: None,

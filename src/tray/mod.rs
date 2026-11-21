@@ -85,6 +85,7 @@ unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESU
         keep::WM_KEEP => keep::finish(lp),
         WM_DISPLAYCHANGE => screens::changed(),
         WM_SETTINGCHANGE if wp.0 as u32 == SPI_SETDESKWALLPAPER.0 => crate::fence::wallpaper_changed(),
+        WM_SETTINGCHANGE if crate::app::theme::changed(lp) => crate::app::theme::apply(true),
         WM_TIMER if wp.0 == screens::TIMER => screens::settled(),
         WM_TIMER if wp.0 == keep::TICK => keep::apply(),
         WM_TIMER if wp.0 == keep::SOON => keep::apply(),

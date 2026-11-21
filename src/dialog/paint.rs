@@ -3,7 +3,7 @@ use super::{
     notes::{Ink, Line},
 };
 use crate::{
-    layered::{ACCENT, Frame, WHITE, chrome, glyph as g, popup},
+    layered::{ACCENT, Frame, chrome, glyph as g, popup},
     render::{flat, premul},
     win::*,
 };
@@ -35,10 +35,11 @@ pub(super) fn render(h: HWND, l: &Layout) {
         let (title, normal, bold, icons) =
             (a.font(s(18), FW_SEMIBOLD.0), a.font(s(13), FW_NORMAL.0), a.font(s(13), FW_SEMIBOLD.0), a.icon_font(s(15)));
         let d = a.dialog.as_ref()?;
+        let ui = chrome::palette();
         let single = DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX;
         frame.text(title, &d.spec.title, RECT { left: s(22), top: 0, right: w - s(60), bottom: s(chrome::TOP) }, DT_LEFT | single);
         frame.text(icons, &g::CLOSE.to_string(), close, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-        for (b, r) in d.spec.buttons.iter().zip(&l.buttons) {
+        for (b, r) in d.spec.buttons.iter().zip(&l.buttons).skip(1) {
             frame.text(bold, &b.label, rect(*r), DT_CENTER | single);
         }
         if let (Some(p), Some(r)) = (&d.spec.progress, l.status) {
@@ -54,31 +55,35 @@ pub(super) fn render(h: HWND, l: &Layout) {
         let mut c = frame.canvas();
         if let (Some(p), Some(bar)) = (&d.spec.progress, l.bar) {
             let r = s(4) as f32;
-            c.rrect(bar, r, flat(premul(WHITE, 30)), (0, ht), false);
+            c.rrect(bar, r, flat(premul(ui.ink, 30)), (0, ht), false);
             c.rrect(fill(bar, p.value, d.phase), r, flat(premul(ACCENT, 255)), (0, ht), false);
         }
         let (bh, x1) = (y1 - y0, l.body.2);
         if l.text > bh {
             let th = (bh * bh / l.text).max(s(24));
             let ty = y0 + d.scroll * (bh - th) / (l.text - bh);
-            c.rrect((x1 + s(8), ty, x1 + s(12), ty + th), s(2) as f32, flat(premul(WHITE, 90)), (0, ht), false);
+            c.rrect((x1 + s(8), ty, x1 + s(12), ty + th), s(2) as f32, flat(premul(ui.ink, 90)), (0, ht), false);
         }
         for (i, r) in l.buttons.iter().enumerate() {
             let hot = d.hover == Some(i);
-            let fill = if i == 0 { premul(ACCENT, if hot { 255 } else { 220 }) } else { premul(WHITE, if hot { 34 } else { 16 }) };
+            let fill = if i == 0 { premul(ACCENT, if hot { 255 } else { 220 }) } else { premul(ui.ink, if hot { 34 } else { 16 }) };
             c.rrect(*r, s(8) as f32, flat(fill), (0, ht), false);
             if i > 0 {
-                c.rrect(*r, s(8) as f32, flat(premul(WHITE, 50)), (0, ht), true);
+                c.rrect(*r, s(8) as f32, flat(premul(ui.ink, 50)), (0, ht), true);
             }
         }
-        frame.text_layers(chrome::TEXT, 0, s(1), (0, ht));
-        for (kind, color) in
-            [(Ink::Accent, chrome::LINK), (Ink::Dim, chrome::DIM)].into_iter().filter(|(k, _)| lines.iter().any(|l| l.ink == *k))
-        {
+        frame.text_layers(ui.text, ui.shade, s(1), (0, ht));
+        if let (Some(b), Some(r)) = (d.spec.buttons.first(), l.buttons.first()) {
+            frame.clear_mask();
+            frame.text(bold, &b.label, rect(*r), DT_CENTER | single);
+            frame.flush();
+            frame.text_layers(ui.on_accent, ui.shade, s(1), (0, ht));
+        }
+        for (kind, color) in [(Ink::Accent, ui.link), (Ink::Dim, ui.dim)].into_iter().filter(|(k, _)| lines.iter().any(|l| l.ink == *k)) {
             frame.clear_mask();
             ink(frame, &lines, kind, origin);
             frame.flush();
-            frame.text_layers(color, 0, s(1), (0, ht));
+            frame.text_layers(color, ui.shade, s(1), (0, ht));
         }
         chrome::outline(frame, s);
         Some(())

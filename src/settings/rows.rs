@@ -52,6 +52,7 @@ pub enum Act {
     Export,
     Import,
     Lang,
+    Theme,
     Autostart,
     AutoUpdate,
     Check,

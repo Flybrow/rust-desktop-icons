@@ -11,6 +11,10 @@ fn light(c: u32) -> bool {
     r * 299 + g * 587 + b * 114 > 140_000
 }
 
+pub fn ink(c: u32) -> u32 {
+    if light(c) { 0 } else { 0xFF_FFFF }
+}
+
 pub fn contrast(c: u32) -> u32 {
     if light(c) { 0x20_2020 } else { 0xF5_F5F5 }
 }

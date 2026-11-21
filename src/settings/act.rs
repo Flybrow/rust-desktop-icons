@@ -147,6 +147,15 @@ fn perform(h: HWND, act: rows::Act) {
             }
         }
         KeepOnDesktop => keep::toggle(),
+        Theme => {
+            let now = with(|a| a.cfg.theme).unwrap_or_default();
+            if let Some(t) =
+                pick(h, &crate::domain::theme::Theme::ALL, now, |t| with(|a| a.t(i18n::theme(t)).to_string()).unwrap_or_default())
+            {
+                change(|c| c.theme = t);
+                crate::app::theme::apply(true);
+            }
+        }
         HideDesktop => {
             visibility::reveal();
             change(|c| c.hide_desktop ^= true);

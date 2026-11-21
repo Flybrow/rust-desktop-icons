@@ -9,7 +9,7 @@ use windows::Win32::{Foundation::*, Graphics::Gdi::*};
 
 fn toggle(c: &mut Canvas, (x1, cy): (i32, i32), on: bool, s: &impl Fn(i32) -> i32, clip: (i32, i32)) {
     let track = (x1 - s(40), cy - s(10), x1, cy + s(10));
-    c.rrect(track, s(10) as f32, flat(premul(if on { ACCENT } else { 0x55_5555 }, 255)), clip, false);
+    c.rrect(track, s(10) as f32, flat(premul(if on { ACCENT } else { chrome::palette().track }, 255)), clip, false);
     let kx = if on { x1 - s(18) } else { x1 - s(38) };
     c.rrect((kx, cy - s(8), kx + s(16), cy + s(8)), s(8) as f32, flat(premul(WHITE, 255)), clip, false);
 }
@@ -19,7 +19,7 @@ fn swatch(c: &mut Canvas, (x1, cy): (i32, i32), col: Option<u32>, s: &impl Fn(i3
     if let Some(col) = col {
         c.rrect(sw, s(6) as f32, flat(premul(col, 255)), clip, false);
     }
-    c.rrect(sw, s(6) as f32, flat(premul(WHITE, 80)), clip, true);
+    c.rrect(sw, s(6) as f32, flat(premul(chrome::palette().ink, 80)), clip, true);
 }
 
 pub(super) fn render(h: HWND) {
@@ -35,6 +35,7 @@ pub(super) fn render(h: HWND) {
             a.icon_font(s(15)),
         );
         let p = a.panel.as_ref()?;
+        let ui = chrome::palette();
         let rows = rows::build(a, p.page);
         let (top, pad, side) = (s(rows::TOP), s(16), s(rows::SIDE));
         let (x0, x_end) = (side + pad, w - pad - s(14));
@@ -75,27 +76,27 @@ pub(super) fn render(h: HWND) {
         frame.flush();
         chrome::background(frame, p.close_hot, s);
         let mut c = frame.canvas();
-        c.rrect((side, top, side + 1, ht - s(12)), 0., flat(premul(WHITE, 26)), body, false);
+        c.rrect((side, top, side + 1, ht - s(12)), 0., flat(premul(ui.ink, 26)), body, false);
         for (i, &(y0, y1)) in pages.iter().enumerate() {
             let r = (s(10), y0 + s(3), side - s(10), y1 - s(3));
             if i == p.page {
-                c.rrect(r, s(6) as f32, flat(premul(WHITE, 24)), body, false);
+                c.rrect(r, s(6) as f32, flat(premul(ui.ink, 24)), body, false);
                 c.rrect((r.0, y0 + s(12), r.0 + s(3), y1 - s(12)), s(2) as f32, flat(premul(ACCENT, 255)), body, false);
             } else if p.page_hover == Some(i) {
-                c.rrect(r, s(6) as f32, flat(premul(WHITE, 14)), body, false);
+                c.rrect(r, s(6) as f32, flat(premul(ui.ink, 14)), body, false);
             }
         }
         for (first, last) in rows::cards(&rows) {
             let (y0, y1) = (layout[first].0, layout[last].0 + layout[last].1);
-            c.rrect((x0, y0, w - pad, y1), s(8) as f32, flat(premul(WHITE, 12)), body, false);
-            c.rrect((x0, y0, w - pad, y1), s(8) as f32, flat(premul(WHITE, 24)), body, true);
+            c.rrect((x0, y0, w - pad, y1), s(8) as f32, flat(premul(ui.ink, 12)), body, false);
+            c.rrect((x0, y0, w - pad, y1), s(8) as f32, flat(premul(ui.ink, 24)), body, true);
             for &(y, _) in &layout[first + 1..=last] {
-                c.rrect((x_label, y, w - pad - s(1), y + 1), 0., flat(premul(WHITE, 18)), body, false);
+                c.rrect((x_label, y, w - pad - s(1), y + 1), 0., flat(premul(ui.ink, 18)), body, false);
             }
         }
         for (i, (r, &(y, hh))) in rows.iter().zip(&layout).enumerate() {
             if p.hover == Some(i) {
-                c.rrect((x0 + s(3), y + s(3), w - pad - s(3), y + hh - s(3)), s(6) as f32, flat(premul(WHITE, 20)), body, false);
+                c.rrect((x0 + s(3), y + s(3), w - pad - s(3), y + hh - s(3)), s(6) as f32, flat(premul(ui.ink, 20)), body, false);
             }
             let at = (x_end, y + hh / 2);
             match &r.ctl {
@@ -104,7 +105,7 @@ pub(super) fn render(h: HWND) {
                 _ => {}
             }
         }
-        frame.text_layers(chrome::TEXT, 0, s(1), (0, ht));
+        frame.text_layers(ui.text, ui.shade, s(1), (0, ht));
         frame.clear_mask();
         for (r, &(y, hh)) in rows.iter().zip(&layout).filter(|(r, _)| !r.desc.is_empty()) {
             let right = match r.ctl {
@@ -116,7 +117,7 @@ pub(super) fn render(h: HWND) {
             frame.text(small, &r.desc, at, DT_LEFT | DT_WORDBREAK | DT_END_ELLIPSIS);
         }
         frame.flush();
-        frame.text_layers(chrome::DIM, 0, s(1), body);
+        frame.text_layers(ui.dim, ui.shade, s(1), body);
         frame.clear_mask();
         frame.unclip();
         for ((_, glyph), &(y0, y1)) in rows::PAGES.iter().zip(&pages) {
@@ -144,7 +145,7 @@ pub(super) fn render(h: HWND) {
             }
         }
         frame.flush();
-        frame.text_layers(chrome::LINK, 0, s(1), body);
+        frame.text_layers(ui.link, ui.shade, s(1), body);
         chrome::outline(frame, s);
         Some(())
     });

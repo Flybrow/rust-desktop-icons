@@ -2,6 +2,7 @@ use crate::domain::{
     Kind, Sort,
     grid::Align,
     icons::{LabelSize, Spacing},
+    theme::Theme,
 };
 
 mod keys;
@@ -12,7 +13,7 @@ mod table;
 
 use table::S;
 
-const N: usize = 186;
+const N: usize = 190;
 
 pub const LANGS: [(&str, &str); 25] = [
     ("en", "English"),
@@ -80,6 +81,14 @@ pub fn spacing(s: Spacing) -> T {
     }
 }
 
+pub fn theme(t: Theme) -> T {
+    match t {
+        Theme::Dark => T::ThemeDark,
+        Theme::Light => T::ThemeLight,
+        Theme::Auto => T::Auto,
+    }
+}
+
 pub fn sort(s: Sort) -> T {
     match s {
         Sort::Name => T::SortName,
@@ -113,7 +122,7 @@ mod tests {
     #[test]
     fn complete_tables() {
         assert!(S.iter().flatten().all(|s| !s.trim().is_empty()));
-        assert_eq!(T::DHideDesktop as usize, N - 1);
+        assert_eq!(T::ThemeLight as usize, N - 1);
     }
 
     #[test]

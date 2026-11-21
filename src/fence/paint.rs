@@ -2,7 +2,7 @@ use super::{PREPARE, anim, cell, fence_of, header, label_font, layout, metrics, 
 use crate::{
     app::with,
     domain::{self, color, grid},
-    layered::{ACCENT, Dib, Frame, WHITE},
+    layered::{ACCENT, Dib, Frame},
     render::{blit_fit, flat, opaque_if_flat, premul, tint},
     shell,
     win::*,
@@ -123,7 +123,7 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
         if let Some(c) = f.look.tint {
             tint(icons.px(), c);
         }
-        let (body, (fg, shade)) = (f.look.alpha, color::text_on(f.look.color));
+        let (body, (fg, shade), ink) = (f.look.alpha, color::text_on(f.look.color), color::ink(f.look.color));
         let bar = !(f.look.bar_hover && !f.rolled && !v.inside);
         let (full, rad, rows) = (if bar { (0, 0, w, ht) } else { (bx0, by0, bx1, by1) }, s(f.look.corner.px()) as f32, (0, ht));
         let tone = |k, a: u8| premul(color::shade(f.look.color, k), a);
@@ -135,7 +135,7 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
                 let label =
                     if f.look.labels { crate::layered::measure(fi, &v.items[i].name, cell::label_width(cell, s), cell::LABEL) } else { 0 };
                 let r = cell::tile((x, y), cell, icon, label, s);
-                let (fill, line) = if sel { (premul(ACCENT, 90), premul(ACCENT, 200)) } else { (premul(WHITE, 40), premul(WHITE, 60)) };
+                let (fill, line) = if sel { (premul(ACCENT, 90), premul(ACCENT, 200)) } else { (premul(ink, 40), premul(ink, 60)) };
                 c.rrect(r, rad, flat(fill), (by0, by1), false);
                 c.rrect(r, rad, flat(line), (by0, by1), true);
             }
@@ -151,7 +151,7 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
             let th = (avail * avail / (avail + max)).max(s(24));
             let ty = v.scroll * (avail - th) / max;
             let r = g.rect((gw - s(7), ty + s(3), gw - s(3), ty + th - s(3)));
-            c.rrect(r, s(2) as f32, flat(premul(WHITE, 110)), (by0, by1), false);
+            c.rrect(r, s(2) as f32, flat(premul(ink, 110)), (by0, by1), false);
         }
         let labels = cached.or_else(|| key.map(|k| frame.labels(k, s(2))));
         if let Some(l) = &labels {
@@ -163,7 +163,7 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
         if bar {
             header::paint(&mut frame, &g, ft, (f, hint.as_deref()), (!rolled).then_some(f.tab), s);
         }
-        frame.canvas().rrect(full, rad, flat(premul(WHITE, 48)), rows, true);
+        frame.canvas().rrect(full, rad, flat(premul(ink, 48)), rows, true);
         #[cfg(debug_assertions)]
         frame.dump(&f.id.to_string());
         Some(domain::anim::opacity(v.glow))

@@ -41,6 +41,10 @@ pub(super) fn reg_dword(key: &str, name: &str) -> Option<u32> {
     reg_bytes(key, name, RRF_RT_REG_DWORD)?.try_into().ok().map(u32::from_le_bytes)
 }
 
+pub fn light_theme() -> bool {
+    reg_dword(r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme") == Some(1)
+}
+
 fn reg_set(key: &str, name: &str, value: &str) {
     let bytes: Vec<u8> = wide(value).iter().flat_map(|c| c.to_le_bytes()).collect();
     reg_write(key, name, REG_SZ, &bytes);

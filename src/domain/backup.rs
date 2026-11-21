@@ -9,7 +9,8 @@ pub struct Imported {
 
 impl Config {
     pub fn import(&self, other: Config) -> Imported {
-        let other = Config { autostart: self.autostart, auto_update: self.auto_update, layouts: self.layouts.clone(), ..other };
+        let other =
+            Config { autostart: self.autostart, auto_update: self.auto_update, theme: self.theme, layouts: self.layouts.clone(), ..other };
         self.replace(other)
     }
 

@@ -22,7 +22,7 @@ pub(super) fn render(h: HWND) {
         STATE.with(|st| {
             let st = st.try_borrow().ok()?;
             let st = st.as_ref()?;
-            let (top, pad, icon) = (s(chrome::TOP), s(16), s(ICON));
+            let (top, pad, icon, ui) = (s(chrome::TOP), s(16), s(ICON), chrome::palette());
             let x_text = pad + icon + s(14);
             let input = RECT { left: s(54), top: 0, right: w - pad, bottom: top };
             let row = |i: usize| top + s(6) + i as i32 * s(ROW);
@@ -49,7 +49,7 @@ pub(super) fn render(h: HWND) {
                 c.rrect((s(8), y, w - s(8), y + s(ROW)), s(6) as f32, flat(premul(ACCENT, 70)), (0, ht), false);
             }
             c.layer(icons.px(), (0, 0), None, (0, ht));
-            frame.text_layers(chrome::TEXT, 0, s(1), (0, ht));
+            frame.text_layers(ui.text, ui.shade, s(1), (0, ht));
             frame.clear_mask();
             frame.target(&frame.mask);
             frame.text(
@@ -68,7 +68,7 @@ pub(super) fn render(h: HWND) {
                 frame.text(small, &st.all[k].place, RECT { left: x_text, top: y + s(25), right: w - pad, bottom: y + s(44) }, left);
             }
             frame.flush();
-            frame.text_layers(chrome::LINK, 0, s(1), (0, ht));
+            frame.text_layers(ui.link, ui.shade, s(1), (0, ht));
             chrome::outline(frame, s);
             Some(())
         })
