@@ -210,10 +210,4 @@ pub enum T {
     DPrivTitles,
     ListView,
     DListView,
-    Style,
-    DStyle,
-    StyleClassic,
-    StyleFluent,
-    FluentFolders,
-    DFluentFolders,
 }

@@ -24,8 +24,6 @@ pub enum Act {
     LabelColor,
     Spacing,
     Corners,
-    Style,
-    Folders,
     Align,
     Browse,
     Home,

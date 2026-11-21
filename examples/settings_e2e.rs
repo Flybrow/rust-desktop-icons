@@ -107,7 +107,7 @@ fn main() {
     let f = |c: &Value, i: usize, k: &str| c["fences"][i][k].clone();
 
     let icons = [HEADER, NOTE, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
-    u.page(2);
+    u.page(1);
     u.row(&icons, 4);
     u.check(u.until(|c| c["look"]["thumbs"] == false && f(c, 1, "thumbs") == false), "Icons → Show thumbnails can be turned off");
     u.row(&icons, 4);
@@ -140,7 +140,7 @@ fn main() {
     u.pick(&["64 px"]);
     u.check(u.until(|c| c["look"]["icon"] == 64 && f(c, 1, "icon") == 64), "Icons → Icon size applies to the fences");
 
-    let look = [HEADER, NOTE, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
+    let look = [HEADER, NOTE, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
     u.page(0);
     u.row(&look, 3);
     u.check(
@@ -149,29 +149,19 @@ fn main() {
     );
     u.row(&look, 3);
     u.until(|c| c["look"]["wallpaper"] == false);
+    u.row(&look, 5);
+    u.pick(&["Square"]);
+    u.check(
+        u.until(|c| c["look"]["corner"] == "Square" && f(c, 1, "corner") == "Square"),
+        "Default appearance → Corners apply to the fences",
+    );
     u.row(&look, 4);
     u.pick(&["70%"]);
     u.check(u.until(|c| c["look"]["alpha"].as_u64().is_some_and(|a| a.abs_diff(178) <= 2)), "Default appearance → Opacity is saved");
-    u.row(&look, 5);
+    u.row(&look, 6);
     u.pick(&["None"]);
     u.check(u.until(|c| c["look"]["tint"].is_null()), "Default appearance → Icon tint None");
-
-    let style = [HEADER, NOTE, DESCRIBED, DESCRIBED, DESCRIBED];
-    u.page(1);
-    u.row(&style, 4);
-    u.pick(&["Square"]);
-    u.check(u.until(|c| c["look"]["corner"] == "Square" && f(c, 1, "corner") == "Square"), "Style → Corners apply to the fences");
-    u.row(&style, 2);
-    u.pick(&["Fluent"]);
-    u.check(
-        u.until(|c| c["look"]["style"] == "Fluent" && c["look"]["fluent_folders"] == true),
-        "Style → Fluent turns on Fluent folder icons",
-    );
-    u.row(&style, 3);
-    u.check(u.until(|c| c["look"]["fluent_folders"] == false), "Style → Fluent folder icons can be turned off");
-
-    u.page(0);
-    u.row(&look, 6);
+    u.row(&look, 7);
     let asked = support::answer(pid, &[VK_RETURN]);
     u.check(
         asked && u.until(|c| f(c, 0, "custom") == json!([]) && f(c, 0, "spacing") == "Wide"),
@@ -179,7 +169,7 @@ fn main() {
     );
 
     let bar = [HEADER, NOTE, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
-    u.page(3);
+    u.page(2);
     u.row(&bar, 2);
     u.pick(&["Left"]);
     u.check(
@@ -200,7 +190,7 @@ fn main() {
     u.check(u.until(|c| c["look"]["bar_hover"] == true), "Ctrl+Z in the settings undoes the last change");
 
     let behave = [HEADER, NOTE, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, NOTE];
-    u.page(4);
+    u.page(3);
     for (i, key) in [(2, "chameleon"), (3, "auto_height"), (4, "browse"), (5, "home")] {
         let before = u.cfg()["look"][key].as_bool().unwrap_or(false);
         u.row(&behave, i);
@@ -213,7 +203,7 @@ fn main() {
     u.check(u.until(|c| c["roll_ms"] == 0), "Behavior → Unroll speed is saved");
 
     let desk = [HEADER, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
-    u.page(5);
+    u.page(4);
     u.row(&desk, 3);
     let on = u.until(|c| c["dblclick_hide"] == true);
     u.row(&desk, 3);
@@ -227,7 +217,7 @@ fn main() {
     u.check(u.until(|c| c["screen_adapt"] == "Keep"), "Desktop → When the screen changes is saved");
 
     let mut keys = vec![HEADER, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED + RESET];
-    u.page(7);
+    u.page(6);
     u.row(&keys, 3);
     chord(&HIDE);
     u.check(u.until(|c| c["hide_key"] == json!({"mods": 7, "vk": 120})), "Shortcuts → a pressed combination becomes the hide shortcut");
@@ -265,7 +255,7 @@ fn main() {
     rules.extend(std::iter::repeat_n(DESCRIBED, n_tabs));
     rules.extend([DESCRIBED, HEADER, DESCRIBED, HEADER, DESCRIBED]);
     let (add_name, add_age) = (n_tabs + 4, n_tabs + 6);
-    u.page(6);
+    u.page(5);
     u.row(&rules, 1);
     u.check(u.until(|c| c["auto_sort"] == true), "Sorting rules → automatic sorting toggles");
     u.row(&rules, 1);
@@ -306,7 +296,7 @@ fn main() {
     u.check(u.until(|c| f(c, 0, "tabs")[0]["expire"].is_null()), "an age rule can be deleted");
 
     let private = [HEADER, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
-    u.page(8);
+    u.page(7);
     u.row(&private, 1);
     let on = u.until(|c| c["privacy"]["on"] == true);
     u.row(&private, 4);
@@ -318,7 +308,7 @@ fn main() {
     u.check(on && titles && never && u.until(|c| c["privacy"]["on"] == false), "Privacy → mode, titles and reveal are saved");
 
     let general = [HEADER, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
-    u.page(9);
+    u.page(8);
     u.row(&general, 1);
     u.pick(&["Français"]);
     let french = u.until(|c| c["lang"] == "fr");

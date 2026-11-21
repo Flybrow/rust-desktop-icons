@@ -3,7 +3,7 @@ use crate::{
     app::with,
     domain::{self, color, grid},
     layered::{ACCENT, Dib, Frame},
-    render::{blit_fit, flat, opaque_if_flat, premul, tint, tint_rect},
+    render::{blit_fit, flat, opaque_if_flat, premul, tint},
     shell,
     win::*,
 };
@@ -83,7 +83,7 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
     let gw = g.grid_w();
     let shape = super::shape(h, gw);
     let alpha = with(|a| {
-        let (ft, fi, glyphs, empty) = (title_font(a, h), label_font(a, h), a.icon_font(s(14)), a.t(crate::i18n::T::FilterHint));
+        let (ft, fi, glyphs, empty) = (title_font(a, h), label_font(a, h), a.icon_font(s(13)), a.t(crate::i18n::T::FilterHint));
         let peeking = crate::visibility::peeking();
         let mask =
             a.view(h).map(|v| v.inside).map(|inside| a.cfg.privacy.mask(inside, crate::visibility::privacy::desktop_active(), peeking));
@@ -126,27 +126,16 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
                 None => opaque_if_flat(icons.px(), w, (ix, iy, ix + icon, iy + icon)),
             }
         }
-        let under = f.look.color;
-        if f.look.fluent_folders && !mask.icons {
-            let folder = if color::ink(under) == 0 { 0xE8_D0AA } else { 0xD0_D2CC };
-            for &(_, x, y) in cells.iter().filter(|c| v.items[c.0].dir && thumb(c.0).is_none()) {
-                let (ix, iy) = cell::icon_at((x, y), shape, icon, s);
-                tint_rect(icons.px(), w, (ix, iy, ix + icon, iy + icon), folder);
-            }
-        }
         if let Some(c) = f.look.tint {
             tint(icons.px(), c);
         }
+        let under = f.look.color;
         let (body, (fg, shade), ink) = (f.look.alpha, color::text_on(under), color::ink(under));
         let bar = !(f.look.bar_hover && !f.rolled && !v.inside);
         let (full, rad, rows) = (if bar { (0, 0, w, ht) } else { (bx0, by0, bx1, by1) }, s(f.look.corner.px()) as f32, (0, ht));
         let tone = |k, a: u8| premul(color::shade(f.look.color, k), a);
-        let fluent = f.look.style == domain::Style::Fluent;
         let mut c = frame.canvas();
-        match fluent {
-            true => c.rrect(full, rad, flat(tone(0, body)), rows, false),
-            false => c.rrect(full, rad, (tone(10, body), tone(-14, body.saturating_add(20))), rows, false),
-        }
+        c.rrect(full, rad, (tone(10, body), tone(-14, body.saturating_add(20))), rows, false);
         for &(i, x, y) in &cells {
             let (sel, hot) = (v.selected.contains(&v.items[i].path), v.hover == Some(i));
             if sel || hot {
@@ -156,17 +145,9 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
                     0
                 };
                 let r = cell::tile((x, y), shape, icon, label, s);
-                let (fill, line) = match (sel, fluent) {
-                    (true, false) => (premul(ACCENT, 90), Some(premul(ACCENT, 200))),
-                    (false, false) => (premul(ink, 40), Some(premul(ink, 60))),
-                    (true, true) => (premul(ACCENT, 70), Some(premul(ACCENT, 140))),
-                    (false, true) => (premul(ink, 22), None),
-                };
-                let tile = if fluent { rad.min(s(6) as f32) } else { rad };
-                c.rrect(r, tile, flat(fill), (by0, by1), false);
-                if let Some(line) = line {
-                    c.rrect(r, tile, flat(line), (by0, by1), true);
-                }
+                let (fill, line) = if sel { (premul(ACCENT, 90), premul(ACCENT, 200)) } else { (premul(ink, 40), premul(ink, 60)) };
+                c.rrect(r, rad, flat(fill), (by0, by1), false);
+                c.rrect(r, rad, flat(line), (by0, by1), true);
             }
         }
         for &(_, x, y) in cells.iter().filter(|_| mask.any()) {
@@ -204,21 +185,16 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
         });
         let hint = hint.or_else(|| v.browse.last().map(|p| format!("←  {}", crate::store::name(p))));
         if bar {
-            let loupe = (v.inside && !rolled && f.active().portal.is_some()) || v.filter.is_some();
+            let loupe = ((v.inside && !rolled && f.active().portal.is_some()) || v.filter.is_some()).then_some(glyphs);
             let hidden = mask.titles.then(|| {
                 let mut m = f.clone();
                 m.tabs.iter_mut().for_each(|t| t.title = "•••".into());
                 m
             });
             let (hf, hint) = (hidden.as_ref().unwrap_or(f), hint.filter(|_| !mask.titles));
-            header::paint(&mut frame, &g, (ft, glyphs, loupe), (hf, hint.as_deref()), (!rolled).then_some(f.tab), s);
+            header::paint(&mut frame, &g, (ft, loupe), (hf, hint.as_deref()), (!rolled).then_some(f.tab), s);
         }
-        let edge = match (fluent, ink) {
-            (false, _) => 48,
-            (true, 0) => 50,
-            (true, _) => 40,
-        };
-        frame.canvas().rrect(full, rad, flat(premul(ink, edge)), rows, true);
+        frame.canvas().rrect(full, rad, flat(premul(ink, 48)), rows, true);
         #[cfg(debug_assertions)]
         frame.dump(&f.id.to_string());
         Some(domain::anim::opacity(v.glow))

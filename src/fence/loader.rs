@@ -54,7 +54,7 @@ fn load(tab: &Tab, thumbs: Option<i32>) -> Vec<Item> {
         .into_iter()
         .map(|i| {
             let (icon, name) = Sys::of(&paths[i]).map_or_else(|| shell::info(&paths[i]), shell::system::info);
-            Item { path: paths[i].clone(), name, icon, thumb: thumb(&paths[i], thumbs), dir: metas[i].dir }
+            Item { path: paths[i].clone(), name, icon, thumb: thumb(&paths[i], thumbs) }
         })
         .collect()
 }
