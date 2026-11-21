@@ -67,6 +67,7 @@ pub(super) fn select(h: HWND, i: usize) {
         f.tab = i;
         let v = a.view(h)?;
         let browsed = !std::mem::take(&mut v.browse).is_empty();
+        super::filter::clear(v);
         let items = std::mem::take(&mut v.items);
         v.cache.retain(|(id, _)| *id != old);
         if !browsed {

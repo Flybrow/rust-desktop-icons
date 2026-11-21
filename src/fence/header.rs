@@ -109,7 +109,7 @@ fn upright(turned: &[u32], (t, len): (i32, i32), font: HFONT, (f, hint): (&Fence
 pub(super) fn paint(
     main: &mut Frame,
     g: &Geo,
-    font: HFONT,
+    (font, loupe): (HFONT, Option<HFONT>),
     (f, hint): (&Fence, Option<&str>),
     active: Option<usize>,
     s: impl Fn(i32) -> i32,
@@ -119,6 +119,10 @@ pub(super) fn paint(
     let side_bar = g.side.vertical();
     let Some(mut bar) = Frame::new(len, t) else { return };
     text(&bar, font, (f, hint), t, s(8), side_bar);
+    if let Some(g) = loupe {
+        let r = RECT { left: len - t, top: 0, right: len - s(4), bottom: t };
+        bar.text(g, &crate::layered::glyph::SEARCH.to_string(), r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    }
     bar.flush();
     shapes(&mut bar.canvas(), f, (active, hint.is_none()), g.side.flipped(), &s);
     bar.text_layers(fg, shade, s(2), (0, t));

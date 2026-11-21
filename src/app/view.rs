@@ -6,12 +6,17 @@ use crate::{
 use std::{collections::HashSet, path::PathBuf};
 use windows::Win32::{Foundation::HWND, UI::Shell::IContextMenu};
 
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Item {
     pub path: PathBuf,
     pub name: Vec<u16>,
     pub icon: i32,
     pub thumb: Option<crate::shell::thumb::Thumb>,
+}
+
+pub struct Filter {
+    pub query: String,
+    pub all: Vec<Item>,
 }
 
 pub struct View {
@@ -34,6 +39,7 @@ pub struct View {
     pub labels: Option<crate::layered::Labels>,
     pub wall: Option<((i32, i32, i32, i32), u32)>,
     pub mica: Option<(u64, crate::render::mica::Mica)>,
+    pub filter: Option<Filter>,
     pub cursor: Option<usize>,
     pub sizing: bool,
     pub busy: bool,
@@ -75,6 +81,7 @@ impl View {
             labels: None,
             wall: None,
             mica: None,
+            filter: None,
             cursor: None,
             sizing: false,
             busy: false,

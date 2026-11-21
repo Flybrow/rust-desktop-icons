@@ -194,6 +194,8 @@ pub static S: [[&str; N]; 25] = [
         "Light",
         "Mica material",
         "The blurred wallpaper shows through, tinted with the fence color. Opacity sets the tint.",
+        "Filter the icons (Ctrl+F)",
+        "Type to filter…",
     ],
     [
         "新建分区",
@@ -388,6 +390,8 @@ pub static S: [[&str; N]; 25] = [
         "浅色",
         "云母材质",
         "透出模糊的壁纸，并以分区颜色着色。不透明度决定着色强度。",
+        "筛选图标 (Ctrl+F)",
+        "输入以筛选…",
     ],
     [
         "नया क्षेत्र",
@@ -582,6 +586,8 @@ pub static S: [[&str; N]; 25] = [
         "हल्का",
         "माइका सामग्री",
         "धुंधला वॉलपेपर क्षेत्र के रंग में रंगा दिखता है। अपारदर्शिता रंग की मात्रा तय करती है।",
+        "आइकन छानें (Ctrl+F)",
+        "छानने के लिए लिखें…",
     ],
     [
         "Nueva zona",
@@ -776,6 +782,8 @@ pub static S: [[&str; N]; 25] = [
         "Claro",
         "Material Mica",
         "Se ve el fondo de pantalla desenfocado, teñido con el color de la zona. La opacidad ajusta el tinte.",
+        "Filtrar los iconos (Ctrl+F)",
+        "Escribe para filtrar…",
     ],
     [
         "Nouvelle zone",
@@ -970,6 +978,8 @@ pub static S: [[&str; N]; 25] = [
         "Clair",
         "Matière Mica",
         "Le fond d'écran flouté transparaît, teinté de la couleur de la zone. L'opacité règle la teinte.",
+        "Filtrer les icônes (Ctrl+F)",
+        "Tapez pour filtrer…",
     ],
     [
         "منطقة جديدة",
@@ -1164,6 +1174,8 @@ pub static S: [[&str; N]; 25] = [
         "فاتح",
         "مادة Mica",
         "تظهر الخلفية ضبابية وملونة بلون المنطقة. العتامة تحدد قوة اللون.",
+        "تصفية الأيقونات (Ctrl+F)",
+        "اكتب للتصفية…",
     ],
     [
         "নতুন অঞ্চল",
@@ -1358,6 +1370,8 @@ pub static S: [[&str; N]; 25] = [
         "হালকা",
         "মাইকা উপাদান",
         "ঝাপসা ওয়ালপেপার অঞ্চলের রঙে রাঙানো দেখা যায়। অস্বচ্ছতা রঙের মাত্রা ঠিক করে।",
+        "আইকন ছাঁকুন (Ctrl+F)",
+        "ছাঁকতে লিখুন…",
     ],
     [
         "Nova área",
@@ -1552,6 +1566,8 @@ pub static S: [[&str; N]; 25] = [
         "Claro",
         "Material Mica",
         "O papel de parede desfocado aparece, tingido com a cor da área. A opacidade ajusta a tinta.",
+        "Filtrar os ícones (Ctrl+F)",
+        "Digite para filtrar…",
     ],
     [
         "Новая область",
@@ -1746,6 +1762,8 @@ pub static S: [[&str; N]; 25] = [
         "Светлая",
         "Материал Mica",
         "Сквозь область видны размытые обои, окрашенные её цветом. Непрозрачность задаёт оттенок.",
+        "Фильтровать значки (Ctrl+F)",
+        "Введите для фильтра…",
     ],
     [
         "نیا خطہ",
@@ -1940,6 +1958,8 @@ pub static S: [[&str; N]; 25] = [
         "ہلکا",
         "مائیکا میٹیریل",
         "دھندلا وال پیپر خطے کے رنگ میں رنگا نظر آتا ہے۔ غیر شفافیت رنگ کی مقدار طے کرتی ہے۔",
+        "آئیکنز چھانیں (Ctrl+F)",
+        "چھاننے کے لیے لکھیں…",
     ],
     [
         "Area baru",
@@ -2134,6 +2154,8 @@ pub static S: [[&str; N]; 25] = [
         "Terang",
         "Bahan Mica",
         "Wallpaper yang buram terlihat, diwarnai dengan warna area. Opasitas mengatur pewarnaan.",
+        "Saring ikon (Ctrl+F)",
+        "Ketik untuk menyaring…",
     ],
     [
         "Neuer Bereich",
@@ -2328,6 +2350,8 @@ pub static S: [[&str; N]; 25] = [
         "Hell",
         "Mica-Material",
         "Das unscharfe Hintergrundbild scheint durch, in der Farbe des Bereichs getönt. Die Deckkraft regelt die Tönung.",
+        "Symbole filtern (Strg+F)",
+        "Tippen zum Filtern…",
     ],
     [
         "新しいフェンス",
@@ -2522,6 +2546,8 @@ pub static S: [[&str; N]; 25] = [
         "ライト",
         "マイカ素材",
         "ぼかした壁紙がフェンスの色で着色されて透けて見えます。不透明度で色の強さを調整します。",
+        "アイコンを絞り込む (Ctrl+F)",
+        "入力して絞り込み…",
     ],
     [
         "Eneo jipya",
@@ -2716,6 +2742,8 @@ pub static S: [[&str; N]; 25] = [
         "Mwanga",
         "Nyenzo ya Mica",
         "Mandhari iliyofifia huonekana, ikiwa na rangi ya eneo. Kiwango cha uwazi huweka rangi.",
+        "Chuja aikoni (Ctrl+F)",
+        "Andika ili kuchuja…",
     ],
     [
         "नवीन क्षेत्र",
@@ -2910,6 +2938,8 @@ pub static S: [[&str; N]; 25] = [
         "फिकट",
         "मायका साहित्य",
         "धूसर वॉलपेपर क्षेत्राच्या रंगात रंगून दिसतो. अपारदर्शकता रंगाची तीव्रता ठरवते.",
+        "आयकॉन गाळा (Ctrl+F)",
+        "गाळण्यासाठी टाइप करा…",
     ],
     [
         "కొత్త ప్రాంతం",
@@ -3104,6 +3134,8 @@ pub static S: [[&str; N]; 25] = [
         "లేత",
         "మైకా మెటీరియల్",
         "మసకబారిన వాల్‌పేపర్ ప్రాంతం రంగులో కనిపిస్తుంది. అపారదర్శకత రంగు తీవ్రతను నిర్ణయిస్తుంది.",
+        "ఐకాన్లను వడపోయి (Ctrl+F)",
+        "వడపోయడానికి టైప్ చేయండి…",
     ],
     [
         "Yeni alan",
@@ -3298,6 +3330,8 @@ pub static S: [[&str; N]; 25] = [
         "Açık",
         "Mica malzemesi",
         "Bulanık duvar kâğıdı alanın rengiyle tonlanarak görünür. Opaklık tonu ayarlar.",
+        "Simgeleri filtrele (Ctrl+F)",
+        "Filtrelemek için yazın…",
     ],
     [
         "புதிய பகுதி",
@@ -3492,6 +3526,8 @@ pub static S: [[&str; N]; 25] = [
         "வெளிர்",
         "மைக்கா பொருள்",
         "மங்கலான வால்பேப்பர் பகுதியின் நிறத்தில் தெரியும். ஒளிபுகாமை நிறத்தின் அளவை அமைக்கும்.",
+        "ஐகான்களை வடிகட்டு (Ctrl+F)",
+        "வடிகட்ட தட்டச்சு செய்க…",
     ],
     [
         "Vùng mới",
@@ -3686,6 +3722,8 @@ pub static S: [[&str; N]; 25] = [
         "Sáng",
         "Chất liệu Mica",
         "Hình nền được làm mờ hiện qua, phủ màu của vùng. Độ mờ đục điều chỉnh lớp màu.",
+        "Lọc biểu tượng (Ctrl+F)",
+        "Gõ để lọc…",
     ],
     [
         "새 영역",
@@ -3880,6 +3918,8 @@ pub static S: [[&str; N]; 25] = [
         "밝게",
         "Mica 재질",
         "흐린 배경 화면이 영역 색으로 물든 채 비쳐 보입니다. 불투명도로 색의 세기를 정합니다.",
+        "아이콘 필터 (Ctrl+F)",
+        "입력하여 필터…",
     ],
     [
         "Nuova area",
@@ -4074,6 +4114,8 @@ pub static S: [[&str; N]; 25] = [
         "Chiaro",
         "Materiale Mica",
         "Lo sfondo sfocato traspare, colorato con il colore dell'area. L'opacità regola la tinta.",
+        "Filtra le icone (Ctrl+F)",
+        "Digita per filtrare…",
     ],
     [
         "พื้นที่ใหม่",
@@ -4268,6 +4310,8 @@ pub static S: [[&str; N]; 25] = [
         "สว่าง",
         "วัสดุ Mica",
         "วอลเปเปอร์ที่เบลอจะแสดงผ่าน โดยย้อมด้วยสีของพื้นที่ ความทึบใช้ปรับความเข้มของสี",
+        "กรองไอคอน (Ctrl+F)",
+        "พิมพ์เพื่อกรอง…",
     ],
     [
         "Nowy obszar",
@@ -4462,6 +4506,8 @@ pub static S: [[&str; N]; 25] = [
         "Jasny",
         "Materiał Mica",
         "Przez obszar widać rozmytą tapetę zabarwioną jego kolorem. Krycie ustala siłę koloru.",
+        "Filtruj ikony (Ctrl+F)",
+        "Pisz, aby filtrować…",
     ],
     [
         "Нова область",
@@ -4656,6 +4702,8 @@ pub static S: [[&str; N]; 25] = [
         "Світла",
         "Матеріал Mica",
         "Крізь область видно розмиті шпалери, забарвлені її кольором. Непрозорість задає відтінок.",
+        "Фільтрувати значки (Ctrl+F)",
+        "Введіть для фільтра…",
     ],
     [
         "ناحیه جدید",
@@ -4850,5 +4898,7 @@ pub static S: [[&str; N]; 25] = [
         "روشن",
         "جنس Mica",
         "تصویر زمینه محو با رنگ ناحیه دیده می‌شود. میزان کدری شدت رنگ را تعیین می‌کند.",
+        "پالایش آیکون‌ها (Ctrl+F)",
+        "برای پالایش بنویسید…",
     ],
 ];

@@ -15,7 +15,7 @@ use crate::{
 };
 pub use fences::{duplicate, new_fence, rebuild, recover, register_verb};
 use std::{cell::RefCell, collections::HashSet, path::PathBuf};
-pub use view::{Item, View};
+pub use view::{Filter, Item, View};
 use windows::{
     Win32::{
         Foundation::*,

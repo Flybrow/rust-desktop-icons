@@ -1,5 +1,6 @@
 use super::{
-    actions, arrange, cursor, desks, edit, fence_of, group, host, items, layout, native, peek, select, system, tabs, titlebar, update,
+    actions, arrange, cursor, desks, edit, fence_of, filter, group, host, items, layout, native, peek, select, system, tabs, titlebar,
+    update,
 };
 use crate::domain::inherit::Field;
 use crate::{
@@ -57,6 +58,7 @@ pub(super) fn context(h: HWND) {
             separator(m);
         }
         a.entry(m, 10, T::Rename, false, g::RENAME);
+        a.entry(m, 212, T::FilterFence, false, g::SEARCH);
         arrange::submenus(a, m, f.active());
         a.sub(m, T::SystemIcons, sys, g::PC);
         let folders = menu();
@@ -148,6 +150,7 @@ pub(super) fn context(h: HWND) {
         65 => update(h, |f| f.set(Field::Labels, |l| l.labels ^= true)),
         209 => update(h, |f| f.set(Field::Wallpaper, |l| l.wallpaper ^= true)),
         211 => update(h, |f| f.set(Field::Mica, |l| l.mica ^= true)),
+        212 => filter::toggle(h),
         210 => {
             update(h, |f| f.set(Field::Thumbs, |l| l.thumbs ^= true));
             items::reload(h);

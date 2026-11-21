@@ -6,6 +6,7 @@ mod cell;
 mod desks;
 mod drop;
 mod edit;
+mod filter;
 mod ghost;
 mod group;
 mod guides;
@@ -131,6 +132,8 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
         WM_NCHITTEST => return LRESULT(layout::hit(h, lp) as isize),
         WM_MOUSEACTIVATE => return LRESULT(if (lp.0 & 0xFFFF) as u32 == HTCLIENT { MA_ACTIVATE } else { MA_NOACTIVATE } as isize),
         WM_KEYDOWN if crate::undo::shortcut(wp.0 as u16) => crate::undo::undo(),
+        WM_CHAR if filter::typed(h, wp) => {}
+        WM_KILLFOCUS => filter::left(h),
         WM_KEYDOWN if crate::undo::step(|| keys::handle(h, wp.0 as u16)) => {}
         WM_SIZE if !layout::sizing(h) => render(h),
         WM_WINDOWPOSCHANGING if !top() && !crate::visibility::peeking() => keep_bottom(lp),
@@ -158,7 +161,8 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
             snap::sizing(h, wp, lp);
             return LRESULT(1);
         }
-        WM_NCLBUTTONDOWN if wp.0 as u32 == HTCAPTION && (browse::bar_click(h, xy(lp)) || tabs::click(h, xy(lp))) => {}
+        WM_NCLBUTTONDOWN
+            if wp.0 as u32 == HTCAPTION && (filter::bar_click(h, xy(lp)) || browse::bar_click(h, xy(lp)) || tabs::click(h, xy(lp))) => {}
         WM_NCLBUTTONDOWN => return snap::press(h, xy(lp), || unsafe { DefWindowProcW(h, m, wp, lp) }),
         WM_NCLBUTTONDBLCLK if wp.0 as u32 == HTCAPTION && !browse::bar_double(h, xy(lp)) => peek::toggle(h),
         WM_NCMOUSEMOVE => {

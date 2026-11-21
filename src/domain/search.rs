@@ -62,6 +62,11 @@ pub fn rank(query: &str, names: &[String]) -> Vec<usize> {
     hits.into_iter().map(|(_, i)| i).take(LIMIT).collect()
 }
 
+pub fn keep(query: &str, names: &[String]) -> Vec<usize> {
+    let q = normalize(query.trim());
+    (0..names.len()).filter(|&i| q.is_empty() || normalize(&names[i]).contains(&q)).collect()
+}
+
 pub fn step(sel: usize, n: usize, down: bool) -> usize {
     match (n, down) {
         (0, _) => 0,
@@ -73,6 +78,16 @@ pub fn step(sel: usize, n: usize, down: bool) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn filter_keeps_the_order_and_folds_accents() {
+        let names: Vec<String> = ["Été.txt", "photo.jpg", "Report été", "zeta"].map(String::from).into();
+        assert_eq!(keep("ETE", &names), vec![0, 2]);
+        assert_eq!(keep("eta", &names), vec![3]);
+        assert_eq!(keep("  ", &names), vec![0, 1, 2, 3]);
+        assert_eq!(keep("pho", &names), vec![1]);
+        assert!(keep("xyz", &names).is_empty());
+    }
 
     #[test]
     fn ranking() {

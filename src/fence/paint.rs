@@ -83,7 +83,7 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
     let gw = g.grid_w();
     let mica = super::wallpaper::mica(h, f, (w, ht));
     let alpha = with(|a| {
-        let (ft, fi) = (title_font(a, h), label_font(a, h));
+        let (ft, fi, glyphs, empty) = (title_font(a, h), label_font(a, h), a.icon_font(s(13)), a.t(crate::i18n::T::FilterHint));
         let flow = layout::flow(a, h, gw, cell)?;
         let tail = layout::tail(a, h, gw, (cell, icon));
         let v = a.view(h)?;
@@ -163,10 +163,13 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
             frame.layers(l, f.look.label_color.unwrap_or(fg), shade, rows);
         }
         v.labels = labels.filter(|_| v.inside);
-        let hint = v.hover.filter(|_| !f.look.labels).and_then(|i| v.items.get(i)).map(|it| String::from_utf16_lossy(&it.name));
+        let hint = super::filter::hint(v, empty);
+        let hint =
+            hint.or_else(|| v.hover.filter(|_| !f.look.labels).and_then(|i| v.items.get(i)).map(|it| String::from_utf16_lossy(&it.name)));
         let hint = hint.or_else(|| v.browse.last().map(|p| format!("←  {}", crate::store::name(p))));
         if bar {
-            header::paint(&mut frame, &g, ft, (f, hint.as_deref()), (!rolled).then_some(f.tab), s);
+            let loupe = ((v.inside && !rolled) || v.filter.is_some()).then_some(glyphs);
+            header::paint(&mut frame, &g, (ft, loupe), (f, hint.as_deref()), (!rolled).then_some(f.tab), s);
         }
         frame.canvas().rrect(full, rad, flat(premul(ink, 48)), rows, true);
         #[cfg(debug_assertions)]

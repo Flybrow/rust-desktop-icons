@@ -192,4 +192,6 @@ pub enum T {
     ThemeLight,
     Mica,
     DMica,
+    FilterFence,
+    FilterHint,
 }

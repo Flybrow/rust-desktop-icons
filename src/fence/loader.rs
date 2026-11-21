@@ -132,7 +132,7 @@ pub(super) fn receive(h: HWND, lp: LPARAM) {
                 let key = Some((id, v.browse.last().cloned()));
                 changed |= v.items != items || v.shown != key;
                 v.shown = key;
-                v.items = items;
+                super::filter::show(v, items);
             } else {
                 v.cache.retain(|(t, _)| *t != id);
                 v.cache.push((id, items));

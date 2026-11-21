@@ -127,7 +127,10 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   leaving the tab (click, Ctrl+Tab, add, remove) drops the folder without caching its items as the tab's own; the fence menu's "Open folders ▸ In the fence / In File Explorer" sets `look.browse`, a folder's own
   right-click menu starts with "Open in the fence"), `moveto.rs` ("Move to" submenu of an item's menu), `group.rs` (group submenu; mates follow
   WM_MOVING via `grab`/`follow`/`release` and are left out of snapping), `desks.rs` ("Show on" virtual desktop submenu), `titlebar.rs` (title bar submenu),
-  `wallpaper.rs` (fence color from the wallpaper behind it: `PaintDesktop` into a DIB, cached per rect in `View.wall`, reset on
+  `filter.rs` (live filter: Ctrl+F, the fence menu or the magnifier at the far end of the bar (shown on hover); typing narrows
+  `View.items` through `search::keep` (accent-folding, order kept) while `View.filter.all` keeps the full list that the loader and
+  tab switches go through (`filter::show`/`clear`); Backspace/Escape edit or close it, Enter opens the first match, focus loss closes an empty one;
+  E2E `filter_e2e`), `wallpaper.rs` (fence color from the wallpaper behind it: `PaintDesktop` into a DIB, cached per rect in `View.wall`, reset on
   WM_SETTINGCHANGE/SPI_SETDESKWALLPAPER), `nav.rs` (arrow/Home/End/Page keys through `grid::step`, Ctrl+Tab), `system.rs` (system icons placement:
   menu, drag, drop), `window.rs` (create, owner/z-order: `raise` for peek), `host.rs` (hidden topmost window that owns
   every fence popup menu, so submenus stay above topmost windows; it forwards owner-draw menu messages to `native`), `snap.rs` (move/size snapping, Alt = free) + `guides.rs` (alignment lines: thin popups owned by the
