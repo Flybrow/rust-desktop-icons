@@ -1,4 +1,4 @@
-use super::live;
+use super::{inject::Push, live};
 use crate::{
     app::{change, with},
     report,
@@ -17,6 +17,7 @@ pub const SOON: usize = tray::timers::KEEP_SOON;
 const TICK_MS: u32 = 3000;
 const SOON_MS: u32 = 30;
 const RETRY_MS: u32 = 250;
+const ABSENT_MS: u32 = 100;
 
 thread_local! {
     static HOOK: Cell<(isize, isize)> = const { Cell::new((0, 0)) };
@@ -31,8 +32,12 @@ fn union(a: RECT, b: RECT) -> RECT {
 
 unsafe extern "system" fn event(_: HWINEVENTHOOK, _: u32, h: HWND, _: i32, _: i32, _: u32, _: u32) {
     if h.0 as isize == HOOK.get().1 && !QUEUED.replace(true) {
-        let _ = tray::hwnd().map(|t| unsafe { PostMessageW(Some(t), WM_TIMER, WPARAM(SOON), LPARAM(0)) });
+        wake();
     }
+}
+
+pub fn wake() {
+    let _ = tray::hwnd().map(|t| unsafe { PostMessageW(Some(t), WM_TIMER, WPARAM(SOON), LPARAM(0)) });
 }
 
 fn unhook() {
@@ -73,6 +78,12 @@ pub fn apply() {
     }
     let Some(paths) = with(|a| a.cfg.keep_on_desktop.then(|| a.cfg.pinned())).flatten().filter(|_| live()) else { return };
     timer(TICK, Some(TICK_MS));
+    match super::inject::push(&paths) {
+        Push::Done => return unstack(),
+        Push::Pending => return,
+        Push::Absent => return timer(SOON, Some(ABSENT_MS)),
+        Push::Failed => {}
+    }
     hook();
     let ready = Desk::open().filter(|_| HOOK.get().0 != 0);
     let Some(d) = ready else { return timer(SOON, Some(RETRY_MS)) };
@@ -95,9 +106,7 @@ pub fn apply() {
     }
 }
 
-pub fn restore() {
-    timer(TICK, None);
-    timer(SOON, None);
+fn unstack() {
     unhook();
     super::cover::hide();
     STACK.set(None);
@@ -107,4 +116,11 @@ pub fn restore() {
     d.sync(&[], None, &[]);
     d.set_flags(flags);
     change(|c| c.desk_flags = None);
+}
+
+pub fn restore() {
+    timer(TICK, None);
+    timer(SOON, None);
+    super::inject::stop();
+    unstack();
 }

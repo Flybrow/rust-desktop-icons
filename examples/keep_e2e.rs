@@ -10,7 +10,7 @@ use std::{
 };
 use support::{
     app,
-    desk::{self, cover, desktop, flags, hidden, positions, screen, stacked, view},
+    desk::{self, cover, desktop, flags, hidden, positions, removed, screen, stacked, view},
     waited,
 };
 use windows::Win32::Foundation::{LPARAM, WPARAM};
@@ -89,7 +89,7 @@ fn main() {
     let explorer = env::args().any(|a| a == "--restart-explorer");
     let desk = desktop();
     let mut r = Run { root: env::temp_dir().join(format!("rdi-e2e-{}", std::process::id())), fails: vec![] };
-    let before = flags();
+    let mut before = flags();
     fs::create_dir_all(r.tab_dir()).unwrap();
     for n in NAMES {
         fs::write(r.tab_dir().join(file(n)), "Rust Desktop Icons e2e test file").unwrap();
@@ -107,11 +107,11 @@ fn main() {
     r.check(migrated.is_some(), "enable: fence files moved to the Desktop folder and pinned");
     r.check(fs::read_dir(r.tab_dir()).map_or(true, |mut d| d.next().is_none()), "enable: fence folder emptied");
     r.check(waited(10, || hidden(&names) == 3).is_some(), "enable: icons hidden from the desktop");
-    r.check(flags() == 0, "auto-arrange and snap-to-grid off while active");
-    r.check(cover().is_some(), "a cover window hides the stacked icons");
+    r.check(flags() == before, "auto-arrange and snap-to-grid untouched while active");
+    r.check(cover().is_none() && removed(&names) == names.len(), "icons removed from the desktop view (no stack, no cover)");
 
     let _ = view().and_then(|v| v.cast::<IShellView>()).map(|v| unsafe { v.Refresh() });
-    let back = waited(1, || hidden(&names) < 3).is_some();
+    let back = waited(2, || hidden(&names) < 3).is_some();
     let rehid = waited(10, || hidden(&names) == 3);
     println!("      refresh: icons came back = {back}, hidden again after {} ms", rehid.map_or(-1, |m| m as i64));
     r.check(rehid.is_some(), "icons hidden again after desktop refresh (F5)");
@@ -202,10 +202,28 @@ fn main() {
     }
 
     if explorer {
+        let control = file("rdi-e2e-control");
+        fs::write(desk.join(&control), "Rust Desktop Icons e2e test file").unwrap();
         restart_explorer();
-        let t = waited(60, || hidden(&names) == names.len());
-        println!("      explorer restart: hidden again after {} ms", t.map_or(-1, |m| m as i64));
-        r.check(t.is_some(), "icons hidden again after Explorer restart");
+        let start = std::time::Instant::now();
+        let (mut shown, mut t) = (None, None);
+        while t.is_none() && start.elapsed() < Duration::from_secs(60) {
+            let listed = positions().iter().any(|(p, _)| p.ends_with(&control));
+            let all = hidden(&names) == names.len();
+            if !all && shown.is_none() {
+                shown = Some(start.elapsed());
+            }
+            if listed && all {
+                t = Some(start.elapsed());
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
+        thread::sleep(Duration::from_millis(4000));
+        before = flags();
+        let visible = shown.zip(t).map_or(0, |(s, e)| (e - s).as_millis());
+        println!("      explorer restart: hidden icons visible for {visible} ms (first seen at {shown:?}, all hidden at {t:?})");
+        r.check(t.is_some() && hidden(&names) == names.len(), "icons hidden again after Explorer restart (and stay hidden)");
+        let _ = fs::remove_file(desk.join(&control));
     }
 
     r.stop(app);
