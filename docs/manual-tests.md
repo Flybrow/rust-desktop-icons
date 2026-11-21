@@ -20,3 +20,13 @@ These need real hardware the Sandbox does not have. Tick them on the release bui
 ## Daily use for a day
 - [ ] After a few hours: no lag when hovering fences; Task Manager shows memory roughly stable (well under 100 MB).
 - [ ] Sleep / resume and lock / unlock: fences are still there and drawn.
+
+## Keep files on the desktop (icons hidden inside Explorer)
+- [ ] Windows 10: pinned icons disappear from the desktop (no stack in the bottom-right corner), F5 does not show them.
+- [ ] Two screens: pinned icons placed on the second screen are hidden too; a loose icon dragged between screens never shows them.
+- [ ] Microsoft Defender / SmartScreen does not flag the app or `%LOCALAPPDATA%\RustDesktopIcons\hook\rdi_hook-*.dll`.
+- [ ] Update to a newer version while the mode is on: icons stay hidden; after the next Explorer restart only the new DLL is left in `hook\`.
+- [ ] Windows on ARM: the mode still works through the stack fallback (no ARM64 DLL).
+
+## Side bars with Chinese, Japanese or Korean titles (the Sandbox has no CJK font)
+- [ ] A vertical fence titled e.g. "文件夹" shows upright characters, top to bottom, none overlapping; "Tools" stays rotated.
