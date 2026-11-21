@@ -2,6 +2,7 @@ mod dblclick;
 pub mod desks;
 pub mod hotkeys;
 mod overlay;
+pub mod privacy;
 
 use crate::{app::with, fence, keep, search, shell::hide::listview, tray, win::typed};
 use std::cell::Cell;

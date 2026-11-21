@@ -60,7 +60,8 @@ pub(super) fn toggle(h: HWND) {
 
 pub(super) fn bar_click(h: HWND, screen: (i32, i32)) -> bool {
     let g = layout::geo_now(h);
-    let hit = g.along_bar(to_client(h, screen)).is_some_and(|a| a >= g.length() - g.bar);
+    let shown = active(h) || super::read(h, |f| f.active().portal.is_some()) == Some(true);
+    let hit = shown && g.along_bar(to_client(h, screen)).is_some_and(|a| a >= g.length() - g.bar);
     if hit {
         toggle(h);
     }

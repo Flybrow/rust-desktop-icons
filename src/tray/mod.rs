@@ -116,6 +116,7 @@ fn menu_at(h: HWND) {
         separator(m);
         let l = prefs::lang_menu(a);
         a.sub(m, T::Language, l, g::GLOBE);
+        a.entry(m, 10, T::PrivacyOn, a.cfg.privacy.on, g::HIDE);
         a.entry(m, 2, T::Autostart, a.cfg.autostart, g::POWER);
         a.entry(m, 3, T::AutoUpdate, a.cfg.auto_update, g::SYNC);
         a.entry(m, 4, T::CheckUpdates, false, g::REFRESH);
@@ -128,6 +129,7 @@ fn menu_at(h: HWND) {
     };
     match popup(h, m, rtl) {
         1 => new_fence(),
+        10 => settings::private(|p| p.on ^= true),
         9 => crate::undo::undo(),
         2 => prefs::toggle_autostart(),
         3 => prefs::toggle_auto_update(),

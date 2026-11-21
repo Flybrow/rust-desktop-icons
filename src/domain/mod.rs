@@ -18,6 +18,7 @@ mod model;
 pub mod names;
 pub mod order;
 pub mod pins;
+pub mod privacy;
 #[cfg(test)]
 mod props;
 mod recover;

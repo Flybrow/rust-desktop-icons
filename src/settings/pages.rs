@@ -7,7 +7,7 @@ use crate::{
     prefs,
 };
 
-pub const PAGES: [(T, char); 8] = [
+pub const PAGES: [(T, char); 9] = [
     (T::Appearance, g::COLOR),
     (T::IconsPage, g::SIZE),
     (T::TitleBar, g::TAB),
@@ -15,6 +15,7 @@ pub const PAGES: [(T, char); 8] = [
     (T::Desktop, g::PC),
     (T::Rules, g::SYNC),
     (T::Shortcuts, g::KEYBOARD),
+    (T::Privacy, g::HIDE),
     (T::General, g::SETTINGS),
 ];
 
@@ -114,6 +115,16 @@ pub fn build(a: &App, page: usize) -> Vec<Row> {
         ],
         5 => rules(a),
         6 => Slot::ALL.iter().map(|s| key_row(a, *s)).chain(capturing(a).map(|_| note(a.t(T::PressKeys)))).collect(),
+        7 => {
+            let p = c.privacy;
+            vec![
+                row(a.t(T::PrivacyOn), Ctl::Toggle(p.on), Act::Privacy, g::HIDE).about(a.t(T::DPrivacy)),
+                row(a.t(T::PrivNames), Ctl::Toggle(p.names), Act::PrivNames, g::LABEL).about(a.t(T::DPrivNames)),
+                row(a.t(T::PrivIcons), Ctl::Toggle(p.icons), Act::PrivIcons, g::IMAGE).about(a.t(T::DPrivIcons)),
+                row(a.t(T::PrivTitles), Ctl::Toggle(p.titles), Act::PrivTitles, g::TAB).about(a.t(T::DPrivTitles)),
+                row(a.t(T::Reveal), Ctl::Value(a.t(i18n::reveal(p.reveal)).into()), Act::Reveal, g::EYE).about(a.t(T::DReveal)),
+            ]
+        }
         _ => vec![
             row(a.t(T::Language), Ctl::Value(prefs::lang_name(a).into()), Act::Lang, g::GLOBE).about(a.t(T::DLanguage)),
             row(a.t(T::Theme), Ctl::Value(a.t(i18n::theme(c.theme)).into()), Act::Theme, g::COLOR).about(a.t(T::DTheme)),
@@ -182,11 +193,17 @@ mod tests {
             Act::Screens,
             Act::DblClick,
             Act::HideDesktop,
+            Act::Privacy,
+            Act::PrivNames,
+            Act::PrivIcons,
+            Act::PrivTitles,
+            Act::Reveal,
             Act::AutoSort,
             Act::SortNow,
             Act::AddNameRule,
             Act::AddAgeRule,
             Act::Lang,
+            Act::Theme,
             Act::Autostart,
             Act::AutoUpdate,
             Act::Check,

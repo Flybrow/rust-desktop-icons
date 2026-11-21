@@ -16,7 +16,9 @@ pub(super) fn enter(h: HWND) {
 }
 
 fn bar_hover(h: HWND) {
-    if read(h, |f| f.look.bar_hover && !f.rolled) == Some(true) && !anim::animating(h) {
+    let paints = read(h, |f| (f.look.bar_hover && !f.rolled) || f.active().portal.is_some()) == Some(true);
+    let private = crate::app::with(|a| a.cfg.privacy.hover_paints()) == Some(true);
+    if (paints || private) && !anim::animating(h) {
         super::render(h);
     }
 }

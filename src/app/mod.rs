@@ -174,6 +174,7 @@ pub fn run() {
         crate::visibility::recover();
         crate::visibility::hotkeys::register();
         crate::visibility::sync_dblclick();
+        crate::visibility::privacy::sync();
         if new {
             new_fence();
         }

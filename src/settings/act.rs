@@ -10,6 +10,11 @@ use crate::{
 };
 use windows::Win32::Foundation::HWND;
 
+pub fn private(f: impl FnOnce(&mut crate::domain::privacy::Privacy)) {
+    change(|c| f(&mut c.privacy));
+    visibility::privacy::sync();
+}
+
 pub(super) fn choose(h: HWND, options: Vec<(String, bool)>) -> Option<usize> {
     let rtl = with(|a| a.rtl()).unwrap_or(false);
     let m = menu();
@@ -149,6 +154,18 @@ fn perform(h: HWND, act: rows::Act) {
             }
         }
         KeepOnDesktop => keep::toggle(),
+        Privacy => private(|p| p.on ^= true),
+        PrivNames => private(|p| p.names ^= true),
+        PrivIcons => private(|p| p.icons ^= true),
+        PrivTitles => private(|p| p.titles ^= true),
+        Reveal => {
+            let now = with(|a| a.cfg.privacy.reveal).unwrap_or_default();
+            if let Some(r) =
+                pick(h, &crate::domain::privacy::Reveal::ALL, now, |r| with(|a| a.t(i18n::reveal(r)).to_string()).unwrap_or_default())
+            {
+                private(|p| p.reveal = r);
+            }
+        }
         Theme => {
             let now = with(|a| a.cfg.theme).unwrap_or_default();
             if let Some(t) =

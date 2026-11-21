@@ -84,6 +84,10 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
     let mica = super::wallpaper::mica(h, f, (w, ht));
     let alpha = with(|a| {
         let (ft, fi, glyphs, empty) = (title_font(a, h), label_font(a, h), a.icon_font(s(13)), a.t(crate::i18n::T::FilterHint));
+        let peeking = crate::visibility::peeking();
+        let mask =
+            a.view(h).map(|v| v.inside).map(|inside| a.cfg.privacy.mask(inside, crate::visibility::privacy::desktop_active(), peeking));
+        let mask = mask.unwrap_or_default();
         let flow = layout::flow(a, h, gw, cell)?;
         let tail = layout::tail(a, h, gw, (cell, icon));
         let v = a.view(h)?;
@@ -98,14 +102,15 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
             .filter(|&(_, x, y)| y + cell > by0 && y < by1 && x + cell > bx0 && x < bx1)
             .collect();
         frame.clip((bx0, by0, bx1, by1));
-        let key = f.look.labels.then(|| labels_key(&cells, v, ((w, ht, cell, icon, s(100), fi.0 as isize), (bx0, by0, bx1, by1))));
+        let key = (f.look.labels && !mask.names)
+            .then(|| labels_key(&cells, v, ((w, ht, cell, icon, s(100), fi.0 as isize), (bx0, by0, bx1, by1))));
         let cached = key.and_then(|k| v.labels.take().filter(|l| l.key == k));
         for &(i, x, y) in cells.iter().filter(|_| key.is_some() && cached.is_none()) {
             frame.text_w(fi, &mut v.items[i].name, &mut cell::label_at((x, y), cell, icon, s), cell::LABEL);
         }
         frame.target(&icons);
         let thumb = |i: usize| v.items[i].thumb.as_ref().filter(|_| f.look.thumbs);
-        for &(i, x, y) in cells.iter().filter(|c| thumb(c.0).is_none()) {
+        for &(i, x, y) in cells.iter().filter(|c| !mask.icons && thumb(c.0).is_none()) {
             shell::draw_icon(frame.dc(), v.items[i].icon, cell::icon_at((x, y), cell, icon, s), icon);
         }
         frame.target(&frame.mask);
@@ -114,7 +119,7 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
         } else {
             frame.flush()
         }
-        for &(i, x, y) in &cells {
+        for &(i, x, y) in cells.iter().filter(|_| !mask.icons) {
             let (ix, iy) = cell::icon_at((x, y), cell, icon, s);
             match thumb(i) {
                 Some(t) => blit_fit(icons.px(), w, &t.px, (t.w, t.h), (ix, iy), icon),
@@ -145,6 +150,17 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
                 c.rrect(r, rad, flat(line), (by0, by1), true);
             }
         }
+        for &(_, x, y) in cells.iter().filter(|_| mask.any()) {
+            if mask.icons {
+                let (ix, iy) = cell::icon_at((x, y), cell, icon, s);
+                c.rrect((ix, iy, ix + icon, iy + icon), s(8) as f32, flat(premul(ink, 46)), (by0, by1), false);
+            }
+            if mask.names && f.look.labels {
+                let r = cell::label_at((x, y), cell, icon, s);
+                let (pad, top) = ((r.right - r.left) / 5, r.top + s(4));
+                c.rrect((r.left + pad, top, r.right - pad, top + s(8)), s(4) as f32, flat(premul(ink, 70)), (by0, by1), false);
+            }
+        }
         if let Some(((x0, y0), (x1, y1))) = v.band {
             let r = g.rect((x0.min(x1), y0.min(y1) - v.scroll, x0.max(x1), y0.max(y1) - v.scroll));
             c.rrect(r, s(2) as f32, flat(premul(ACCENT, 50)), (by0, by1), false);
@@ -164,12 +180,19 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
         }
         v.labels = labels.filter(|_| v.inside);
         let hint = super::filter::hint(v, empty);
-        let hint =
-            hint.or_else(|| v.hover.filter(|_| !f.look.labels).and_then(|i| v.items.get(i)).map(|it| String::from_utf16_lossy(&it.name)));
+        let hint = hint.or_else(|| {
+            v.hover.filter(|_| !f.look.labels && !mask.names).and_then(|i| v.items.get(i)).map(|it| String::from_utf16_lossy(&it.name))
+        });
         let hint = hint.or_else(|| v.browse.last().map(|p| format!("←  {}", crate::store::name(p))));
         if bar {
-            let loupe = ((v.inside && !rolled) || v.filter.is_some()).then_some(glyphs);
-            header::paint(&mut frame, &g, (ft, loupe), (f, hint.as_deref()), (!rolled).then_some(f.tab), s);
+            let loupe = ((v.inside && !rolled && f.active().portal.is_some()) || v.filter.is_some()).then_some(glyphs);
+            let hidden = mask.titles.then(|| {
+                let mut m = f.clone();
+                m.tabs.iter_mut().for_each(|t| t.title = "•••".into());
+                m
+            });
+            let (hf, hint) = (hidden.as_ref().unwrap_or(f), hint.filter(|_| !mask.titles));
+            header::paint(&mut frame, &g, (ft, loupe), (hf, hint.as_deref()), (!rolled).then_some(f.tab), s);
         }
         frame.canvas().rrect(full, rad, flat(premul(ink, 48)), rows, true);
         #[cfg(debug_assertions)]

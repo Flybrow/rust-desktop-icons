@@ -53,15 +53,15 @@ fn main() {
     let root = env::temp_dir().join(format!("rdi-filter-{}", std::process::id()));
     let data = root.join("RustDesktopIcons");
     let all = ["Été.txt", "photo.jpg", "notes.txt", "report été.pdf"];
-    for (id, list) in [(1, &all[..]), (2, &["other.txt"][..])] {
-        let dir = data.join("fences").join(id.to_string());
+    let portal = root.join("portal");
+    for (dir, list) in [(portal.clone(), &all[..]), (data.join("fences").join("2"), &["other.txt"][..])] {
         fs::create_dir_all(&dir).unwrap();
         list.iter().for_each(|n| fs::write(dir.join(n), "x").unwrap());
     }
     let at = |x: i32, y: i32| (w.left + x, w.top + y);
-    let fence = |id: u64, (x, y): (i32, i32)| json!({"id": id, "x": x, "y": y, "w": 460, "h": 300, "tabs": [{"id": id, "title": format!("F{id}")}]});
+    let fence = |id: u64, (x, y): (i32, i32), tab: serde_json::Value| json!({"id": id, "x": x, "y": y, "w": 460, "h": 300, "tabs": [tab]});
     let cfg = json!({"lang": "en", "auto_update": false, "auto_sort": false, "version": env!("CARGO_PKG_VERSION"),
-        "fences": [fence(1, at(40, 60)), fence(2, at(560, 60))]});
+        "fences": [fence(1, at(40, 60), json!({"id": 1, "title": "Portal", "portal": portal})), fence(2, at(560, 60), json!({"id": 2, "title": "F2"}))]});
     fs::write(data.join("config.json"), serde_json::to_vec_pretty(&cfg).unwrap()).unwrap();
     let mut app = app(&root, &[("RDI_TOP", "1")], &[]);
     let pid = app.id();
@@ -83,7 +83,7 @@ fn main() {
         (b.right - sc(16), b.top + sc(14))
     };
 
-    check(shown(f) == names(&all), "the fence shows every icon");
+    check(shown(f) == names(&all), "the portal shows every icon");
     chord(&[VK_CONTROL, VK_F]);
     sleep(200);
     type_text("ETE");
@@ -112,7 +112,7 @@ fn main() {
     click_at(loupe());
     type_text("not");
     sleep(300);
-    check(shown(f) == names(&["notes.txt"]), "a click on the magnifier opens the filter");
+    check(shown(f) == names(&["notes.txt"]), "a click on the portal's magnifier opens the filter");
     click_at(loupe());
     check(shown(f) == names(&all), "a second click on the magnifier closes it");
     chord(&[VK_CONTROL, VK_F]);

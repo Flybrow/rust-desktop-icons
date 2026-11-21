@@ -49,7 +49,10 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   `matching.rs` (`glob` name patterns, `NameRule` (checked before kind rules), per-tab `Expire` age rule, `Config::targets`/`place_name`),
   `groups.rs` (`Fence.group` + `mates`/`group_with`/`ungroup`; virtual desktops: registry GUID parsing, `Fence::shown_on`),
   `backup.rs` (`Config::import` keeps this PC's fields and prefs, `rewind` (undo) restores prefs too; both list orphan tabs to empty and system icons to restore),
-  `search.rs` (accent-folding ranking, result place label, double-click test).
+  `search.rs` (accent-folding ranking, `keep` for the live filter, result place label, double-click test),
+  `privacy.rs` (`Privacy`: privacy mode, what to mask and when to reveal (hover / desktop in use / never) -> `Mask`; the fence render
+  draws gray bars for names, plain squares for icons and dots for titles; `visibility/privacy.rs` follows the foreground window for
+  the desktop reveal; hover reveal and portals (magnifier) re-render on mouse enter/leave, plain fences still do not).
   `recover.rs` (`Config::orphans`/`recover`: non-empty `fences/<id>` folders no tab uses come back at startup in a
   "Recovered files" fence, `app::recover` + `store::filled_dirs`). Test-only: `upgrade.rs` loads real configs of every
   released shape (`fixtures/v*.json`, add one when the config format changes), `props.rs` proptest invariants (grid,
@@ -127,7 +130,7 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   leaving the tab (click, Ctrl+Tab, add, remove) drops the folder without caching its items as the tab's own; the fence menu's "Open folders ▸ In the fence / In File Explorer" sets `look.browse`, a folder's own
   right-click menu starts with "Open in the fence"), `moveto.rs` ("Move to" submenu of an item's menu), `group.rs` (group submenu; mates follow
   WM_MOVING via `grab`/`follow`/`release` and are left out of snapping), `desks.rs` ("Show on" virtual desktop submenu), `titlebar.rs` (title bar submenu),
-  `filter.rs` (live filter: Ctrl+F, the fence menu or the magnifier at the far end of the bar (shown on hover); typing narrows
+  `filter.rs` (live filter: Ctrl+F, the fence menu or, on portals and while filtering, the magnifier at the far end of the bar; typing narrows
   `View.items` through `search::keep` (accent-folding, order kept) while `View.filter.all` keeps the full list that the loader and
   tab switches go through (`filter::show`/`clear`); Backspace/Escape edit or close it, Enter opens the first match, focus loss closes an empty one;
   E2E `filter_e2e`), `wallpaper.rs` (fence color from the wallpaper behind it: `PaintDesktop` into a DIB, cached per rect in `View.wall`, reset on
@@ -148,7 +151,7 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   (a blocked UI thread would make Windows drop a low-level hook). Startup re-shows the desktop icon list if a previous run died hidden. Typing in a fence while peeking opens `src/search/`
   (`hits.rs` collects items from every view and tab cache, `paint.rs`, topmost layered window, closes on deactivate).
 - `src/prompt.rs`: one-line text prompt (`ask(initial, done)`), owned by the tray window (EN_KILLFOCUS commits), used to rename layouts.
-- `src/settings/` settings window (custom drawn, sidebar of `pages::PAGES` (8 pages); each row can carry a `desc` explanation
+- `src/settings/` settings window (custom drawn, sidebar of `pages::PAGES` (9 pages); each row can carry a `desc` explanation
   (2 lines max: row heights are fixed) and a `reset` link drawn on its own line, `layout::on_reset` hit test): `rows.rs` `Row`/`Act`/`Ctl`
   + row builders, `pages.rs` content per page (`build(a, page)`, window height = tallest page), `rules.rs` name/age rule editing
   (prompt + menus), `layout.rs` pure row geometry, `paint.rs`, `act.rs`, `mod.rs` window.

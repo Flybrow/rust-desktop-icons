@@ -33,6 +33,7 @@ pub struct Config {
     pub hide_desktop: bool,
     #[serde(deserialize_with = "compat::or_default")]
     pub theme: super::theme::Theme,
+    pub privacy: super::privacy::Privacy,
     pub peek_key: Option<Hotkey>,
     pub search_key: Option<Hotkey>,
     pub hide_key: Option<Hotkey>,
@@ -66,6 +67,7 @@ impl Default for Config {
             dblclick_hide: false,
             hide_desktop: true,
             theme: super::theme::Theme::Dark,
+            privacy: super::privacy::Privacy::default(),
             peek_key: Some(Hotkey::PEEK),
             search_key: Some(Hotkey::SEARCH),
             hide_key: None,

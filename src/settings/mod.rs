@@ -1,4 +1,5 @@
 mod act;
+pub use act::private;
 mod layout;
 mod pages;
 mod paint;

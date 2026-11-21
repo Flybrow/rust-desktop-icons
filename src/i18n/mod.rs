@@ -2,6 +2,7 @@ use crate::domain::{
     Kind, Sort,
     grid::Align,
     icons::{LabelSize, Spacing},
+    privacy::Reveal,
     theme::Theme,
 };
 
@@ -13,7 +14,7 @@ mod table;
 
 use table::S;
 
-const N: usize = 196;
+const N: usize = 210;
 
 pub const LANGS: [(&str, &str); 25] = [
     ("en", "English"),
@@ -89,6 +90,14 @@ pub fn theme(t: Theme) -> T {
     }
 }
 
+pub fn reveal(r: Reveal) -> T {
+    match r {
+        Reveal::Hover => T::RevealHover,
+        Reveal::Desktop => T::RevealDesktop,
+        Reveal::Never => T::RevealNever,
+    }
+}
+
 pub fn sort(s: Sort) -> T {
     match s {
         Sort::Name => T::SortName,
@@ -122,7 +131,7 @@ mod tests {
     #[test]
     fn complete_tables() {
         assert!(S.iter().flatten().all(|s| !s.trim().is_empty()));
-        assert_eq!(T::DHome as usize, N - 1);
+        assert_eq!(T::DPrivTitles as usize, N - 1);
     }
 
     #[test]
