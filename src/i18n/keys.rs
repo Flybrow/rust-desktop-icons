@@ -194,4 +194,6 @@ pub enum T {
     DMica,
     FilterFence,
     FilterHint,
+    Home,
+    DHome,
 }

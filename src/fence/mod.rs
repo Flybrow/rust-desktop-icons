@@ -133,7 +133,10 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
         WM_MOUSEACTIVATE => return LRESULT(if (lp.0 & 0xFFFF) as u32 == HTCLIENT { MA_ACTIVATE } else { MA_NOACTIVATE } as isize),
         WM_KEYDOWN if crate::undo::shortcut(wp.0 as u16) => crate::undo::undo(),
         WM_CHAR if filter::typed(h, wp) => {}
-        WM_KILLFOCUS => filter::left(h),
+        WM_KILLFOCUS => {
+            filter::left(h);
+            browse::left(h, HWND(wp.0 as _));
+        }
         WM_KEYDOWN if crate::undo::step(|| keys::handle(h, wp.0 as u16)) => {}
         WM_SIZE if !layout::sizing(h) => render(h),
         WM_WINDOWPOSCHANGING if !top() && !crate::visibility::peeking() => keep_bottom(lp),

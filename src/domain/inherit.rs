@@ -23,10 +23,11 @@ pub enum Field {
     Thumbs,
     Corner,
     Mica,
+    Home,
 }
 
 impl Field {
-    pub const ALL: [Field; 20] = [
+    pub const ALL: [Field; 21] = [
         Field::Color,
         Field::Alpha,
         Field::Icon,
@@ -47,6 +48,7 @@ impl Field {
         Field::Thumbs,
         Field::Corner,
         Field::Mica,
+        Field::Home,
     ];
 
     fn copy(self, from: &Look, to: &mut Look) {
@@ -71,6 +73,7 @@ impl Field {
             Field::Thumbs => to.thumbs = from.thumbs,
             Field::Corner => to.corner = from.corner,
             Field::Mica => to.mica = from.mica,
+            Field::Home => to.home = from.home,
         }
     }
 
@@ -174,6 +177,7 @@ mod tests {
             thumbs: false,
             corner: crate::domain::Corner::Square,
             mica: true,
+            home: true,
         };
         let base = Look::default();
         assert!(Field::ALL.iter().all(|f| f.differs(&other, &base)), "a field is not copied by Field::copy");

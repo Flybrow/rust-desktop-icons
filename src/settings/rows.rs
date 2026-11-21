@@ -27,6 +27,7 @@ pub enum Act {
     Mica,
     Align,
     Browse,
+    Home,
     Thumbs,
     Wallpaper,
     TitleAlign,

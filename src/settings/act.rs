@@ -82,6 +82,7 @@ fn perform(h: HWND, act: rows::Act) {
         }
         Chameleon => restyle(|l| l.chameleon ^= true),
         Mica => restyle(|l| l.mica ^= true),
+        Home => restyle(|l| l.home ^= true),
         Labels => restyle(|l| l.labels ^= true),
         LabelSize => {
             if let Some(s) =

@@ -64,6 +64,8 @@ pub(super) fn context(h: HWND) {
         let folders = menu();
         item(folders, 63, a.t(T::InFence), f.look.browse);
         item(folders, 56, a.t(T::InExplorer), !f.look.browse);
+        separator(folders);
+        item(folders, 213, a.t(T::Home), f.look.home);
         a.sub(m, T::OpenFolders, folders, g::FOLDER);
         a.entry(m, 13, T::OpenFolder, false, g::FOLDER);
         separator(m);
@@ -151,6 +153,7 @@ pub(super) fn context(h: HWND) {
         209 => update(h, |f| f.set(Field::Wallpaper, |l| l.wallpaper ^= true)),
         211 => update(h, |f| f.set(Field::Mica, |l| l.mica ^= true)),
         212 => filter::toggle(h),
+        213 => update(h, |f| f.set(Field::Home, |l| l.home ^= true)),
         210 => {
             update(h, |f| f.set(Field::Thumbs, |l| l.thumbs ^= true));
             items::reload(h);

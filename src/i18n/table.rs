@@ -196,6 +196,8 @@ pub static S: [[&str; N]; 25] = [
         "The blurred wallpaper shows through, tinted with the fence color. Opacity sets the tint.",
         "Filter the icons (Ctrl+F)",
         "Type to filter…",
+        "Back to the start when clicking elsewhere",
+        "A folder opened inside a fence closes when you click outside the fence.",
     ],
     [
         "新建分区",
@@ -392,6 +394,8 @@ pub static S: [[&str; N]; 25] = [
         "透出模糊的壁纸，并以分区颜色着色。不透明度决定着色强度。",
         "筛选图标 (Ctrl+F)",
         "输入以筛选…",
+        "点击别处时返回起始位置",
+        "在分区中打开的文件夹会在你点击分区外时关闭。",
     ],
     [
         "नया क्षेत्र",
@@ -588,6 +592,8 @@ pub static S: [[&str; N]; 25] = [
         "धुंधला वॉलपेपर क्षेत्र के रंग में रंगा दिखता है। अपारदर्शिता रंग की मात्रा तय करती है।",
         "आइकन छानें (Ctrl+F)",
         "छानने के लिए लिखें…",
+        "कहीं और क्लिक करने पर शुरुआत पर लौटें",
+        "क्षेत्र के बाहर क्लिक करने पर उसके भीतर खुला फ़ोल्डर बंद हो जाता है।",
     ],
     [
         "Nueva zona",
@@ -784,6 +790,8 @@ pub static S: [[&str; N]; 25] = [
         "Se ve el fondo de pantalla desenfocado, teñido con el color de la zona. La opacidad ajusta el tinte.",
         "Filtrar los iconos (Ctrl+F)",
         "Escribe para filtrar…",
+        "Volver al inicio al hacer clic en otro sitio",
+        "Una carpeta abierta en una zona se cierra al hacer clic fuera de ella.",
     ],
     [
         "Nouvelle zone",
@@ -980,6 +988,8 @@ pub static S: [[&str; N]; 25] = [
         "Le fond d'écran flouté transparaît, teinté de la couleur de la zone. L'opacité règle la teinte.",
         "Filtrer les icônes (Ctrl+F)",
         "Tapez pour filtrer…",
+        "Revenir au début en cliquant ailleurs",
+        "Un dossier ouvert dans une zone se referme quand vous cliquez en dehors.",
     ],
     [
         "منطقة جديدة",
@@ -1176,6 +1186,8 @@ pub static S: [[&str; N]; 25] = [
         "تظهر الخلفية ضبابية وملونة بلون المنطقة. العتامة تحدد قوة اللون.",
         "تصفية الأيقونات (Ctrl+F)",
         "اكتب للتصفية…",
+        "العودة إلى البداية عند النقر في مكان آخر",
+        "يُغلق المجلد المفتوح داخل منطقة عند النقر خارجها.",
     ],
     [
         "নতুন অঞ্চল",
@@ -1372,6 +1384,8 @@ pub static S: [[&str; N]; 25] = [
         "ঝাপসা ওয়ালপেপার অঞ্চলের রঙে রাঙানো দেখা যায়। অস্বচ্ছতা রঙের মাত্রা ঠিক করে।",
         "আইকন ছাঁকুন (Ctrl+F)",
         "ছাঁকতে লিখুন…",
+        "অন্য কোথাও ক্লিক করলে শুরুতে ফিরুন",
+        "অঞ্চলের বাইরে ক্লিক করলে তার ভেতরে খোলা ফোল্ডার বন্ধ হয়।",
     ],
     [
         "Nova área",
@@ -1568,6 +1582,8 @@ pub static S: [[&str; N]; 25] = [
         "O papel de parede desfocado aparece, tingido com a cor da área. A opacidade ajusta a tinta.",
         "Filtrar os ícones (Ctrl+F)",
         "Digite para filtrar…",
+        "Voltar ao início ao clicar noutro lugar",
+        "Uma pasta aberta numa área fecha ao clicar fora dela.",
     ],
     [
         "Новая область",
@@ -1764,6 +1780,8 @@ pub static S: [[&str; N]; 25] = [
         "Сквозь область видны размытые обои, окрашенные её цветом. Непрозрачность задаёт оттенок.",
         "Фильтровать значки (Ctrl+F)",
         "Введите для фильтра…",
+        "Возврат к началу при щелчке в другом месте",
+        "Папка, открытая в области, закрывается при щелчке вне её.",
     ],
     [
         "نیا خطہ",
@@ -1960,6 +1978,8 @@ pub static S: [[&str; N]; 25] = [
         "دھندلا وال پیپر خطے کے رنگ میں رنگا نظر آتا ہے۔ غیر شفافیت رنگ کی مقدار طے کرتی ہے۔",
         "آئیکنز چھانیں (Ctrl+F)",
         "چھاننے کے لیے لکھیں…",
+        "کہیں اور کلک کرنے پر شروع پر واپس",
+        "خطے کے باہر کلک کرنے پر اس میں کھلا فولڈر بند ہو جاتا ہے۔",
     ],
     [
         "Area baru",
@@ -2156,6 +2176,8 @@ pub static S: [[&str; N]; 25] = [
         "Wallpaper yang buram terlihat, diwarnai dengan warna area. Opasitas mengatur pewarnaan.",
         "Saring ikon (Ctrl+F)",
         "Ketik untuk menyaring…",
+        "Kembali ke awal saat mengklik di tempat lain",
+        "Folder yang dibuka di area tertutup saat Anda mengklik di luar area.",
     ],
     [
         "Neuer Bereich",
@@ -2352,6 +2374,8 @@ pub static S: [[&str; N]; 25] = [
         "Das unscharfe Hintergrundbild scheint durch, in der Farbe des Bereichs getönt. Die Deckkraft regelt die Tönung.",
         "Symbole filtern (Strg+F)",
         "Tippen zum Filtern…",
+        "Beim Klick woandershin zum Anfang zurück",
+        "Ein im Bereich geöffneter Ordner schließt sich beim Klick außerhalb.",
     ],
     [
         "新しいフェンス",
@@ -2548,6 +2572,8 @@ pub static S: [[&str; N]; 25] = [
         "ぼかした壁紙がフェンスの色で着色されて透けて見えます。不透明度で色の強さを調整します。",
         "アイコンを絞り込む (Ctrl+F)",
         "入力して絞り込み…",
+        "ほかの場所をクリックしたら最初に戻る",
+        "フェンスの外をクリックすると、中で開いたフォルダーが閉じます。",
     ],
     [
         "Eneo jipya",
@@ -2744,6 +2770,8 @@ pub static S: [[&str; N]; 25] = [
         "Mandhari iliyofifia huonekana, ikiwa na rangi ya eneo. Kiwango cha uwazi huweka rangi.",
         "Chuja aikoni (Ctrl+F)",
         "Andika ili kuchuja…",
+        "Rudi mwanzo ukibofya mahali pengine",
+        "Folda iliyofunguliwa ndani ya eneo hufungwa ukibofya nje yake.",
     ],
     [
         "नवीन क्षेत्र",
@@ -2940,6 +2968,8 @@ pub static S: [[&str; N]; 25] = [
         "धूसर वॉलपेपर क्षेत्राच्या रंगात रंगून दिसतो. अपारदर्शकता रंगाची तीव्रता ठरवते.",
         "आयकॉन गाळा (Ctrl+F)",
         "गाळण्यासाठी टाइप करा…",
+        "इतरत्र क्लिक केल्यावर सुरुवातीला परत",
+        "क्षेत्राबाहेर क्लिक केल्यावर त्यात उघडलेले फोल्डर बंद होते.",
     ],
     [
         "కొత్త ప్రాంతం",
@@ -3136,6 +3166,8 @@ pub static S: [[&str; N]; 25] = [
         "మసకబారిన వాల్‌పేపర్ ప్రాంతం రంగులో కనిపిస్తుంది. అపారదర్శకత రంగు తీవ్రతను నిర్ణయిస్తుంది.",
         "ఐకాన్లను వడపోయి (Ctrl+F)",
         "వడపోయడానికి టైప్ చేయండి…",
+        "వేరే చోట క్లిక్ చేస్తే ప్రారంభానికి తిరిగి",
+        "ప్రాంతం బయట క్లిక్ చేస్తే అందులో తెరిచిన ఫోల్డర్ మూసుకుంటుంది.",
     ],
     [
         "Yeni alan",
@@ -3332,6 +3364,8 @@ pub static S: [[&str; N]; 25] = [
         "Bulanık duvar kâğıdı alanın rengiyle tonlanarak görünür. Opaklık tonu ayarlar.",
         "Simgeleri filtrele (Ctrl+F)",
         "Filtrelemek için yazın…",
+        "Başka yere tıklayınca başa dön",
+        "Alanın dışına tıklayınca içinde açılan klasör kapanır.",
     ],
     [
         "புதிய பகுதி",
@@ -3528,6 +3562,8 @@ pub static S: [[&str; N]; 25] = [
         "மங்கலான வால்பேப்பர் பகுதியின் நிறத்தில் தெரியும். ஒளிபுகாமை நிறத்தின் அளவை அமைக்கும்.",
         "ஐகான்களை வடிகட்டு (Ctrl+F)",
         "வடிகட்ட தட்டச்சு செய்க…",
+        "வேறு இடத்தில் கிளிக் செய்தால் தொடக்கத்திற்கு திரும்பு",
+        "பகுதிக்கு வெளியே கிளிக் செய்தால் அதில் திறந்த கோப்புறை மூடும்.",
     ],
     [
         "Vùng mới",
@@ -3724,6 +3760,8 @@ pub static S: [[&str; N]; 25] = [
         "Hình nền được làm mờ hiện qua, phủ màu của vùng. Độ mờ đục điều chỉnh lớp màu.",
         "Lọc biểu tượng (Ctrl+F)",
         "Gõ để lọc…",
+        "Quay về đầu khi bấm chỗ khác",
+        "Thư mục mở trong vùng sẽ đóng khi bấm ra ngoài vùng.",
     ],
     [
         "새 영역",
@@ -3920,6 +3958,8 @@ pub static S: [[&str; N]; 25] = [
         "흐린 배경 화면이 영역 색으로 물든 채 비쳐 보입니다. 불투명도로 색의 세기를 정합니다.",
         "아이콘 필터 (Ctrl+F)",
         "입력하여 필터…",
+        "다른 곳을 클릭하면 처음으로",
+        "영역 밖을 클릭하면 안에서 연 폴더가 닫힙니다.",
     ],
     [
         "Nuova area",
@@ -4116,6 +4156,8 @@ pub static S: [[&str; N]; 25] = [
         "Lo sfondo sfocato traspare, colorato con il colore dell'area. L'opacità regola la tinta.",
         "Filtra le icone (Ctrl+F)",
         "Digita per filtrare…",
+        "Torna all'inizio cliccando altrove",
+        "Una cartella aperta in un'area si chiude cliccando fuori.",
     ],
     [
         "พื้นที่ใหม่",
@@ -4312,6 +4354,8 @@ pub static S: [[&str; N]; 25] = [
         "วอลเปเปอร์ที่เบลอจะแสดงผ่าน โดยย้อมด้วยสีของพื้นที่ ความทึบใช้ปรับความเข้มของสี",
         "กรองไอคอน (Ctrl+F)",
         "พิมพ์เพื่อกรอง…",
+        "กลับไปจุดเริ่มต้นเมื่อคลิกที่อื่น",
+        "โฟลเดอร์ที่เปิดในพื้นที่จะปิดเมื่อคลิกนอกพื้นที่",
     ],
     [
         "Nowy obszar",
@@ -4508,6 +4552,8 @@ pub static S: [[&str; N]; 25] = [
         "Przez obszar widać rozmytą tapetę zabarwioną jego kolorem. Krycie ustala siłę koloru.",
         "Filtruj ikony (Ctrl+F)",
         "Pisz, aby filtrować…",
+        "Wróć na początek po kliknięciu gdzie indziej",
+        "Folder otwarty w obszarze zamyka się po kliknięciu poza nim.",
     ],
     [
         "Нова область",
@@ -4704,6 +4750,8 @@ pub static S: [[&str; N]; 25] = [
         "Крізь область видно розмиті шпалери, забарвлені її кольором. Непрозорість задає відтінок.",
         "Фільтрувати значки (Ctrl+F)",
         "Введіть для фільтра…",
+        "Повернення на початок при клацанні деінде",
+        "Папка, відкрита в області, закривається при клацанні поза нею.",
     ],
     [
         "ناحیه جدید",
@@ -4900,5 +4948,7 @@ pub static S: [[&str; N]; 25] = [
         "تصویر زمینه محو با رنگ ناحیه دیده می‌شود. میزان کدری شدت رنگ را تعیین می‌کند.",
         "پالایش آیکون‌ها (Ctrl+F)",
         "برای پالایش بنویسید…",
+        "بازگشت به آغاز با کلیک در جای دیگر",
+        "پوشه‌ای که در ناحیه باز شده با کلیک بیرون از آن بسته می‌شود.",
     ],
 ];

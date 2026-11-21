@@ -34,6 +34,14 @@ pub(super) fn forget(h: HWND) {
     view(h, |v| v.browse.clear());
 }
 
+pub(super) fn left(h: HWND, to: HWND) {
+    let mut pid = 0;
+    unsafe { windows::Win32::UI::WindowsAndMessaging::GetWindowThreadProcessId(to, Some(&mut pid)) };
+    if pid != std::process::id() && super::read(h, |f| f.look.home) == Some(true) {
+        home(h);
+    }
+}
+
 pub(super) fn home(h: HWND) {
     if view(h, |v| !std::mem::take(&mut v.browse).is_empty()) == Some(true) {
         bind(h);
