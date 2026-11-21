@@ -1,9 +1,11 @@
 mod blur;
 mod pixels;
+mod shrink;
 mod turn;
 
 pub use blur::blur;
 pub use pixels::{gray, opaque_if_flat, straight, tint};
+pub use shrink::shrink;
 pub use turn::{blit, blit_fit, rotate_cw};
 
 pub fn premul(c: u32, a: u8) -> u32 {

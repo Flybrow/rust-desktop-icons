@@ -197,7 +197,9 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
 - `store::save` writes `config.json.tmp` + `sync_all` + rename and keeps `config.json.bak`; an unreadable config (`Config::parse`:
   JSON object only, UTF-8 BOM accepted) is renamed `config.json.bad-<ts>` and never overwritten. `sanitized` never lets two tabs share an id (= a folder).
 - Items keep a system image-list index (`Item.icon: i32`), never an HICON: icons are drawn on demand via
-  `shell::draw_icon`. Folder reads + icon lookups run on a thread (`fence/loader.rs`, per-tab generations, one load at a
+  `shell::draw_icon` (`shell/icons.rs`: a size that is not one of the image lists' native sizes (asked with GetIconSize, they follow the
+  DPI) is drawn from the next bigger list and shrunk with `render::shrink` (area average), cached per list/index/size up to 6 MB and
+  copied with SetDIBitsToDevice, no GDI object kept). Folder reads + icon lookups run on a thread (`fence/loader.rs`, per-tab generations, one load at a
   time per fence: requests made meanwhile are queued in `View.queued`, a panicking load still posts an empty batch);
   each tab has its own change message (`WM_CHANGED + tab index`, `WM_LOADED` sits after that range).
 - Present layered windows outside `app::with` (UpdateLayeredWindow re-enters the window proc).
