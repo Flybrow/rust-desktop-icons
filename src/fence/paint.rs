@@ -82,7 +82,6 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
     let (bx0, by0, bx1, by1) = g.body();
     let gw = g.grid_w();
     let shape = super::shape(h, gw);
-    let mica = super::wallpaper::mica(h, f, (w, ht));
     let alpha = with(|a| {
         let (ft, fi, glyphs, empty) = (title_font(a, h), label_font(a, h), a.icon_font(s(14)), a.t(crate::i18n::T::FilterHint));
         let peeking = crate::visibility::peeking();
@@ -127,7 +126,7 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
                 None => opaque_if_flat(icons.px(), w, (ix, iy, ix + icon, iy + icon)),
             }
         }
-        let under = mica.as_ref().map_or(f.look.color, |m| m.average());
+        let under = f.look.color;
         if f.look.fluent_folders && !mask.icons {
             let folder = if color::ink(under) == 0 { 0xE8_D0AA } else { 0xD0_D2CC };
             for &(_, x, y) in cells.iter().filter(|c| v.items[c.0].dir && thumb(c.0).is_none()) {
@@ -144,10 +143,9 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
         let tone = |k, a: u8| premul(color::shade(f.look.color, k), a);
         let fluent = f.look.style == domain::Style::Fluent;
         let mut c = frame.canvas();
-        match &mica {
-            Some(m) => c.rrect_with(full, rad, rows, false, |x, y| m.at(x, y)),
-            None if fluent => c.rrect(full, rad, flat(tone(0, body)), rows, false),
-            None => c.rrect(full, rad, (tone(10, body), tone(-14, body.saturating_add(20))), rows, false),
+        match fluent {
+            true => c.rrect(full, rad, flat(tone(0, body)), rows, false),
+            false => c.rrect(full, rad, (tone(10, body), tone(-14, body.saturating_add(20))), rows, false),
         }
         for &(i, x, y) in &cells {
             let (sel, hot) = (v.selected.contains(&v.items[i].path), v.hover == Some(i));

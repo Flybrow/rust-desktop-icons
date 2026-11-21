@@ -86,7 +86,6 @@ fn perform(h: HWND, act: rows::Act) {
             }
         }
         Chameleon => restyle(|l| l.chameleon ^= true),
-        Mica => restyle(|l| l.mica ^= true),
         Folders => restyle(|l| l.fluent_folders ^= true),
         Home => restyle(|l| l.home ^= true),
         List => restyle(|l| l.list ^= true),
@@ -109,11 +108,7 @@ fn perform(h: HWND, act: rows::Act) {
             {
                 restyle(|l| {
                     l.style = st;
-                    l.mica |= st == crate::domain::Style::Fluent;
                     l.fluent_folders |= st == crate::domain::Style::Fluent;
-                    if st == crate::domain::Style::Fluent && l.corner == crate::domain::Corner::Round {
-                        l.corner = crate::domain::Corner::Medium;
-                    }
                 });
             }
         }

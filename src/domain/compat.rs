@@ -5,6 +5,10 @@ pub fn known<'de, D: Deserializer<'de>, T: DeserializeOwned>(d: D) -> Result<Vec
     Ok(Vec::<Value>::deserialize(d)?.into_iter().filter_map(|v| serde_json::from_value(v).ok()).collect())
 }
 
+pub fn some_known<'de, D: Deserializer<'de>, T: DeserializeOwned>(d: D) -> Result<Option<Vec<T>>, D::Error> {
+    Ok(Option::<Vec<Value>>::deserialize(d)?.map(|v| v.into_iter().filter_map(|v| serde_json::from_value(v).ok()).collect()))
+}
+
 pub fn or_default<'de, D: Deserializer<'de>, T: DeserializeOwned + Default>(d: D) -> Result<T, D::Error> {
     Ok(serde_json::from_value(Value::deserialize(d)?).unwrap_or_default())
 }
@@ -22,5 +26,13 @@ mod tests {
         assert_eq!((c.screen_adapt, t.sort), (Adapt::default(), Sort::default()));
         assert_eq!((t.kinds.clone(), t.system.clone()), (vec![Kind::Images], vec![Sys::RecycleBin]));
         assert_eq!(c.desk_icons, vec![(Sys::ThisPc, None)]);
+    }
+
+    #[test]
+    fn unknown_custom_fields_are_dropped() {
+        let json = r#"{"fences":[{"id":1,"custom":["Spacing","Mica","Hologram"],"tabs":[{"id":1}]},{"id":2,"tabs":[{"id":2}]}]}"#;
+        let c: Config = serde_json::from_str(json).unwrap();
+        assert_eq!(c.fences[0].custom, Some(vec![crate::domain::inherit::Field::Spacing]));
+        assert_eq!(c.fences[1].custom, None);
     }
 }

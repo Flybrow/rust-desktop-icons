@@ -14,7 +14,7 @@ mod table;
 
 use table::S;
 
-const N: usize = 218;
+const N: usize = 216;
 
 pub const LANGS: [(&str, &str); 25] = [
     ("en", "English"),

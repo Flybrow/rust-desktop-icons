@@ -70,7 +70,6 @@ pub struct Look {
     pub thumbs: bool,
     #[serde(deserialize_with = "compat::or_default")]
     pub corner: Corner,
-    pub mica: bool,
     pub home: bool,
     pub list: bool,
     #[serde(deserialize_with = "compat::or_default")]
@@ -100,7 +99,6 @@ impl Default for Look {
             wallpaper: false,
             thumbs: true,
             corner: Corner::Round,
-            mica: false,
             home: false,
             list: false,
             style: Style::Classic,

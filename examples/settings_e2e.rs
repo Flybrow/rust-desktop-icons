@@ -156,20 +156,16 @@ fn main() {
     u.pick(&["None"]);
     u.check(u.until(|c| c["look"]["tint"].is_null()), "Default appearance → Icon tint None");
 
-    let style = [HEADER, NOTE, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
+    let style = [HEADER, NOTE, DESCRIBED, DESCRIBED, DESCRIBED];
     u.page(1);
     u.row(&style, 4);
-    let mica = u.until(|c| c["look"]["mica"] == true && f(c, 1, "mica") == true);
-    u.row(&style, 4);
-    u.check(mica && u.until(|c| c["look"]["mica"] == false), "Style → Mica toggles for every fence");
-    u.row(&style, 5);
     u.pick(&["Square"]);
     u.check(u.until(|c| c["look"]["corner"] == "Square" && f(c, 1, "corner") == "Square"), "Style → Corners apply to the fences");
     u.row(&style, 2);
     u.pick(&["Fluent"]);
     u.check(
-        u.until(|c| c["look"]["style"] == "Fluent" && c["look"]["mica"] == true && c["look"]["fluent_folders"] == true),
-        "Style → Fluent turns on Mica and Fluent folder icons",
+        u.until(|c| c["look"]["style"] == "Fluent" && c["look"]["fluent_folders"] == true),
+        "Style → Fluent turns on Fluent folder icons",
     );
     u.row(&style, 3);
     u.check(u.until(|c| c["look"]["fluent_folders"] == false), "Style → Fluent folder icons can be turned off");

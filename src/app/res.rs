@@ -21,10 +21,15 @@ impl Drop for App {
 
 impl App {
     pub fn font(&mut self, px: i32, weight: u32) -> HFONT {
-        self.cached(px * 1000 + weight as i32, w!("Segoe UI"), px, weight)
+        self.cached(px * 1000 + weight as i32, w!("Segoe UI"), px, weight, CLEARTYPE_QUALITY)
     }
 
-    pub fn fluent_font(&mut self, px: i32) -> HFONT {
+    pub fn fluent_label(&mut self, px: i32) -> HFONT {
+        let f = self.cached(-(px * 1000 + 400), w!("Segoe UI Variable Text"), px, 400, ANTIALIASED_QUALITY);
+        if self.variable(f) { f } else { self.cached(-(px * 1000 + 401), w!("Segoe UI"), px, 400, ANTIALIASED_QUALITY) }
+    }
+
+    fn variable(&self, f: HFONT) -> bool {
         static VARIABLE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
         let probe = |f: HFONT| unsafe {
             let dc = CreateCompatibleDC(None);
@@ -35,12 +40,16 @@ impl App {
             let _ = DeleteDC(dc);
             String::from_utf16_lossy(&name[..n.saturating_sub(1).min(64)]).starts_with("Segoe UI Variable")
         };
-        let f = self.cached(-(px * 1000 + 600), w!("Segoe UI Variable Display"), px, 600);
-        if *VARIABLE.get_or_init(|| probe(f)) { f } else { self.font(px, 400) }
+        *VARIABLE.get_or_init(|| probe(f))
+    }
+
+    pub fn fluent_font(&mut self, px: i32) -> HFONT {
+        let f = self.cached(-(px * 1000 + 600), w!("Segoe UI Variable Display"), px, 600, ANTIALIASED_QUALITY);
+        if self.variable(f) { f } else { self.cached(-(px * 1000 + 402), w!("Segoe UI"), px, 400, ANTIALIASED_QUALITY) }
     }
 
     pub fn icon_font(&mut self, px: i32) -> HFONT {
-        self.cached(-px, w!("Segoe MDL2 Assets"), px, 400)
+        self.cached(-px, w!("Segoe MDL2 Assets"), px, 400, CLEARTYPE_QUALITY)
     }
 
     pub fn glyph(&mut self, ch: char) -> HBITMAP {
@@ -65,7 +74,7 @@ impl App {
         icon(m, unsafe { GetMenuItemCount(Some(m)) }.max(1) as u32 - 1, true, b);
     }
 
-    fn cached(&mut self, key: i32, face: PCWSTR, px: i32, weight: u32) -> HFONT {
+    fn cached(&mut self, key: i32, face: PCWSTR, px: i32, weight: u32, quality: FONT_QUALITY) -> HFONT {
         if let Some(&(_, f)) = self.fonts.iter().find(|(k, _)| *k == key) {
             return f;
         }
@@ -82,7 +91,7 @@ impl App {
                 DEFAULT_CHARSET,
                 OUT_DEFAULT_PRECIS,
                 CLIP_DEFAULT_PRECIS,
-                CLEARTYPE_QUALITY,
+                quality,
                 FF_DONTCARE.0 as u32,
                 face,
             )

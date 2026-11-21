@@ -22,7 +22,6 @@ pub enum Field {
     Wallpaper,
     Thumbs,
     Corner,
-    Mica,
     Home,
     List,
     Style,
@@ -30,7 +29,7 @@ pub enum Field {
 }
 
 impl Field {
-    pub const ALL: [Field; 24] = [
+    pub const ALL: [Field; 23] = [
         Field::Color,
         Field::Alpha,
         Field::Icon,
@@ -50,7 +49,6 @@ impl Field {
         Field::Wallpaper,
         Field::Thumbs,
         Field::Corner,
-        Field::Mica,
         Field::Home,
         Field::List,
         Field::Style,
@@ -78,7 +76,6 @@ impl Field {
             Field::Wallpaper => to.wallpaper = from.wallpaper,
             Field::Thumbs => to.thumbs = from.thumbs,
             Field::Corner => to.corner = from.corner,
-            Field::Mica => to.mica = from.mica,
             Field::Home => to.home = from.home,
             Field::List => to.list = from.list,
             Field::Style => to.style = from.style,
@@ -185,7 +182,6 @@ mod tests {
             wallpaper: true,
             thumbs: false,
             corner: crate::domain::Corner::Square,
-            mica: true,
             home: true,
             list: true,
             style: crate::domain::Style::Fluent,

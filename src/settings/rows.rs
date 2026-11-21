@@ -26,7 +26,6 @@ pub enum Act {
     Corners,
     Style,
     Folders,
-    Mica,
     Align,
     Browse,
     Home,

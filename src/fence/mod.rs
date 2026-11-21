@@ -72,8 +72,9 @@ fn title_font(a: &mut App, h: HWND) -> HFONT {
 }
 
 fn label_font(a: &mut App, h: HWND) -> HFONT {
+    let fluent = a.fence_of(h).is_some_and(|f| f.look.style == crate::domain::Style::Fluent);
     let px = a.fence_of(h).map_or(12, |f| f.look.label_size.px());
-    a.font(scale(h, px), FW_NORMAL.0)
+    if fluent { a.fluent_label(scale(h, px)) } else { a.font(scale(h, px), FW_NORMAL.0) }
 }
 
 fn to_client(h: HWND, (x, y): (i32, i32)) -> (i32, i32) {

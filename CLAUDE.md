@@ -27,11 +27,12 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
 
 ## Layout
 - `src/domain/` pure logic, all unit-tested: `model.rs` (Fence/Tab), `look.rs` (Look: colors, icons, names, title bar, wallpaper, thumbnails,
-  `Corner` radius 0/4/6/8 px, `mica`, `Style` Classic/Fluent (measured on Fences 7 screenshots): flat body, no bar band or
+  `Corner` radius 0/4/6/8 px, `Style` Classic/Fluent (measured on Fences 7 screenshots): flat body, no bar band or
   divider, the bar composited over the body (`render::blit_over`), active tab in a white pill (13%/43%), other tabs dimmed,
-  titles in Segoe UI Variable Display Semibold +3 px without halo (`App::fluent_font`, Segoe UI Regular when missing), a drawn
+  titles in Segoe UI Variable Display Semibold +3 px and names in Segoe UI Variable Text, grayscale antialiased, without halo
+  (`App::fluent_font`/`fluent_label`, Segoe UI when missing), a drawn
   folder before portal tab names, softer hover tiles, a 1 px outline; `fluent_folders` tints folder icons (gray on dark, blue on light);
-  picking Fluent also turns on Mica and Fluent folders. Settings page Style holds Style, Fluent folders, Mica and Corners), `theme.rs` (`Theme` Dark/Light/Auto, `Config::retheme` swaps only the default fence color),
+  picking Fluent also turns on Fluent folders. Settings page Style holds Style, Fluent folders and Corners), `theme.rs` (`Theme` Dark/Light/Auto, `Config::retheme` swaps only the default fence color),
   `history.rs` (undo steps: config before + file ops, nesting, cap 20, `rebase` so an undo is never recorded), `config.rs` (Config, recycle placement), `kind.rs` (file types + game
   shortcut detection for rules; `Kind::Other` = "Everything else", the inbox rule `Config::rule_for` falls back to),
   `order.rs` (per-tab sort + custom order), `anim.rs`, `grid.rs` (`Flow`: item positions with `Align` left/center/right,
@@ -108,10 +109,9 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
 - `src/app/` global state: `mod.rs` App + `with` + startup, `view.rs` per-window state, `res.rs` fonts/glyphs/menu
   entries with icons, `fences.rs` create/rebuild fences, `screens.rs` monitor list (adapted at startup and 1.5 s after the
   tray gets `WM_DISPLAYCHANGE`, then `rebuild`); `src/tray/` tray icon/menu (`updates.rs` update scheduling).
-- `src/render/` pure pixel ops: `mod.rs` blending + `Canvas` (`rrect_with` fills a rounded rect from a per-pixel source), `pixels.rs` gray/tint/straight alpha, `blur.rs`,
-  `mica.rs` (simulated Mica: the wallpaper behind the fence plus `MARGIN` is shrunk 8x, blurred, tinted with the fence color by its opacity and
-  sampled bilinearly; only the small image is cached, in `View.mica`, keyed by window rect/color/opacity; `fence/wallpaper.rs` captures it with
-  `PaintDesktop` and re-renders after a move or a wallpaper change). Real DWM Mica cannot work: layered windows get no system backdrop and fences are never active.
+- `src/render/` pure pixel ops: `mod.rs` blending + `Canvas`, `pixels.rs` gray/tint/straight alpha, `blur.rs`. A Mica material was tried and
+  removed (v1.1 dev): real DWM Mica never shows on layered, never-active windows, and `PaintDesktop` only paints the primary monitor (wallpaper
+  reads must use screen coordinates, not virtual-screen offsets).
 - `src/layered/` shared per-pixel window painting (`Frame`: text mask, compositing, present; `Dib`; `glyph.rs`
   Segoe MDL2 icon glyphs, also rendered to menu bitmaps via `App::entry`/`App::sub`).
 - `src/shell/` Win32 shell wrappers: `mod.rs` paths/icons/open, `reg.rs` registry (`reg_bytes`), `thumb.rs` (IShellItemImageFactory thumbnails, made in the loader thread for `kind::thumbable` files at the scaled icon size,

@@ -46,7 +46,7 @@ pub struct Fence {
     pub look: Look,
     pub tabs: Vec<Tab>,
     pub tab: usize,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "super::compat::some_known")]
     pub custom: Option<Vec<Field>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub group: Option<u64>,

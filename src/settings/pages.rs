@@ -81,7 +81,6 @@ pub fn build(a: &App, page: usize) -> Vec<Row> {
             note(a.t(T::LookNote)),
             row(a.t(T::Style), Ctl::Value(a.t(i18n::style(l.style)).into()), Act::Style, g::COLOR).about(a.t(T::DStyle)),
             row(a.t(T::FluentFolders), Ctl::Toggle(l.fluent_folders), Act::Folders, g::FOLDER).about(a.t(T::DFluentFolders)),
-            row(a.t(T::Mica), Ctl::Toggle(l.mica), Act::Mica, g::OPACITY).about(a.t(T::DMica)),
             row(a.t(T::Corners), Ctl::Value(l.corner.label(a.t(T::CornerSquare))), Act::Corners, g::CORNER).about(a.t(T::DCorners)),
         ],
         2 => vec![
@@ -185,7 +184,6 @@ mod tests {
             Act::Corners,
             Act::Style,
             Act::Folders,
-            Act::Mica,
             Act::Align,
             Act::Thumbs,
             Act::List,

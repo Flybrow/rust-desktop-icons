@@ -1,5 +1,4 @@
 mod blur;
-pub mod mica;
 mod pixels;
 mod turn;
 
@@ -48,7 +47,7 @@ impl Canvas<'_> {
         self.rrect_with(rect, r, rows, stroke, |_, y| shades[(y - rect.1) as usize]);
     }
 
-    pub fn rrect_with(&mut self, rect: (i32, i32, i32, i32), r: f32, rows: (i32, i32), stroke: bool, paint: impl Fn(i32, i32) -> u32) {
+    fn rrect_with(&mut self, rect: (i32, i32, i32, i32), r: f32, rows: (i32, i32), stroke: bool, paint: impl Fn(i32, i32) -> u32) {
         let f = (rect.0 as f32, rect.1 as f32, rect.2 as f32, rect.3 as f32);
         let inner = (f.0 + 1., f.1 + 1., f.2 - 1., f.3 - 1.);
         let (x0, x1) = (rect.0.max(0), rect.2.min(self.w));

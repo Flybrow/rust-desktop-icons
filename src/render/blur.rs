@@ -1,4 +1,4 @@
-pub(super) fn pass(src: &[u8], dst: &mut [u8], (lines, len, line_step, step): (usize, usize, usize, usize), r: usize) {
+fn pass(src: &[u8], dst: &mut [u8], (lines, len, line_step, step): (usize, usize, usize, usize), r: usize) {
     let d = 2 * r as u32 + 1;
     for l in 0..lines {
         let at = |i: usize| l * line_step + i * step;

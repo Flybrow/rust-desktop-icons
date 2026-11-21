@@ -190,8 +190,6 @@ pub enum T {
     DTheme,
     ThemeDark,
     ThemeLight,
-    Mica,
-    DMica,
     FilterFence,
     FilterHint,
     Home,
