@@ -136,7 +136,7 @@ fn main() {
     u.pick(&["64 px"]);
     u.check(u.until(|c| c["look"]["icon"] == 64 && f(c, 1, "icon") == 64), "Icons → Icon size applies to the fences");
 
-    let look = [HEADER, NOTE, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
+    let look = [HEADER, NOTE, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
     u.page(0);
     u.row(&look, 3);
     u.check(
@@ -146,12 +146,22 @@ fn main() {
     u.row(&look, 3);
     u.until(|c| c["look"]["wallpaper"] == false);
     u.row(&look, 4);
+    let mica = u.until(|c| c["look"]["mica"] == true && f(c, 1, "mica") == true);
+    u.row(&look, 4);
+    u.check(mica && u.until(|c| c["look"]["mica"] == false), "Default appearance → Mica toggles for every fence");
+    u.row(&look, 6);
+    u.pick(&["Square"]);
+    u.check(
+        u.until(|c| c["look"]["corner"] == "Square" && f(c, 1, "corner") == "Square"),
+        "Default appearance → Corners apply to the fences",
+    );
+    u.row(&look, 5);
     u.pick(&["70%"]);
     u.check(u.until(|c| c["look"]["alpha"].as_u64().is_some_and(|a| a.abs_diff(178) <= 2)), "Default appearance → Opacity is saved");
-    u.row(&look, 5);
+    u.row(&look, 7);
     u.pick(&["None"]);
     u.check(u.until(|c| c["look"]["tint"].is_null()), "Default appearance → Icon tint None");
-    u.row(&look, 6);
+    u.row(&look, 8);
     let asked = support::answer(pid, &[VK_RETURN]);
     u.check(
         asked && u.until(|c| f(c, 0, "custom") == json!([]) && f(c, 0, "spacing") == "Wide"),
@@ -179,25 +189,29 @@ fn main() {
     chord(&[VK_CONTROL, VK_Z]);
     u.check(u.until(|c| c["look"]["bar_hover"] == true), "Ctrl+Z in the settings undoes the last change");
 
-    let behave = [HEADER, NOTE, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, NOTE];
+    let behave = [HEADER, NOTE, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, NOTE];
     u.page(3);
-    for (i, key) in [(2, "chameleon"), (3, "auto_height"), (4, "browse")] {
+    for (i, key) in [(2, "chameleon"), (3, "auto_height"), (4, "browse"), (5, "home")] {
         let before = u.cfg()["look"][key].as_bool().unwrap_or(false);
         u.row(&behave, i);
         let changed = u.until(|c| c["look"][key] == !before && f(c, 1, key) == !before);
         u.row(&behave, i);
         u.check(changed && u.until(|c| c["look"][key] == before), &format!("Behavior → {key} toggles for every fence"));
     }
-    u.row(&behave, 5);
+    u.row(&behave, 6);
     u.pick(&["Instant"]);
     u.check(u.until(|c| c["roll_ms"] == 0), "Behavior → Unroll speed is saved");
 
-    let desk = [HEADER, DESCRIBED, DESCRIBED, DESCRIBED];
+    let desk = [HEADER, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
     u.page(4);
     u.row(&desk, 3);
     let on = u.until(|c| c["dblclick_hide"] == true);
     u.row(&desk, 3);
     u.check(on && u.until(|c| c["dblclick_hide"] == false), "Desktop → Hide all on double-click toggles");
+    u.row(&desk, 4);
+    let off = u.until(|c| c["hide_desktop"] == false);
+    u.row(&desk, 4);
+    u.check(off && u.until(|c| c["hide_desktop"] == true), "Desktop → Hide all: desktop icons too toggles");
     u.row(&desk, 2);
     u.pick(&["Don't adjust"]);
     u.check(u.until(|c| c["screen_adapt"] == "Keep"), "Desktop → When the screen changes is saved");
@@ -281,22 +295,43 @@ fn main() {
     u.pick(&["Delete rule"]);
     u.check(u.until(|c| f(c, 0, "tabs")[0]["expire"].is_null()), "an age rule can be deleted");
 
-    let general = [HEADER, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
+    let private = [HEADER, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
     u.page(7);
+    u.row(&private, 1);
+    let on = u.until(|c| c["privacy"]["on"] == true);
+    u.row(&private, 4);
+    let titles = u.until(|c| c["privacy"]["titles"] == true);
+    u.row(&private, 5);
+    u.pick(&["Never"]);
+    let never = u.until(|c| c["privacy"]["reveal"] == "Never");
+    u.row(&private, 1);
+    u.check(on && titles && never && u.until(|c| c["privacy"]["on"] == false), "Privacy → mode, titles and reveal are saved");
+
+    let general = [HEADER, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
+    u.page(8);
     u.row(&general, 1);
     u.pick(&["Français"]);
     let french = u.until(|c| c["lang"] == "fr");
     u.row(&general, 1);
     u.pick(&["English"]);
     u.check(french && u.until(|c| c["lang"] == "en"), "General → Language switches and back");
-    u.row(&general, 3);
+    u.row(&general, 2);
+    u.pick(&["Light"]);
+    let light = u.until(|c| c["theme"] == "Light" && c["look"]["color"] == 0xF3_F3F3);
+    u.row(&general, 2);
+    u.pick(&["Dark"]);
+    u.check(
+        light && u.until(|c| c["theme"] == "Dark" && c["look"]["color"] == 0x30_2820),
+        "General → Theme switches the default fence color",
+    );
+    u.row(&general, 4);
     u.check(u.until(|c| c["auto_update"] == true), "General → Automatic updates toggles");
+    u.row(&general, 4);
     u.row(&general, 3);
-    u.row(&general, 2);
     let off = u.until(|c| c["autostart"] == false);
-    u.row(&general, 2);
+    u.row(&general, 3);
     u.check(off && u.until(|c| c["autostart"] == true), "General → Start with Windows toggles");
-    u.row(&general, 5);
+    u.row(&general, 6);
     let exported: Value = poll(3, || fs::read(&export).ok().and_then(|b| serde_json::from_slice(&b).ok())).unwrap_or_default();
     u.check(
         exported["fences"].as_array().is_some_and(|a| a.len() == 3) && exported["look"]["spacing"] == "Wide",
@@ -308,7 +343,7 @@ fn main() {
     edited["auto_update"] = json!(true);
     fs::write(&export, serde_json::to_vec(&edited).unwrap()).unwrap();
     let auto_update = u.cfg()["auto_update"].clone();
-    u.row(&general, 6);
+    u.row(&general, 7);
     let asked = support::answer(pid, &[VK_RETURN]);
     u.check(
         asked && u.until(|c| c["fences"].as_array().is_some_and(|a| a.len() == 2) && c["dblclick_hide"] == true),
@@ -317,7 +352,7 @@ fn main() {
     u.check(u.cfg()["auto_update"] == auto_update, "Import keeps this PC's own settings");
     u.check(wait(3, || fences(pid).len() == 2), "the imported fences are shown");
     fs::write(&export, b"{ not json").unwrap();
-    u.row(&general, 6);
+    u.row(&general, 7);
     let warned = support::answer(pid, &[VK_RETURN]);
     u.check(warned && u.cfg()["fences"].as_array().is_some_and(|a| a.len() == 2), "a broken file is reported and changes nothing");
 
