@@ -61,6 +61,7 @@ pub struct Look {
     pub corner: Corner,
     pub mica: bool,
     pub home: bool,
+    pub list: bool,
 }
 
 impl Default for Look {
@@ -87,6 +88,7 @@ impl Default for Look {
             corner: Corner::Round,
             mica: false,
             home: false,
+            list: false,
         }
     }
 }

@@ -28,18 +28,19 @@ pub fn cols(w: i32, cell: i32) -> i32 {
 pub struct Flow {
     pub w: i32,
     pub cell: i32,
+    pub cw: i32,
     pub n: usize,
     pub align: Align,
 }
 
 impl Flow {
     fn row_len(&self, row: i32) -> i32 {
-        let c = cols(self.w, self.cell);
+        let c = cols(self.w, self.cw);
         (self.n as i32 - row * c).clamp(0, c)
     }
 
     fn start(&self, row: i32) -> i32 {
-        let free = self.w - self.row_len(row) * self.cell;
+        let free = self.w - self.row_len(row) * self.cw;
         (match self.align {
             Align::Left => 0,
             Align::Center => free / 2,
@@ -49,24 +50,23 @@ impl Flow {
     }
 
     pub fn origin(&self, i: usize) -> (i32, i32) {
-        let (c, i) = (cols(self.w, self.cell), i as i32);
-        (self.start(i / c) + i % c * self.cell, i / c * self.cell)
+        let (c, i) = (cols(self.w, self.cw), i as i32);
+        (self.start(i / c) + i % c * self.cw, i / c * self.cell)
     }
 
     pub fn index_at(&self, (x, y): (i32, i32)) -> Option<usize> {
         let row = (y >= 0).then_some(y / self.cell)?;
         let x = x - self.start(row);
-        let col = (x >= 0).then_some(x / self.cell).filter(|&c| c < self.row_len(row))?;
-        Some((row * cols(self.w, self.cell) + col) as usize)
+        let col = (x >= 0).then_some(x / self.cw).filter(|&c| c < self.row_len(row))?;
+        Some((row * cols(self.w, self.cw) + col) as usize)
     }
 
     pub fn in_rect(&self, (x0, y0, x1, y1): (i32, i32, i32, i32)) -> Vec<usize> {
         let (l, r, t, b) = (x0.min(x1), x0.max(x1), y0.min(y1), y0.max(y1));
-        let cell = self.cell;
         (0..self.n)
             .filter(|&i| {
                 let (x, y) = self.origin(i);
-                x < r && x + cell > l && y < b && y + cell > t
+                x < r && x + self.cw > l && y < b && y + self.cell > t
             })
             .collect()
     }
@@ -151,8 +151,17 @@ mod tests {
     use super::*;
 
     #[test]
+    fn a_list_is_one_full_width_column() {
+        let f = Flow { w: 300, cell: 40, cw: 300, n: 4, align: Align::Center };
+        assert_eq!((f.origin(0), f.origin(3)), ((0, 0), (0, 120)));
+        assert_eq!((f.index_at((290, 45)), f.index_at((5, 119)), f.index_at((5, 160))), (Some(1), Some(2), None));
+        assert_eq!(f.in_rect((250, 30, 260, 50)), vec![0, 1]);
+        assert_eq!((extent(4, 40, 40, 40), last_row(4, 40, 40)), (160, 3..4));
+    }
+
+    #[test]
     fn grid_layout() {
-        let flow = |n, align| Flow { w: 250, cell: 80, n, align };
+        let flow = |n, align| Flow { w: 250, cell: 80, cw: 80, n, align };
         assert_eq!(cols(250, 80), 3);
         assert_eq!((flow(5, Align::Center).origin(1), flow(5, Align::Center).origin(4)), ((85, 0), (125, 80)));
         assert_eq!(
@@ -205,7 +214,7 @@ mod tests {
 
     #[test]
     fn band_selection() {
-        let flow = |n| Flow { w: 250, cell: 80, n, align: Align::Center };
+        let flow = |n| Flow { w: 250, cell: 80, cw: 80, n, align: Align::Center };
         assert_eq!(flow(5).in_rect((90, 5, 100, 90)), vec![1, 3]);
         assert_eq!(flow(5).in_rect((100, 90, 90, 5)), vec![1, 3]);
         assert_eq!(flow(5).in_rect((0, 0, 4, 4)), Vec::<usize>::new());
@@ -240,7 +249,7 @@ mod tests {
 
     #[test]
     fn hits_and_bands_stop_at_cell_edges() {
-        let flow = |n| Flow { w: 250, cell: 80, n, align: Align::Left };
+        let flow = |n| Flow { w: 250, cell: 80, cw: 80, n, align: Align::Left };
         assert_eq!((flow(5).index_at((170, 90)), flow(5).index_at((90, 90))), (None, Some(4)));
         assert_eq!((flow(3).in_rect((0, 0, 80, 80)), flow(5).in_rect((0, 0, 250, 80))), (vec![0], vec![0, 1, 2]));
         assert!(flow(5).in_rect((160, 160, 300, 300)).is_empty() && flow(5).in_rect((0, 160, 250, 300)).is_empty());

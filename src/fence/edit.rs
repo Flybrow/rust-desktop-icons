@@ -51,18 +51,19 @@ pub(super) fn item(h: HWND, path: &PathBuf) {
     let s = |v| scale(h, v);
     let (cell, icon) = metrics(h);
     let g = layout::geo_now(h);
+    let shape = super::shape(h, g.grid_w());
     let Some((text, font, origin)) = with(|a| {
         let font = label_font(a, h);
         let flow = layout::flow(a, h, g.grid_w(), cell)?;
         let v = a.view(h)?;
         let i = v.items.iter().position(|it| &it.path == path)?;
         let (x, y) = flow.origin(i);
-        Some((String::from_utf16_lossy(&v.items[i].name), font, g.cell((x, y - v.scroll), cell)))
+        Some((String::from_utf16_lossy(&v.items[i].name), font, g.cell((x, y - v.scroll), (shape.w, shape.h))))
     })
     .flatten() else {
         return;
     };
-    let r = cell::label_at(origin, cell, icon, s);
+    let r = cell::label_at(origin, shape, icon, s);
     open(
         h,
         RECT { top: r.top - s(2), bottom: r.top + s(22), left: r.left - s(10), right: r.right + s(10) },

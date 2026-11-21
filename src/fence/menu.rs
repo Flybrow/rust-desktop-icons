@@ -82,6 +82,7 @@ pub(super) fn context(h: HWND) {
         a.sub(look, T::Tint, tint, g::TINT);
         a.entry(look, 65, T::Labels, f.look.labels, g::LABEL);
         a.entry(look, 210, T::Thumbs, f.look.thumbs, g::IMAGE);
+        a.entry(look, 214, T::ListView, f.look.list, g::ALIGN);
         let (names, spacing, label_color) = (menu(), menu(), menu());
         for (k, s) in LabelSize::ALL.iter().enumerate() {
             item(names, NAMES + k, a.t(i18n::label_size(*s)), f.look.label_size == *s);
@@ -154,6 +155,10 @@ pub(super) fn context(h: HWND) {
         211 => update(h, |f| f.set(Field::Mica, |l| l.mica ^= true)),
         212 => filter::toggle(h),
         213 => update(h, |f| f.set(Field::Home, |l| l.home ^= true)),
+        214 => {
+            update(h, |f| f.set(Field::List, |l| l.list ^= true));
+            items::reload(h);
+        }
         210 => {
             update(h, |f| f.set(Field::Thumbs, |l| l.thumbs ^= true));
             items::reload(h);

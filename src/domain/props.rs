@@ -97,7 +97,7 @@ proptest! {
 
     #[test]
     fn grid_positions_and_hits_agree(w in 1..2500i32, cell in 1..300i32, n in 0..200usize, a in align()) {
-        let f = Flow { w, cell, n, align: a };
+        let f = Flow { w, cell, cw: cell, n, align: a };
         let cols = grid::cols(w, cell);
         for i in 0..n {
             let (x, y) = f.origin(i);

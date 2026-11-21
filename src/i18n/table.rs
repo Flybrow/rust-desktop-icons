@@ -212,6 +212,8 @@ pub static S: [[&str; N]; 25] = [
         "File names become gray bars.",
         "Icons and thumbnails become plain squares.",
         "Fence and tab titles become dots.",
+        "Show as a list",
+        "One item per row: a small icon with its name beside it.",
     ],
     [
         "新建分区",
@@ -424,6 +426,8 @@ pub static S: [[&str; N]; 25] = [
         "文件名变为灰色条。",
         "图标和缩略图变为纯色方块。",
         "分区和标签标题变为圆点。",
+        "以列表显示",
+        "每行一项：小图标，名称在旁边。",
     ],
     [
         "नया क्षेत्र",
@@ -636,6 +640,8 @@ pub static S: [[&str; N]; 25] = [
         "फ़ाइल नाम धूसर पट्टियाँ बन जाते हैं।",
         "आइकन और थंबनेल सादे वर्ग बन जाते हैं।",
         "क्षेत्र और टैब के शीर्षक बिंदु बन जाते हैं।",
+        "सूची के रूप में दिखाएँ",
+        "हर पंक्ति में एक आइटम: छोटा आइकन और बगल में नाम।",
     ],
     [
         "Nueva zona",
@@ -848,6 +854,8 @@ pub static S: [[&str; N]; 25] = [
         "Los nombres se vuelven barras grises.",
         "Los iconos y miniaturas se vuelven cuadrados lisos.",
         "Los títulos de zonas y pestañas se vuelven puntos.",
+        "Mostrar como lista",
+        "Un elemento por fila: icono pequeño con su nombre al lado.",
     ],
     [
         "Nouvelle zone",
@@ -1060,6 +1068,8 @@ pub static S: [[&str; N]; 25] = [
         "Les noms deviennent des barres grises.",
         "Les icônes et aperçus deviennent des carrés unis.",
         "Les titres des zones et des onglets deviennent des points.",
+        "Afficher en liste",
+        "Un élément par ligne : petite icône avec son nom à côté.",
     ],
     [
         "منطقة جديدة",
@@ -1272,6 +1282,8 @@ pub static S: [[&str; N]; 25] = [
         "تصبح الأسماء أشرطة رمادية.",
         "تصبح الأيقونات والصور المصغرة مربعات سادة.",
         "تصبح عناوين المناطق والعلامات نقاطًا.",
+        "العرض كقائمة",
+        "عنصر واحد في كل صف: أيقونة صغيرة واسمها بجانبها.",
     ],
     [
         "নতুন অঞ্চল",
@@ -1484,6 +1496,8 @@ pub static S: [[&str; N]; 25] = [
         "নামগুলো ধূসর বার হয়ে যায়।",
         "আইকন ও থাম্বনেইল সাধারণ বর্গ হয়ে যায়।",
         "অঞ্চল ও ট্যাবের শিরোনাম বিন্দু হয়ে যায়।",
+        "তালিকা হিসেবে দেখান",
+        "প্রতি সারিতে একটি: ছোট আইকন, পাশে নাম।",
     ],
     [
         "Nova área",
@@ -1696,6 +1710,8 @@ pub static S: [[&str; N]; 25] = [
         "Os nomes tornam-se barras cinzentas.",
         "Os ícones e miniaturas tornam-se quadrados lisos.",
         "Os títulos das áreas e separadores tornam-se pontos.",
+        "Mostrar em lista",
+        "Um item por linha: ícone pequeno com o nome ao lado.",
     ],
     [
         "Новая область",
@@ -1908,6 +1924,8 @@ pub static S: [[&str; N]; 25] = [
         "Имена становятся серыми полосами.",
         "Значки и миниатюры становятся квадратами.",
         "Заголовки областей и вкладок становятся точками.",
+        "Показывать списком",
+        "Один элемент в строке: маленький значок и имя рядом.",
     ],
     [
         "نیا خطہ",
@@ -2120,6 +2138,8 @@ pub static S: [[&str; N]; 25] = [
         "نام سرمئی پٹیاں بن جاتے ہیں۔",
         "آئیکنز اور تھمب نیلز سادہ چوکور بن جاتے ہیں۔",
         "خطوں اور ٹیبز کے عنوان نقطے بن جاتے ہیں۔",
+        "فہرست کی صورت دکھائیں",
+        "ہر قطار میں ایک: چھوٹا آئیکن اور ساتھ نام۔",
     ],
     [
         "Area baru",
@@ -2332,6 +2352,8 @@ pub static S: [[&str; N]; 25] = [
         "Nama menjadi batang abu-abu.",
         "Ikon dan gambar mini menjadi kotak polos.",
         "Judul area dan tab menjadi titik.",
+        "Tampilkan sebagai daftar",
+        "Satu item per baris: ikon kecil dengan nama di sampingnya.",
     ],
     [
         "Neuer Bereich",
@@ -2544,6 +2566,8 @@ pub static S: [[&str; N]; 25] = [
         "Namen werden zu grauen Balken.",
         "Symbole und Vorschauen werden zu einfachen Quadraten.",
         "Bereichs- und Registertitel werden zu Punkten.",
+        "Als Liste anzeigen",
+        "Ein Element pro Zeile: kleines Symbol mit dem Namen daneben.",
     ],
     [
         "新しいフェンス",
@@ -2756,6 +2780,8 @@ pub static S: [[&str; N]; 25] = [
         "名前が灰色の帯になります。",
         "アイコンとサムネイルが無地の四角になります。",
         "フェンスとタブのタイトルが点になります。",
+        "一覧で表示",
+        "1 行に 1 つ：小さなアイコンと横に名前。",
     ],
     [
         "Eneo jipya",
@@ -2968,6 +2994,8 @@ pub static S: [[&str; N]; 25] = [
         "Majina yanakuwa mistari ya kijivu.",
         "Aikoni na picha ndogo zinakuwa miraba tupu.",
         "Vichwa vya maeneo na vichupo vinakuwa nukta.",
+        "Onyesha kama orodha",
+        "Kipengee kimoja kwa kila mstari: aikoni ndogo na jina kando.",
     ],
     [
         "नवीन क्षेत्र",
@@ -3180,6 +3208,8 @@ pub static S: [[&str; N]; 25] = [
         "नावे धूसर पट्ट्या होतात.",
         "आयकॉन आणि लघुप्रतिमा साधे चौरस होतात.",
         "क्षेत्र आणि टॅबची शीर्षके ठिपके होतात.",
+        "यादी म्हणून दाखवा",
+        "प्रत्येक ओळीत एक: लहान आयकॉन आणि शेजारी नाव.",
     ],
     [
         "కొత్త ప్రాంతం",
@@ -3392,6 +3422,8 @@ pub static S: [[&str; N]; 25] = [
         "పేర్లు బూడిద పట్టీలుగా మారతాయి.",
         "ఐకాన్లు, థంబ్‌నెయిల్స్ సాదా చతురస్రాలుగా మారతాయి.",
         "ప్రాంతాలు, ట్యాబ్‌ల శీర్షికలు చుక్కలుగా మారతాయి.",
+        "జాబితాగా చూపు",
+        "ప్రతి వరుసకు ఒకటి: చిన్న ఐకాన్, పక్కన పేరు.",
     ],
     [
         "Yeni alan",
@@ -3604,6 +3636,8 @@ pub static S: [[&str; N]; 25] = [
         "Adlar gri çubuklara dönüşür.",
         "Simgeler ve küçük resimler düz karelere dönüşür.",
         "Alan ve sekme başlıkları noktalara dönüşür.",
+        "Liste olarak göster",
+        "Satır başına bir öğe: küçük simge, yanında adı.",
     ],
     [
         "புதிய பகுதி",
@@ -3816,6 +3850,8 @@ pub static S: [[&str; N]; 25] = [
         "பெயர்கள் சாம்பல் பட்டைகளாக மாறும்.",
         "ஐகான்களும் சிறுபடங்களும் வெற்று சதுரங்களாகும்.",
         "பகுதி, தாவல் தலைப்புகள் புள்ளிகளாகும்.",
+        "பட்டியலாகக் காட்டு",
+        "வரிசைக்கு ஒன்று: சிறிய ஐகான், அருகில் பெயர்.",
     ],
     [
         "Vùng mới",
@@ -4028,6 +4064,8 @@ pub static S: [[&str; N]; 25] = [
         "Tên trở thành các thanh màu xám.",
         "Biểu tượng và ảnh thu nhỏ thành ô vuông trơn.",
         "Tiêu đề vùng và thẻ thành dấu chấm.",
+        "Hiển thị dạng danh sách",
+        "Mỗi dòng một mục: biểu tượng nhỏ, tên bên cạnh.",
     ],
     [
         "새 영역",
@@ -4240,6 +4278,8 @@ pub static S: [[&str; N]; 25] = [
         "이름이 회색 막대로 바뀝니다.",
         "아이콘과 미리 보기가 단색 사각형이 됩니다.",
         "영역과 탭 제목이 점으로 바뀝니다.",
+        "목록으로 표시",
+        "한 줄에 하나: 작은 아이콘 옆에 이름.",
     ],
     [
         "Nuova area",
@@ -4452,6 +4492,8 @@ pub static S: [[&str; N]; 25] = [
         "I nomi diventano barre grigie.",
         "Icone e anteprime diventano quadrati uniformi.",
         "I titoli di aree e schede diventano puntini.",
+        "Mostra come elenco",
+        "Un elemento per riga: icona piccola con il nome accanto.",
     ],
     [
         "พื้นที่ใหม่",
@@ -4664,6 +4706,8 @@ pub static S: [[&str; N]; 25] = [
         "ชื่อจะกลายเป็นแถบสีเทา",
         "ไอคอนและภาพย่อจะกลายเป็นสี่เหลี่ยมเรียบ",
         "ชื่อพื้นที่และแท็บจะกลายเป็นจุด",
+        "แสดงเป็นรายการ",
+        "หนึ่งรายการต่อแถว: ไอคอนเล็กพร้อมชื่อข้างๆ",
     ],
     [
         "Nowy obszar",
@@ -4876,6 +4920,8 @@ pub static S: [[&str; N]; 25] = [
         "Nazwy stają się szarymi paskami.",
         "Ikony i miniatury stają się gładkimi kwadratami.",
         "Tytuły obszarów i kart stają się kropkami.",
+        "Pokaż jako listę",
+        "Jeden element w wierszu: mała ikona z nazwą obok.",
     ],
     [
         "Нова область",
@@ -5088,6 +5134,8 @@ pub static S: [[&str; N]; 25] = [
         "Імена стають сірими смугами.",
         "Значки й мініатюри стають квадратами.",
         "Заголовки областей і вкладок стають крапками.",
+        "Показувати списком",
+        "Один елемент у рядку: малий значок і назва поруч.",
     ],
     [
         "ناحیه جدید",
@@ -5300,5 +5348,7 @@ pub static S: [[&str; N]; 25] = [
         "نام‌ها به نوارهای خاکستری تبدیل می‌شوند.",
         "آیکون‌ها و تصاویر کوچک به مربع‌های ساده تبدیل می‌شوند.",
         "عنوان ناحیه‌ها و زبانه‌ها به نقطه تبدیل می‌شوند.",
+        "نمایش به صورت فهرست",
+        "یک مورد در هر سطر: آیکون کوچک و نام کنار آن.",
     ],
 ];

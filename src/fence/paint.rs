@@ -81,6 +81,7 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
     let opened = layout::geo(h, layout::open_size(h, f));
     let (bx0, by0, bx1, by1) = g.body();
     let gw = g.grid_w();
+    let shape = super::shape(h, gw);
     let mica = super::wallpaper::mica(h, f, (w, ht));
     let alpha = with(|a| {
         let (ft, fi, glyphs, empty) = (title_font(a, h), label_font(a, h), a.icon_font(s(13)), a.t(crate::i18n::T::FilterHint));
@@ -93,25 +94,25 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
         let v = a.view(h)?;
         let rolled = !open && v.unroll == 0.;
         let view_h = if !open && v.unroll < 1. { opened.view_h() } else { g.view_h() };
-        let max = if rolled { 0 } else { grid::max_scroll(v.items.len(), gw, view_h, cell, tail) };
+        let max = if rolled { 0 } else { grid::max_scroll(v.items.len(), shape.span(gw), view_h, cell, tail) };
         v.scroll = v.scroll.clamp(0, max);
         let cells: Vec<(usize, i32, i32)> = (0..if rolled { 0 } else { v.items.len() })
             .map(|i| (i, flow.origin(i)))
-            .map(|(i, (x, y))| (i, g.cell((x, y - v.scroll), cell)))
+            .map(|(i, (x, y))| (i, g.cell((x, y - v.scroll), (shape.w, shape.h))))
             .map(|(i, (x, y))| (i, x, y))
-            .filter(|&(_, x, y)| y + cell > by0 && y < by1 && x + cell > bx0 && x < bx1)
+            .filter(|&(_, x, y)| y + shape.h > by0 && y < by1 && x + shape.w > bx0 && x < bx1)
             .collect();
         frame.clip((bx0, by0, bx1, by1));
         let key = (f.look.labels && !mask.names)
             .then(|| labels_key(&cells, v, ((w, ht, cell, icon, s(100), fi.0 as isize), (bx0, by0, bx1, by1))));
         let cached = key.and_then(|k| v.labels.take().filter(|l| l.key == k));
         for &(i, x, y) in cells.iter().filter(|_| key.is_some() && cached.is_none()) {
-            frame.text_w(fi, &mut v.items[i].name, &mut cell::label_at((x, y), cell, icon, s), cell::LABEL);
+            frame.text_w(fi, &mut v.items[i].name, &mut cell::label_at((x, y), shape, icon, s), shape.flags());
         }
         frame.target(&icons);
         let thumb = |i: usize| v.items[i].thumb.as_ref().filter(|_| f.look.thumbs);
         for &(i, x, y) in cells.iter().filter(|c| !mask.icons && thumb(c.0).is_none()) {
-            shell::draw_icon(frame.dc(), v.items[i].icon, cell::icon_at((x, y), cell, icon, s), icon);
+            shell::draw_icon(frame.dc(), v.items[i].icon, cell::icon_at((x, y), shape, icon, s), icon);
         }
         frame.target(&frame.mask);
         if cached.is_some() || key.is_none() {
@@ -120,7 +121,7 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
             frame.flush()
         }
         for &(i, x, y) in cells.iter().filter(|_| !mask.icons) {
-            let (ix, iy) = cell::icon_at((x, y), cell, icon, s);
+            let (ix, iy) = cell::icon_at((x, y), shape, icon, s);
             match thumb(i) {
                 Some(t) => blit_fit(icons.px(), w, &t.px, (t.w, t.h), (ix, iy), icon),
                 None => opaque_if_flat(icons.px(), w, (ix, iy, ix + icon, iy + icon)),
@@ -142,9 +143,12 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
         for &(i, x, y) in &cells {
             let (sel, hot) = (v.selected.contains(&v.items[i].path), v.hover == Some(i));
             if sel || hot {
-                let label =
-                    if f.look.labels { crate::layered::measure(fi, &v.items[i].name, cell::label_width(cell, s), cell::LABEL) } else { 0 };
-                let r = cell::tile((x, y), cell, icon, label, s);
+                let label = if f.look.labels {
+                    crate::layered::measure(fi, &v.items[i].name, cell::label_width(shape, s), shape.flags())
+                } else {
+                    0
+                };
+                let r = cell::tile((x, y), shape, icon, label, s);
                 let (fill, line) = if sel { (premul(ACCENT, 90), premul(ACCENT, 200)) } else { (premul(ink, 40), premul(ink, 60)) };
                 c.rrect(r, rad, flat(fill), (by0, by1), false);
                 c.rrect(r, rad, flat(line), (by0, by1), true);
@@ -152,11 +156,11 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
         }
         for &(_, x, y) in cells.iter().filter(|_| mask.any()) {
             if mask.icons {
-                let (ix, iy) = cell::icon_at((x, y), cell, icon, s);
+                let (ix, iy) = cell::icon_at((x, y), shape, icon, s);
                 c.rrect((ix, iy, ix + icon, iy + icon), s(8) as f32, flat(premul(ink, 46)), (by0, by1), false);
             }
             if mask.names && f.look.labels {
-                let r = cell::label_at((x, y), cell, icon, s);
+                let r = cell::label_at((x, y), shape, icon, s);
                 let (pad, top) = ((r.right - r.left) / 5, r.top + s(4));
                 c.rrect((r.left + pad, top, r.right - pad, top + s(8)), s(4) as f32, flat(premul(ink, 70)), (by0, by1), false);
             }

@@ -29,6 +29,7 @@ pub enum Act {
     Browse,
     Home,
     Thumbs,
+    List,
     Wallpaper,
     TitleAlign,
     TitleSize,

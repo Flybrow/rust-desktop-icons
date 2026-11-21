@@ -83,6 +83,7 @@ pub fn build(a: &App, page: usize) -> Vec<Row> {
             row(a.t(T::IconSize), Ctl::Value(icons::label(l.icon)), Act::IconSize, g::SIZE).about(a.t(T::DIconSize)),
             row(a.t(T::Labels), Ctl::Toggle(l.labels), Act::Labels, g::LABEL).about(a.t(T::DLabels)),
             row(a.t(T::Thumbs), Ctl::Toggle(l.thumbs), Act::Thumbs, g::IMAGE).about(a.t(T::DThumbs)),
+            row(a.t(T::ListView), Ctl::Toggle(l.list), Act::List, g::ALIGN).about(a.t(T::DListView)),
             row(a.t(T::LabelSize), Ctl::Value(a.t(i18n::label_size(l.label_size)).into()), Act::LabelSize, g::RENAME)
                 .about(a.t(T::DLabelSize)),
             row(a.t(T::LabelColor), Ctl::Swatch(l.label_color), Act::LabelColor, g::COLOR).about(a.t(T::DLabelColor)),
@@ -179,6 +180,7 @@ mod tests {
             Act::Mica,
             Act::Align,
             Act::Thumbs,
+            Act::List,
             Act::Wallpaper,
             Act::TitleAlign,
             Act::TitleSize,

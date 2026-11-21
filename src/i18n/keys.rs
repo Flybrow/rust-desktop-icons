@@ -210,4 +210,6 @@ pub enum T {
     DPrivNames,
     DPrivIcons,
     DPrivTitles,
+    ListView,
+    DListView,
 }

@@ -31,7 +31,8 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   `history.rs` (undo steps: config before + file ops, nesting, cap 20, `rebase` so an undo is never recorded), `config.rs` (Config, recycle placement), `kind.rs` (file types + game
   shortcut detection for rules; `Kind::Other` = "Everything else", the inbox rule `Config::rule_for` falls back to),
   `order.rs` (per-tab sort + custom order), `anim.rs`, `grid.rs` (`Flow`: item positions with `Align` left/center/right,
-  last row included; build it with `fence::layout::flow`, which mirrors the alignment for right-side bars), `vertical.rs`
+  last row included; `cw` is the column width (= `cell` for icons, the whole grid width for `Look.list`); build it with
+  `fence::layout::flow`, which mirrors the alignment for right-side bars), `vertical.rs`
   (vertical title layout: a title with ideographic characters stacks every character upright top to bottom, `column` keeps one
   space per run and ends a cut title with "…"; Latin-only titles stay rotated sideways), `icons.rs`, `color.rs`, `zone.rs`,
   `snap.rs` (screen edges, other fences' edges and equal spacing -> `Guide` lines, icon-grid sizes `grid_len`),
@@ -119,6 +120,8 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   for Explorer and handled by the app; the app calls OleInitialize). The keeper never calls Explorer while a mouse button is down.
   E2E helpers shared by the examples live in `examples/support`.
 - `src/fence/` fence window: `mod.rs` proc, `layout.rs` geometry, `items.rs` icons, `paint.rs` + `header.rs` rendering,
+  `cell.rs` (`Cell` w/h/list: icon, label, tile and text flags of one item; `fence::shape` builds it; list rows put a small icon
+  (max 32 px) left of a one-line name; grid helpers get `Cell::span` so a list has one column),
   `tabs.rs` tabs/portals, `anim.rs` unroll + chameleon fade, `peek.rs` hover, `menu.rs`, `actions.rs`, `title.rs` rename,
   `drop.rs` (from outside / onto a tab header / reorder inside a tab), `target.rs` (IDropTarget; an item under the cursor
   that accepts drops gets it through its own shell IDropTarget; drags of items already in fences only go into folders), `select.rs` (click,

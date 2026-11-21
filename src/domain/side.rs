@@ -129,8 +129,8 @@ impl Geo {
         (ax.min(bx), ay.min(by), ax.max(bx), ay.max(by))
     }
 
-    pub fn cell(&self, (x, y): (i32, i32), size: i32) -> (i32, i32) {
-        let (l, t, _, _) = self.rect((x, y, x + size, y + size));
+    pub fn cell(&self, (x, y): (i32, i32), (w, h): (i32, i32)) -> (i32, i32) {
+        let (l, t, _, _) = self.rect((x, y, x + w, y + h));
         (l, t)
     }
 
@@ -176,9 +176,9 @@ mod tests {
                 assert_eq!(g.to_content(g.to_window(p)), p, "{side:?}");
             }
         }
-        assert_eq!(geo(Side::Bottom).cell((0, 0), 50), (0, 116));
-        assert_eq!(geo(Side::Right).cell((0, 0), 50), (216, 0));
-        assert_eq!(geo(Side::Left).cell((50, 50), 50), (84, 50));
+        assert_eq!(geo(Side::Bottom).cell((0, 0), (50, 50)), (0, 116));
+        assert_eq!(geo(Side::Right).cell((0, 0), (50, 50)), (216, 0));
+        assert_eq!(geo(Side::Left).cell((50, 50), (50, 50)), (84, 50));
         assert_eq!(geo(Side::Top).rect((0, 0, 10, 10)), (0, 34, 10, 44));
     }
 

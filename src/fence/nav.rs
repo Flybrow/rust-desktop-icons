@@ -16,6 +16,7 @@ pub(super) fn tab(h: HWND, back: bool) {
 pub(super) fn key(h: HWND, k: VIRTUAL_KEY, shift: bool) -> bool {
     let (g, cell) = (layout::geo_now(h), metrics(h).0);
     let (gw, view_h) = (g.grid_w(), g.view_h());
+    let span = super::shape(h, gw).span(gw);
     let rows = (view_h / cell.max(1)).max(1);
     let m = match k {
         VK_LEFT => Move::Left,
@@ -31,7 +32,7 @@ pub(super) fn key(h: HWND, k: VIRTUAL_KEY, shift: bool) -> bool {
     let flip = (g.side == Side::Right, g.side == Side::Bottom);
     with(|a| {
         let v = a.view(h)?;
-        let (n, cols) = (v.items.len(), grid::cols(gw, cell));
+        let (n, cols) = (v.items.len(), grid::cols(span, cell));
         let picked = |i: &usize| v.selected.contains(&v.items[*i].path);
         let at = v.cursor.filter(|i| *i < n && picked(i)).or_else(|| (0..n).find(picked));
         let to = grid::step(n, cols, at, m, flip)?;

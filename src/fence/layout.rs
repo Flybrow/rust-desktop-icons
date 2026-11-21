@@ -37,9 +37,10 @@ pub(super) fn geo_now(h: HWND) -> Geo {
 }
 
 pub(super) fn flow(a: &mut App, h: HWND, w: i32, cell: i32) -> Option<Flow> {
-    let align = a.fence_of(h)?.look.align;
+    let (align, list) = a.fence_of(h).map(|f| (f.look.align, f.look.list))?;
     let v = a.view(h)?;
-    Some(Flow { w, cell, n: v.items.len(), align: if v.side == Side::Right { align.mirrored() } else { align } })
+    let cw = if list { w } else { cell };
+    Some(Flow { w, cell, cw, n: v.items.len(), align: if v.side == Side::Right { align.mirrored() } else { align } })
 }
 
 pub(super) fn chrome(h: HWND, vertical: bool) -> i32 {
@@ -48,25 +49,29 @@ pub(super) fn chrome(h: HWND, vertical: bool) -> i32 {
 
 pub(super) fn tail(a: &mut App, h: HWND, w: i32, (cell, icon): (i32, i32)) -> i32 {
     let s = |v| scale(h, v);
+    if a.fence_of(h).is_some_and(|f| f.look.list) {
+        return cell + s(GAP);
+    }
     let font = a.fence_of(h).is_some_and(|f| f.look.labels).then(|| label_font(a, h));
-    let width = cell::label_width(cell, s);
+    let square = cell::Cell::square(cell);
+    let width = cell::label_width(square, s);
     let names: Vec<i32> = a.view(h).map_or(vec![], |v| {
         let row = grid::last_row(v.items.len(), w, cell);
         v.items[row].iter().map(|it| font.map_or(0, |f| crate::layered::measure(f, &it.name, width, cell::LABEL))).collect()
     });
-    cell::content(cell, icon, names.into_iter(), s) + s(GAP + cell::TOP - EDGE)
+    cell::content(square, icon, names.into_iter(), s) + s(GAP + cell::TOP - EDGE)
 }
 
 fn fit(h: HWND, f: &Fence, max: i32) -> i32 {
     let n = view(h, |v| v.items.len()).unwrap_or(0);
     let (m, min) = (metrics(h), scale(h, Fence::MIN.1));
     let cell = m.0;
-    match (f.vertical, f.look.auto_height) {
+    match (f.vertical, f.look.auto_height && !(f.vertical && f.look.list)) {
         (false, false) => f.h,
         (true, false) => f.w,
         (false, true) => {
             let tail = with(|a| tail(a, h, f.w, m)).unwrap_or(cell);
-            grid::fit(n, f.w, (cell, tail), chrome(h, false), (min, max))
+            grid::fit(n, if f.look.list { cell } else { f.w }, (cell, tail), chrome(h, false), (min, max))
         }
         (true, true) => grid::fit_cols(n, f.h, cell, chrome(h, true), (min, max)),
     }

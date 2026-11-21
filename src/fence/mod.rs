@@ -124,7 +124,16 @@ pub fn restyle_all() {
 
 fn metrics(h: HWND) -> (i32, i32) {
     let look = read(h, |f| f.look.clone()).unwrap_or_default();
+    if look.list {
+        let icon = scale(h, look.icon.min(32));
+        return (icon + scale(h, 12), icon);
+    }
     (scale(h, icons::cell(look.icon, look.labels.then_some(look.label_size), look.spacing)), scale(h, look.icon))
+}
+
+fn shape(h: HWND, gw: i32) -> cell::Cell {
+    let (ch, list) = (metrics(h).0, read(h, |f| f.look.list) == Some(true));
+    cell::Cell { w: if list { gw } else { ch }, h: ch, list }
 }
 
 pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {
