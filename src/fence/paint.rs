@@ -81,6 +81,7 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
     let opened = layout::geo(h, layout::open_size(h, f));
     let (bx0, by0, bx1, by1) = g.body();
     let gw = g.grid_w();
+    let mica = super::wallpaper::mica(h, f, (w, ht));
     let alpha = with(|a| {
         let (ft, fi) = (title_font(a, h), label_font(a, h));
         let flow = layout::flow(a, h, gw, cell)?;
@@ -123,12 +124,16 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
         if let Some(c) = f.look.tint {
             tint(icons.px(), c);
         }
-        let (body, (fg, shade), ink) = (f.look.alpha, color::text_on(f.look.color), color::ink(f.look.color));
+        let under = mica.as_ref().map_or(f.look.color, |m| m.average());
+        let (body, (fg, shade), ink) = (f.look.alpha, color::text_on(under), color::ink(under));
         let bar = !(f.look.bar_hover && !f.rolled && !v.inside);
         let (full, rad, rows) = (if bar { (0, 0, w, ht) } else { (bx0, by0, bx1, by1) }, s(f.look.corner.px()) as f32, (0, ht));
         let tone = |k, a: u8| premul(color::shade(f.look.color, k), a);
         let mut c = frame.canvas();
-        c.rrect(full, rad, (tone(10, body), tone(-14, body.saturating_add(20))), rows, false);
+        match &mica {
+            Some(m) => c.rrect_with(full, rad, rows, false, |x, y| m.at(x, y)),
+            None => c.rrect(full, rad, (tone(10, body), tone(-14, body.saturating_add(20))), rows, false),
+        }
         for &(i, x, y) in &cells {
             let (sel, hot) = (v.selected.contains(&v.items[i].path), v.hover == Some(i));
             if sel || hot {

@@ -143,6 +143,7 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
         WM_EXITSIZEMOVE => crate::undo::step(|| {
             snap::end(h);
             layout::persist(h);
+            wallpaper::moved(h);
         }),
         WM_DPICHANGED => crate::layered::popup::follow_dpi(h, lp),
         WM_MOVING => {

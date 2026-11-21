@@ -67,6 +67,7 @@ pub(super) fn context(h: HWND) {
         separator(m);
         a.entry(look, 11, T::Color, false, g::COLOR);
         a.entry(look, 209, T::Wallpaper, f.look.wallpaper, g::PICTURE);
+        a.entry(look, 211, T::Mica, f.look.mica, g::OPACITY);
         a.sub(look, T::Opacity, o, g::OPACITY);
         let corners = menu();
         for (k, c) in Corner::ALL.iter().enumerate() {
@@ -146,6 +147,7 @@ pub(super) fn context(h: HWND) {
         18 => update(h, |f| f.set(Field::AutoHeight, |l| l.auto_height ^= true)),
         65 => update(h, |f| f.set(Field::Labels, |l| l.labels ^= true)),
         209 => update(h, |f| f.set(Field::Wallpaper, |l| l.wallpaper ^= true)),
+        211 => update(h, |f| f.set(Field::Mica, |l| l.mica ^= true)),
         210 => {
             update(h, |f| f.set(Field::Thumbs, |l| l.thumbs ^= true));
             items::reload(h);

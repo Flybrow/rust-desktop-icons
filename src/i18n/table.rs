@@ -192,6 +192,8 @@ pub static S: [[&str; N]; 25] = [
         "Dark or light windows and fences, or the same as Windows. Colors you picked yourself are kept.",
         "Dark",
         "Light",
+        "Mica material",
+        "The blurred wallpaper shows through, tinted with the fence color. Opacity sets the tint.",
     ],
     [
         "新建分区",
@@ -384,6 +386,8 @@ pub static S: [[&str; N]; 25] = [
         "深色或浅色的窗口和分区，或与 Windows 相同。你自己选的颜色会保留。",
         "深色",
         "浅色",
+        "云母材质",
+        "透出模糊的壁纸，并以分区颜色着色。不透明度决定着色强度。",
     ],
     [
         "नया क्षेत्र",
@@ -576,6 +580,8 @@ pub static S: [[&str; N]; 25] = [
         "गहरे या हल्के विंडो और क्षेत्र, या Windows जैसे। आपके चुने रंग बने रहते हैं।",
         "गहरा",
         "हल्का",
+        "माइका सामग्री",
+        "धुंधला वॉलपेपर क्षेत्र के रंग में रंगा दिखता है। अपारदर्शिता रंग की मात्रा तय करती है।",
     ],
     [
         "Nueva zona",
@@ -768,6 +774,8 @@ pub static S: [[&str; N]; 25] = [
         "Ventanas y zonas oscuras o claras, o como Windows. Se conservan los colores que elegiste.",
         "Oscuro",
         "Claro",
+        "Material Mica",
+        "Se ve el fondo de pantalla desenfocado, teñido con el color de la zona. La opacidad ajusta el tinte.",
     ],
     [
         "Nouvelle zone",
@@ -960,6 +968,8 @@ pub static S: [[&str; N]; 25] = [
         "Fenêtres et zones sombres ou claires, ou comme Windows. Les couleurs choisies par vous sont conservées.",
         "Sombre",
         "Clair",
+        "Matière Mica",
+        "Le fond d'écran flouté transparaît, teinté de la couleur de la zone. L'opacité règle la teinte.",
     ],
     [
         "منطقة جديدة",
@@ -1152,6 +1162,8 @@ pub static S: [[&str; N]; 25] = [
         "نوافذ ومناطق داكنة أو فاتحة، أو مثل Windows. تُحفظ الألوان التي اخترتها.",
         "داكن",
         "فاتح",
+        "مادة Mica",
+        "تظهر الخلفية ضبابية وملونة بلون المنطقة. العتامة تحدد قوة اللون.",
     ],
     [
         "নতুন অঞ্চল",
@@ -1344,6 +1356,8 @@ pub static S: [[&str; N]; 25] = [
         "গাঢ় বা হালকা উইন্ডো ও অঞ্চল, অথবা Windows-এর মতো। আপনার বেছে নেওয়া রং থাকবে।",
         "গাঢ়",
         "হালকা",
+        "মাইকা উপাদান",
+        "ঝাপসা ওয়ালপেপার অঞ্চলের রঙে রাঙানো দেখা যায়। অস্বচ্ছতা রঙের মাত্রা ঠিক করে।",
     ],
     [
         "Nova área",
@@ -1536,6 +1550,8 @@ pub static S: [[&str; N]; 25] = [
         "Janelas e áreas escuras ou claras, ou como o Windows. As cores que escolheu são mantidas.",
         "Escuro",
         "Claro",
+        "Material Mica",
+        "O papel de parede desfocado aparece, tingido com a cor da área. A opacidade ajusta a tinta.",
     ],
     [
         "Новая область",
@@ -1728,6 +1744,8 @@ pub static S: [[&str; N]; 25] = [
         "Тёмные или светлые окна и области, или как в Windows. Выбранные вами цвета сохраняются.",
         "Тёмная",
         "Светлая",
+        "Материал Mica",
+        "Сквозь область видны размытые обои, окрашенные её цветом. Непрозрачность задаёт оттенок.",
     ],
     [
         "نیا خطہ",
@@ -1920,6 +1938,8 @@ pub static S: [[&str; N]; 25] = [
         "گہری یا ہلکی ونڈوز اور خطے، یا Windows جیسے۔ آپ کے چنے ہوئے رنگ برقرار رہتے ہیں۔",
         "گہرا",
         "ہلکا",
+        "مائیکا میٹیریل",
+        "دھندلا وال پیپر خطے کے رنگ میں رنگا نظر آتا ہے۔ غیر شفافیت رنگ کی مقدار طے کرتی ہے۔",
     ],
     [
         "Area baru",
@@ -2112,6 +2132,8 @@ pub static S: [[&str; N]; 25] = [
         "Jendela dan area gelap atau terang, atau sama seperti Windows. Warna pilihan Anda tetap dipakai.",
         "Gelap",
         "Terang",
+        "Bahan Mica",
+        "Wallpaper yang buram terlihat, diwarnai dengan warna area. Opasitas mengatur pewarnaan.",
     ],
     [
         "Neuer Bereich",
@@ -2304,6 +2326,8 @@ pub static S: [[&str; N]; 25] = [
         "Dunkle oder helle Fenster und Bereiche oder wie Windows. Selbst gewählte Farben bleiben erhalten.",
         "Dunkel",
         "Hell",
+        "Mica-Material",
+        "Das unscharfe Hintergrundbild scheint durch, in der Farbe des Bereichs getönt. Die Deckkraft regelt die Tönung.",
     ],
     [
         "新しいフェンス",
@@ -2496,6 +2520,8 @@ pub static S: [[&str; N]; 25] = [
         "ウィンドウとフェンスを暗く、明るく、または Windows と同じに。自分で選んだ色はそのままです。",
         "ダーク",
         "ライト",
+        "マイカ素材",
+        "ぼかした壁紙がフェンスの色で着色されて透けて見えます。不透明度で色の強さを調整します。",
     ],
     [
         "Eneo jipya",
@@ -2688,6 +2714,8 @@ pub static S: [[&str; N]; 25] = [
         "Madirisha na maeneo meusi au meupe, au kama Windows. Rangi ulizochagua zinabaki.",
         "Giza",
         "Mwanga",
+        "Nyenzo ya Mica",
+        "Mandhari iliyofifia huonekana, ikiwa na rangi ya eneo. Kiwango cha uwazi huweka rangi.",
     ],
     [
         "नवीन क्षेत्र",
@@ -2880,6 +2908,8 @@ pub static S: [[&str; N]; 25] = [
         "गडद किंवा फिकट विंडो आणि क्षेत्रे, किंवा Windows प्रमाणे. तुम्ही निवडलेले रंग कायम राहतात.",
         "गडद",
         "फिकट",
+        "मायका साहित्य",
+        "धूसर वॉलपेपर क्षेत्राच्या रंगात रंगून दिसतो. अपारदर्शकता रंगाची तीव्रता ठरवते.",
     ],
     [
         "కొత్త ప్రాంతం",
@@ -3072,6 +3102,8 @@ pub static S: [[&str; N]; 25] = [
         "ముదురు లేదా లేత విండోలు మరియు ప్రాంతాలు, లేదా Windows లాగా. మీరు ఎంచుకున్న రంగులు అలాగే ఉంటాయి.",
         "ముదురు",
         "లేత",
+        "మైకా మెటీరియల్",
+        "మసకబారిన వాల్‌పేపర్ ప్రాంతం రంగులో కనిపిస్తుంది. అపారదర్శకత రంగు తీవ్రతను నిర్ణయిస్తుంది.",
     ],
     [
         "Yeni alan",
@@ -3264,6 +3296,8 @@ pub static S: [[&str; N]; 25] = [
         "Koyu veya açık pencereler ve alanlar ya da Windows ile aynı. Kendi seçtiğiniz renkler korunur.",
         "Koyu",
         "Açık",
+        "Mica malzemesi",
+        "Bulanık duvar kâğıdı alanın rengiyle tonlanarak görünür. Opaklık tonu ayarlar.",
     ],
     [
         "புதிய பகுதி",
@@ -3456,6 +3490,8 @@ pub static S: [[&str; N]; 25] = [
         "இருண்ட அல்லது வெளிர் சாளரங்கள் மற்றும் பகுதிகள், அல்லது Windows போல. நீங்கள் தேர்ந்த நிறங்கள் மாறாது.",
         "இருண்ட",
         "வெளிர்",
+        "மைக்கா பொருள்",
+        "மங்கலான வால்பேப்பர் பகுதியின் நிறத்தில் தெரியும். ஒளிபுகாமை நிறத்தின் அளவை அமைக்கும்.",
     ],
     [
         "Vùng mới",
@@ -3648,6 +3684,8 @@ pub static S: [[&str; N]; 25] = [
         "Cửa sổ và vùng tối hoặc sáng, hoặc giống Windows. Màu bạn tự chọn được giữ nguyên.",
         "Tối",
         "Sáng",
+        "Chất liệu Mica",
+        "Hình nền được làm mờ hiện qua, phủ màu của vùng. Độ mờ đục điều chỉnh lớp màu.",
     ],
     [
         "새 영역",
@@ -3840,6 +3878,8 @@ pub static S: [[&str; N]; 25] = [
         "어둡거나 밝은 창과 영역, 또는 Windows와 동일하게. 직접 고른 색은 유지됩니다.",
         "어둡게",
         "밝게",
+        "Mica 재질",
+        "흐린 배경 화면이 영역 색으로 물든 채 비쳐 보입니다. 불투명도로 색의 세기를 정합니다.",
     ],
     [
         "Nuova area",
@@ -4032,6 +4072,8 @@ pub static S: [[&str; N]; 25] = [
         "Finestre e aree scure o chiare, oppure come Windows. I colori scelti da te restano.",
         "Scuro",
         "Chiaro",
+        "Materiale Mica",
+        "Lo sfondo sfocato traspare, colorato con il colore dell'area. L'opacità regola la tinta.",
     ],
     [
         "พื้นที่ใหม่",
@@ -4224,6 +4266,8 @@ pub static S: [[&str; N]; 25] = [
         "หน้าต่างและพื้นที่แบบมืดหรือสว่าง หรือตาม Windows สีที่คุณเลือกเองจะยังคงอยู่",
         "มืด",
         "สว่าง",
+        "วัสดุ Mica",
+        "วอลเปเปอร์ที่เบลอจะแสดงผ่าน โดยย้อมด้วยสีของพื้นที่ ความทึบใช้ปรับความเข้มของสี",
     ],
     [
         "Nowy obszar",
@@ -4416,6 +4460,8 @@ pub static S: [[&str; N]; 25] = [
         "Ciemne lub jasne okna i obszary albo jak w Windows. Wybrane przez Ciebie kolory zostają.",
         "Ciemny",
         "Jasny",
+        "Materiał Mica",
+        "Przez obszar widać rozmytą tapetę zabarwioną jego kolorem. Krycie ustala siłę koloru.",
     ],
     [
         "Нова область",
@@ -4608,6 +4654,8 @@ pub static S: [[&str; N]; 25] = [
         "Темні або світлі вікна й області, або як у Windows. Вибрані вами кольори зберігаються.",
         "Темна",
         "Світла",
+        "Матеріал Mica",
+        "Крізь область видно розмиті шпалери, забарвлені її кольором. Непрозорість задає відтінок.",
     ],
     [
         "ناحیه جدید",
@@ -4800,5 +4848,7 @@ pub static S: [[&str; N]; 25] = [
         "پنجره‌ها و ناحیه‌های تیره یا روشن، یا مانند Windows. رنگ‌هایی که خودتان انتخاب کرده‌اید حفظ می‌شوند.",
         "تیره",
         "روشن",
+        "جنس Mica",
+        "تصویر زمینه محو با رنگ ناحیه دیده می‌شود. میزان کدری شدت رنگ را تعیین می‌کند.",
     ],
 ];
