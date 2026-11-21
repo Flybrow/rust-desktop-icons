@@ -1,11 +1,14 @@
-use super::{layout, render, to_client, view};
+use super::{CARET, field::Field, layout, render, to_client, view};
 use crate::{
     app::{Filter, Item, View},
     domain::search,
 };
 use windows::Win32::{
     Foundation::{HWND, WPARAM},
-    UI::{Input::KeyboardAndMouse::SetFocus, WindowsAndMessaging::SetForegroundWindow},
+    UI::{
+        Input::KeyboardAndMouse::{GetFocus, SetFocus},
+        WindowsAndMessaging::{GetCaretBlinkTime, KillTimer, SetForegroundWindow, SetTimer},
+    },
 };
 
 fn narrow(f: &Filter) -> Vec<Item> {
@@ -35,12 +38,39 @@ fn changed(h: HWND, edit: impl FnOnce(&mut View)) {
         edit(v);
         v.hover = None;
         v.scroll = 0;
-        if let Some(f) = &v.filter {
+        if let Some(f) = &mut v.filter {
+            f.caret = true;
             v.items = narrow(f);
         }
     });
+    wake(h);
     layout::apply(h);
     render(h);
+}
+
+fn wake(h: HWND) {
+    let ms = unsafe { GetCaretBlinkTime() };
+    if ms != u32::MAX {
+        unsafe { SetTimer(Some(h), CARET, ms, None) };
+    }
+}
+
+pub(super) fn blink(h: HWND) {
+    let focused = unsafe { GetFocus() } == h;
+    let on = view(h, |v| v.filter.as_mut().map(|f| f.caret = focused && !f.caret)).flatten();
+    if on.is_none() || !focused {
+        let _ = unsafe { KillTimer(Some(h), CARET) };
+    }
+    if on.is_some() {
+        render(h);
+    }
+}
+
+pub(super) fn focus(h: HWND) {
+    if view(h, |v| v.filter.as_mut().map(|f| f.caret = true)).flatten().is_some() {
+        wake(h);
+        render(h);
+    }
 }
 
 pub(super) fn active(h: HWND) -> bool {
@@ -51,7 +81,7 @@ pub(super) fn toggle(h: HWND) {
     if active(h) {
         return changed(h, clear);
     }
-    changed(h, |v| v.filter = Some(Filter { query: String::new(), all: std::mem::take(&mut v.items) }));
+    changed(h, |v| v.filter = Some(Filter { query: String::new(), all: std::mem::take(&mut v.items), caret: true }));
     unsafe {
         let _ = SetForegroundWindow(h);
         let _ = SetFocus(Some(h));
@@ -100,6 +130,8 @@ pub(super) fn first(h: HWND) -> Option<std::path::PathBuf> {
     view(h, |v| v.filter.as_ref().and(v.items.first()).map(|i| i.path.clone())).flatten()
 }
 
-pub(super) fn hint(v: &View, empty: &str) -> Option<String> {
-    v.filter.as_ref().map(|f| if f.query.is_empty() { empty.to_string() } else { f.query.clone() })
+pub(super) fn field(h: HWND, v: &View, empty: &str) -> Option<Field> {
+    let f = v.filter.as_ref()?;
+    let (hint, caret) = (f.query.is_empty(), f.caret && unsafe { GetFocus() } == h);
+    Some(Field { text: if hint { empty.to_string() } else { f.query.clone() }, hint, caret })
 }

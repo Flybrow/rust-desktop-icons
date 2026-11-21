@@ -6,6 +6,7 @@ mod cell;
 mod desks;
 mod drop;
 mod edit;
+mod field;
 mod filter;
 mod ghost;
 mod group;
@@ -64,10 +65,15 @@ const RELOAD: usize = 1;
 const PEEK: usize = 2;
 const ANIM: usize = 3;
 const PREPARE: usize = 5;
+const CARET: usize = 6;
 
 fn title_font(a: &mut App, h: HWND) -> HFONT {
+    bar_font(a, h, FW_SEMIBOLD.0)
+}
+
+fn bar_font(a: &mut App, h: HWND, weight: u32) -> HFONT {
     let px = a.fence_of(h).map_or(14, |f| f.look.title_size.title_px());
-    a.font(scale(h, px), FW_SEMIBOLD.0)
+    a.font(scale(h, px), weight)
 }
 
 fn label_font(a: &mut App, h: HWND) -> HFONT {
@@ -142,6 +148,7 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
         WM_MOUSEACTIVATE => return LRESULT(if (lp.0 & 0xFFFF) as u32 == HTCLIENT { MA_ACTIVATE } else { MA_NOACTIVATE } as isize),
         WM_KEYDOWN if crate::undo::shortcut(wp.0 as u16) => crate::undo::undo(),
         WM_CHAR if filter::typed(h, wp) => {}
+        WM_SETFOCUS => filter::focus(h),
         WM_KILLFOCUS => {
             filter::left(h);
             browse::left(h, HWND(wp.0 as _));
@@ -222,6 +229,7 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
         WM_TIMER if wp.0 == PEEK => peek::check(h),
         WM_TIMER if wp.0 == ANIM => anim::tick(h),
         WM_TIMER if wp.0 == PREPARE => paint::prepare(h),
+        WM_TIMER if wp.0 == CARET => filter::blink(h),
         WM_COMMAND if (wp.0 >> 16) as u32 == EN_KILLFOCUS => edit::finish(h, true),
         _ => return unsafe { DefWindowProcW(h, m, wp, lp) },
     }

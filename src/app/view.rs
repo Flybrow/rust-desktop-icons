@@ -17,6 +17,7 @@ pub struct Item {
 pub struct Filter {
     pub query: String,
     pub all: Vec<Item>,
+    pub caret: bool,
 }
 
 pub struct View {

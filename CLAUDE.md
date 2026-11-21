@@ -133,7 +133,7 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   right-click menu starts with "Open in the fence"), `moveto.rs` ("Move to" submenu of an item's menu), `group.rs` (group submenu; mates follow
   WM_MOVING via `grab`/`follow`/`release` and are left out of snapping), `desks.rs` ("Show on" virtual desktop submenu), `titlebar.rs` (title bar submenu),
   `filter.rs` (live filter: Ctrl+F, the fence menu or, on portals and while filtering, the magnifier at the far end of the bar; typing narrows
-  `View.items` through `search::keep` (accent-folding, order kept) while `View.filter.all` keeps the full list that the loader and
+  `View.items` through `search::keep` (accent-folding, order kept); the bar then shows `field.rs`, a search field (faint rounded fill, magnifier, grayed hint, ✕, caret blinking at `GetCaretBlinkTime` through the `CARET` timer while focused) while `View.filter.all` keeps the full list that the loader and
   tab switches go through (`filter::show`/`clear`); Backspace/Escape edit or close it, Enter opens the first match, focus loss closes an empty one;
   E2E `filter_e2e`), `wallpaper.rs` (fence color from the wallpaper behind it: `PaintDesktop` into a DIB, cached per rect in `View.wall`, reset on
   WM_SETTINGCHANGE/SPI_SETDESKWALLPAPER), `nav.rs` (arrow/Home/End/Page keys through `grid::step`, Ctrl+Tab), `system.rs` (system icons placement:

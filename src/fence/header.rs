@@ -1,3 +1,4 @@
+use super::field::{self, Field};
 use crate::{
     domain::{Fence, color, grid::Align, side::Geo, vertical},
     layered::{Frame, measure},
@@ -110,32 +111,43 @@ fn upright(turned: &[u32], (t, len): (i32, i32), font: HFONT, (f, hint): (&Fence
 pub(super) fn paint(
     main: &mut Frame,
     g: &Geo,
-    (font, loupe): (HFONT, Option<HFONT>),
+    (font, plain, glyphs, loupe): (HFONT, HFONT, HFONT, bool),
     (f, hint): (&Fence, Option<&str>),
     active: Option<usize>,
+    field: Option<&Field>,
     s: impl Fn(i32) -> i32,
 ) {
     let (fg, shade) = text_colors(f);
     let (len, t) = (g.length(), g.bar);
     let side_bar = g.side.vertical();
     let Some(mut bar) = Frame::new(len, t) else { return };
-    text(&bar, font, (f, hint), t, s(8), side_bar);
-    if let Some(g) = loupe {
+    match field {
+        Some(fl) => field::text(&bar, (plain, glyphs), fl, t, &s),
+        None => text(&bar, font, (f, hint), t, s(8), side_bar),
+    }
+    if loupe && field.is_none() {
         let r = RECT { left: len - t, top: 0, right: len - s(4), bottom: t };
-        bar.text(g, &crate::layered::glyph::SEARCH.to_string(), r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+        bar.text(glyphs, &crate::layered::glyph::SEARCH.to_string(), r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
     }
     bar.flush();
     let (bx0, by0, bx1, by1) = g.body();
     let rest = if side_bar { bx1 - bx0 } else { by1 - by0 };
-    shapes(&mut bar.canvas(), f, (active, hint.is_none()), (g.side.flipped(), rest), &s);
+    shapes(&mut bar.canvas(), f, (active, hint.is_none() && field.is_none()), (g.side.flipped(), rest), &s);
+    if let Some(fl) = field {
+        field::dim_hint(&mut bar, fl, t, &s);
+        field::shapes(&mut bar, color::ink(f.look.bar_color.unwrap_or(f.look.color)), t, &s);
+    }
     bar.text_layers(fg, shade, s(2), (0, t));
+    if let Some(fl) = field {
+        field::caret(&mut bar, plain, fl, fg, t, &s);
+    }
     let (x0, y0, _, _) = g.bar_rect();
     if !side_bar {
         let c = main.canvas();
         return blit(c.px, c.w, bar.canvas.px(), len, (x0, y0));
     }
     let turned = rotate_cw(bar.canvas.px(), len, t);
-    let mut col = upright(&turned, (t, len), font, (f, hint), &s);
+    let mut col = field.is_none().then(|| upright(&turned, (t, len), font, (f, hint), &s)).flatten();
     let c = main.canvas();
     blit(c.px, c.w, col.as_mut().map_or(&turned[..], |col| &*col.canvas.px()), t, (x0, y0));
 }

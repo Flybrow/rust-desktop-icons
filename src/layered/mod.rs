@@ -26,10 +26,19 @@ pub struct Frame {
 }
 
 pub fn measure(font: HFONT, text: &[u16], width: i32, flags: DRAW_TEXT_FORMAT) -> i32 {
+    calc(font, text, width, flags).bottom
+}
+
+pub fn line_width(font: HFONT, text: &[u16]) -> i32 {
+    calc(font, text, 0, DT_SINGLELINE).right
+}
+
+fn calc(font: HFONT, text: &[u16], width: i32, flags: DRAW_TEXT_FORMAT) -> RECT {
+    let mut r = RECT { left: 0, top: 0, right: width, bottom: 0 };
     if text.is_empty() {
-        return 0;
+        return RECT { right: 0, ..r };
     }
-    let (mut w, mut r) = (text.to_vec(), RECT { left: 0, top: 0, right: width, bottom: 0 });
+    let mut w = text.to_vec();
     let dc = MEASURE.with(|c| {
         if c.get() == 0 {
             c.set(unsafe { CreateCompatibleDC(None) }.0 as isize);
@@ -41,7 +50,7 @@ pub fn measure(font: HFONT, text: &[u16], width: i32, flags: DRAW_TEXT_FORMAT) -
         DrawTextW(dc, &mut w, &mut r, flags | DT_CALCRECT);
         SelectObject(dc, old);
     }
-    r.bottom
+    r
 }
 
 thread_local! {

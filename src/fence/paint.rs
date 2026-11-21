@@ -1,4 +1,4 @@
-use super::{PREPARE, anim, cell, fence_of, header, label_font, layout, metrics, title_font, view};
+use super::{PREPARE, anim, bar_font, cell, fence_of, header, label_font, layout, metrics, title_font, view};
 use crate::{
     app::with,
     domain::{self, color, grid},
@@ -9,6 +9,7 @@ use crate::{
 };
 use windows::Win32::{
     Foundation::*,
+    Graphics::Gdi::FW_NORMAL,
     UI::WindowsAndMessaging::{KillTimer, SetTimer},
 };
 
@@ -84,6 +85,7 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
     let shape = super::shape(h, gw);
     let alpha = with(|a| {
         let (ft, fi, glyphs, empty) = (title_font(a, h), label_font(a, h), a.icon_font(s(13)), a.t(crate::i18n::T::FilterHint));
+        let fq = bar_font(a, h, FW_NORMAL.0);
         let peeking = crate::visibility::peeking();
         let mask =
             a.view(h).map(|v| v.inside).map(|inside| a.cfg.privacy.mask(inside, crate::visibility::privacy::desktop_active(), peeking));
@@ -179,20 +181,19 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
             frame.layers(l, f.look.label_color.unwrap_or(fg), shade, rows);
         }
         v.labels = labels.filter(|_| v.inside);
-        let hint = super::filter::hint(v, empty);
-        let hint = hint.or_else(|| {
-            v.hover.filter(|_| !f.look.labels && !mask.names).and_then(|i| v.items.get(i)).map(|it| String::from_utf16_lossy(&it.name))
-        });
+        let field = super::filter::field(h, v, empty);
+        let hint =
+            v.hover.filter(|_| !f.look.labels && !mask.names).and_then(|i| v.items.get(i)).map(|it| String::from_utf16_lossy(&it.name));
         let hint = hint.or_else(|| v.browse.last().map(|p| format!("←  {}", crate::store::name(p))));
         if bar {
-            let loupe = ((v.inside && !rolled && f.active().portal.is_some()) || v.filter.is_some()).then_some(glyphs);
+            let loupe = v.inside && !rolled && f.active().portal.is_some();
             let hidden = mask.titles.then(|| {
                 let mut m = f.clone();
                 m.tabs.iter_mut().for_each(|t| t.title = "•••".into());
                 m
             });
             let (hf, hint) = (hidden.as_ref().unwrap_or(f), hint.filter(|_| !mask.titles));
-            header::paint(&mut frame, &g, (ft, loupe), (hf, hint.as_deref()), (!rolled).then_some(f.tab), s);
+            header::paint(&mut frame, &g, (ft, fq, glyphs, loupe), (hf, hint.as_deref()), (!rolled).then_some(f.tab), field.as_ref(), s);
         }
         frame.canvas().rrect(full, rad, flat(premul(ink, 48)), rows, true);
         #[cfg(debug_assertions)]
