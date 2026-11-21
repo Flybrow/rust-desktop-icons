@@ -28,6 +28,7 @@ pub mod stack;
 pub mod system;
 #[cfg(test)]
 mod upgrade;
+pub mod vertical;
 mod zone;
 
 pub use config::Config;
