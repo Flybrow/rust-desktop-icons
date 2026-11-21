@@ -106,30 +106,34 @@ fn main() {
     u.check(ok, "two fences shown");
     let f = |c: &Value, i: usize, k: &str| c["fences"][i][k].clone();
 
-    let icons = [HEADER, NOTE, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
+    let icons = [HEADER, NOTE, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
     u.page(1);
     u.row(&icons, 4);
     u.check(u.until(|c| c["look"]["thumbs"] == false && f(c, 1, "thumbs") == false), "Icons → Show thumbnails can be turned off");
     u.row(&icons, 4);
     u.until(|c| c["look"]["thumbs"] == true);
-    u.row(&icons, 7);
+    u.row(&icons, 5);
+    let list = u.until(|c| c["look"]["list"] == true && f(c, 1, "list") == true);
+    u.row(&icons, 5);
+    u.check(list && u.until(|c| c["look"]["list"] == false), "Icons → Show as a list toggles for every fence");
+    u.row(&icons, 8);
     u.pick(&["Wide"]);
     u.check(
         u.until(|c| c["look"]["spacing"] == "Wide" && f(c, 1, "spacing") == "Wide" && f(c, 0, "spacing") == "Compact"),
         "Icons → Icon spacing applies to every fence except one that changed it",
     );
-    u.row(&icons, 5);
+    u.row(&icons, 6);
     u.pick(&["Large"]);
     u.check(u.until(|c| c["look"]["label_size"] == "Large" && f(c, 0, "label_size") == "Large"), "Icons → Name size applies to the fences");
     u.row(&icons, 3);
     u.check(u.until(|c| c["look"]["labels"] == false && f(c, 1, "labels") == false), "Icons → Show names can be turned off");
     u.row(&icons, 3);
     u.until(|c| c["look"]["labels"] == true);
-    u.row(&icons, 6);
+    u.row(&icons, 7);
     u.pick(&["Color"]);
     let dialog = support::answer(pid, &[VK_ESCAPE]);
     u.check(dialog && u.cfg()["look"]["label_color"].is_null(), "Icons → Name color opens the color picker; cancel keeps it automatic");
-    u.row(&icons, 8);
+    u.row(&icons, 9);
     u.pick(&["Center"]);
     u.check(u.until(|c| c["look"]["align"] == "Center" && f(c, 0, "align") == "Center"), "Icons → Icon alignment applies to the fences");
     u.row(&icons, 2);
