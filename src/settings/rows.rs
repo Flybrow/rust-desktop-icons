@@ -23,6 +23,7 @@ pub enum Act {
     LabelSize,
     LabelColor,
     Spacing,
+    Corners,
     Align,
     Browse,
     Thumbs,

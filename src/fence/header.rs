@@ -48,12 +48,13 @@ fn shapes(c: &mut Canvas, f: &Fence, (active, tabs): (Option<usize>, bool), flip
     let (w, t, n, body) = (c.w, c.h, f.tabs.len(), f.look.alpha);
     let tone = |k, a: u8| premul(color::shade(f.look.bar_color.unwrap_or(f.look.color), k), a);
     let (shape, line) = if flipped { ((0, -s(16), w, t), 0) } else { ((0, 0, w, t + s(16)), t - 1) };
-    c.rrect(shape, s(8) as f32, (tone(-20, body.saturating_add(50)), tone(-34, body.saturating_add(60))), (0, t), false);
+    let r = f.look.corner.px();
+    c.rrect(shape, s(r) as f32, (tone(-20, body.saturating_add(50)), tone(-34, body.saturating_add(60))), (0, t), false);
     c.rrect((s(12), line, w - s(12), line + 1), 0., flat(premul(WHITE, 34)), (0, t), false);
     if n > 1 && tabs {
         if let Some(i) = active {
             let (x0, x1) = segment(w, n, i.min(n - 1));
-            c.rrect((x0 + s(4), s(4), x1 - s(4), t - s(4)), s(6) as f32, flat(premul(WHITE, 38)), (0, t), false);
+            c.rrect((x0 + s(4), s(4), x1 - s(4), t - s(4)), s(r.min(6)) as f32, flat(premul(WHITE, 38)), (0, t), false);
         }
         for i in 1..n {
             let x = segment(w, n, i).0;

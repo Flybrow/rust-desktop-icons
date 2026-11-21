@@ -5,7 +5,7 @@ use crate::domain::inherit::Field;
 use crate::{
     app::with,
     domain::{
-        Look,
+        Corner, Look,
         grid::Align,
         icons::{self, LabelSize, Spacing},
         system::Sys,
@@ -26,6 +26,8 @@ const NAMES: usize = 100;
 const NAMES_END: usize = NAMES + LabelSize::ALL.len() - 1;
 const SPACING: usize = 105;
 const SPACING_END: usize = SPACING + Spacing::ALL.len() - 1;
+const CORNER: usize = 240;
+const CORNER_END: usize = CORNER + Corner::ALL.len() - 1;
 
 pub(super) fn context(h: HWND) {
     let p = cursor(h);
@@ -66,6 +68,11 @@ pub(super) fn context(h: HWND) {
         a.entry(look, 11, T::Color, false, g::COLOR);
         a.entry(look, 209, T::Wallpaper, f.look.wallpaper, g::PICTURE);
         a.sub(look, T::Opacity, o, g::OPACITY);
+        let corners = menu();
+        for (k, c) in Corner::ALL.iter().enumerate() {
+            item(corners, CORNER + k, &c.label(a.t(T::CornerSquare)), f.look.corner == *c);
+        }
+        a.sub(look, T::Corners, corners, g::CORNER);
         a.sub(look, T::IconSize, sizes, g::SIZE);
         a.sub(look, T::Tint, tint, g::TINT);
         a.entry(look, 65, T::Labels, f.look.labels, g::LABEL);
@@ -154,6 +161,7 @@ pub(super) fn context(h: HWND) {
         104 => actions::label_color(h),
         k @ NAMES..=NAMES_END => update(h, |f| f.set(Field::LabelSize, |l| l.label_size = LabelSize::ALL[k - NAMES])),
         k @ SPACING..=SPACING_END => update(h, |f| f.set(Field::Spacing, |l| l.spacing = Spacing::ALL[k - SPACING])),
+        k @ CORNER..=CORNER_END => update(h, |f| f.set(Field::Corner, |l| l.corner = Corner::ALL[k - CORNER])),
         51 => actions::tint(h),
         60 => tabs::new_tab(h),
         61 => tabs::new_portal(h),

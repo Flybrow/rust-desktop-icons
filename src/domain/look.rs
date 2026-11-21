@@ -5,6 +5,32 @@ use super::{
 };
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Corner {
+    Square,
+    Small,
+    Medium,
+    #[default]
+    Round,
+}
+
+impl Corner {
+    pub const ALL: [Corner; 4] = [Corner::Square, Corner::Small, Corner::Medium, Corner::Round];
+
+    pub fn px(self) -> i32 {
+        match self {
+            Corner::Square => 0,
+            Corner::Small => 4,
+            Corner::Medium => 6,
+            Corner::Round => 8,
+        }
+    }
+
+    pub fn label(self, square: &str) -> String {
+        if self == Corner::Square { square.to_string() } else { format!("{} px", self.px()) }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Look {
@@ -31,6 +57,8 @@ pub struct Look {
     pub bar_hover: bool,
     pub wallpaper: bool,
     pub thumbs: bool,
+    #[serde(deserialize_with = "compat::or_default")]
+    pub corner: Corner,
 }
 
 impl Default for Look {
@@ -54,6 +82,7 @@ impl Default for Look {
             bar_hover: false,
             wallpaper: false,
             thumbs: true,
+            corner: Corner::Round,
         }
     }
 }
@@ -100,5 +129,16 @@ mod tests {
             Look { label_color: Some(0xFF12_3456), bar_color: Some(0x8001_0203), tint: Some(0xFF00_0001), ..Look::default() }.sanitized();
         assert_eq!((l.label_color, l.bar_color, l.tint), (Some(0x12_3456), Some(0x01_0203), Some(1)));
         assert_eq!(Look::label(50), "50%");
+    }
+
+    #[test]
+    fn corners_default_to_the_old_radius_and_survive_unknown_values() {
+        assert_eq!(Corner::ALL.map(Corner::px), [0, 4, 6, 8]);
+        assert_eq!(Look::default().corner.px(), 8);
+        assert_eq!((Corner::Square.label("Square"), Corner::Medium.label("Square")), ("Square".into(), "6 px".into()));
+        let l: Look = serde_json::from_str(r#"{"corner": "Pill"}"#).unwrap();
+        assert_eq!(l.corner, Corner::Round);
+        let l: Look = serde_json::from_str(r#"{"corner": "Square"}"#).unwrap();
+        assert_eq!(l.corner, Corner::Square);
     }
 }

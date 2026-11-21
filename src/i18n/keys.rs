@@ -181,4 +181,7 @@ pub enum T {
     InExplorer,
     OpenInFence,
     Recovered,
+    Corners,
+    DCorners,
+    CornerSquare,
 }

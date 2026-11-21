@@ -1,7 +1,7 @@
 use super::{refresh, rows};
 use crate::{
     app::{change, with},
-    domain::{Kind, Look, anim, grid, icons, screens::Adapt},
+    domain::{Corner, Kind, Look, anim, grid, icons, screens::Adapt},
     i18n::{self, T},
     keep, prefs, rules,
     tray::{self, updates},
@@ -92,6 +92,11 @@ fn perform(h: HWND, act: rows::Act) {
         Spacing => {
             if let Some(s) = pick(h, &icons::Spacing::ALL, l.spacing, |s| with(|a| a.t(i18n::spacing(s)).to_string()).unwrap_or_default()) {
                 restyle(|l| l.spacing = s);
+            }
+        }
+        Corners => {
+            if let Some(c) = pick(h, &Corner::ALL, l.corner, |c| with(|a| c.label(a.t(T::CornerSquare))).unwrap_or_default()) {
+                restyle(|l| l.corner = c);
             }
         }
         LabelColor => {

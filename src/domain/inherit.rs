@@ -21,10 +21,11 @@ pub enum Field {
     BarHover,
     Wallpaper,
     Thumbs,
+    Corner,
 }
 
 impl Field {
-    pub const ALL: [Field; 18] = [
+    pub const ALL: [Field; 19] = [
         Field::Color,
         Field::Alpha,
         Field::Icon,
@@ -43,6 +44,7 @@ impl Field {
         Field::BarHover,
         Field::Wallpaper,
         Field::Thumbs,
+        Field::Corner,
     ];
 
     fn copy(self, from: &Look, to: &mut Look) {
@@ -65,6 +67,7 @@ impl Field {
             Field::BarHover => to.bar_hover = from.bar_hover,
             Field::Wallpaper => to.wallpaper = from.wallpaper,
             Field::Thumbs => to.thumbs = from.thumbs,
+            Field::Corner => to.corner = from.corner,
         }
     }
 
@@ -166,6 +169,7 @@ mod tests {
             bar_hover: true,
             wallpaper: true,
             thumbs: false,
+            corner: crate::domain::Corner::Square,
         };
         let base = Look::default();
         assert!(Field::ALL.iter().all(|f| f.differs(&other, &base)), "a field is not copied by Field::copy");

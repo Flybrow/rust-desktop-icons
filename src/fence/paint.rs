@@ -125,7 +125,7 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
         }
         let (body, (fg, shade)) = (f.look.alpha, color::text_on(f.look.color));
         let bar = !(f.look.bar_hover && !f.rolled && !v.inside);
-        let (full, rad, rows) = (if bar { (0, 0, w, ht) } else { (bx0, by0, bx1, by1) }, s(8) as f32, (0, ht));
+        let (full, rad, rows) = (if bar { (0, 0, w, ht) } else { (bx0, by0, bx1, by1) }, s(f.look.corner.px()) as f32, (0, ht));
         let tone = |k, a: u8| premul(color::shade(f.look.color, k), a);
         let mut c = frame.canvas();
         c.rrect(full, rad, (tone(10, body), tone(-14, body.saturating_add(20))), rows, false);

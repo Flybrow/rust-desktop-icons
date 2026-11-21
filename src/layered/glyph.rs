@@ -41,6 +41,7 @@ pub const FONT: char = '\u{E8D2}';
 pub const PICTURE: char = '\u{E8B9}';
 pub const UNDO: char = '\u{E7A7}';
 pub const FILTER: char = '\u{E71C}';
+pub const CORNER: char = '\u{E739}';
 
 pub fn bitmap(font: HFONT, ch: char, px: i32, color: u32) -> Option<HBITMAP> {
     let mut f = Frame::new(px, px)?;

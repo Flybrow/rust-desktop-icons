@@ -183,6 +183,9 @@ pub static S: [[&str; N]; 25] = [
         "In File Explorer",
         "Open in the fence",
         "Recovered files",
+        "Corners",
+        "How rounded the corners of the fences are.",
+        "Square",
     ],
     [
         "新建分区",
@@ -366,6 +369,9 @@ pub static S: [[&str; N]; 25] = [
         "在文件资源管理器中",
         "在区域中打开",
         "恢复的文件",
+        "圆角",
+        "分区四角的圆润程度。",
+        "直角",
     ],
     [
         "नया क्षेत्र",
@@ -549,6 +555,9 @@ pub static S: [[&str; N]; 25] = [
         "फ़ाइल एक्सप्लोरर में",
         "क्षेत्र में खोलें",
         "पुनर्प्राप्त फ़ाइलें",
+        "कोने",
+        "क्षेत्रों के कोने कितने गोल हों।",
+        "चौकोर",
     ],
     [
         "Nueva zona",
@@ -732,6 +741,9 @@ pub static S: [[&str; N]; 25] = [
         "En el Explorador de archivos",
         "Abrir en la zona",
         "Archivos recuperados",
+        "Esquinas",
+        "Cuánto se redondean las esquinas de las zonas.",
+        "Rectas",
     ],
     [
         "Nouvelle zone",
@@ -915,6 +927,9 @@ pub static S: [[&str; N]; 25] = [
         "Dans l'Explorateur",
         "Ouvrir dans la zone",
         "Fichiers récupérés",
+        "Coins",
+        "Arrondi des coins des zones.",
+        "Carrés",
     ],
     [
         "منطقة جديدة",
@@ -1098,6 +1113,9 @@ pub static S: [[&str; N]; 25] = [
         "في مستكشف الملفات",
         "فتح داخل المنطقة",
         "الملفات المستردة",
+        "الزوايا",
+        "مدى استدارة زوايا المناطق.",
+        "قائمة",
     ],
     [
         "নতুন অঞ্চল",
@@ -1281,6 +1299,9 @@ pub static S: [[&str; N]; 25] = [
         "ফাইল এক্সপ্লোরারে",
         "জোনে খুলুন",
         "পুনরুদ্ধার করা ফাইল",
+        "কোণ",
+        "অঞ্চলগুলোর কোণ কতটা গোল।",
+        "চৌকো",
     ],
     [
         "Nova área",
@@ -1464,6 +1485,9 @@ pub static S: [[&str; N]; 25] = [
         "No Explorador de Ficheiros",
         "Abrir na área",
         "Arquivos recuperados",
+        "Cantos",
+        "Quão arredondados são os cantos das áreas.",
+        "Retos",
     ],
     [
         "Новая область",
@@ -1647,6 +1671,9 @@ pub static S: [[&str; N]; 25] = [
         "В Проводнике",
         "Открыть в зоне",
         "Восстановленные файлы",
+        "Углы",
+        "Насколько скруглены углы областей.",
+        "Прямые",
     ],
     [
         "نیا خطہ",
@@ -1830,6 +1857,9 @@ pub static S: [[&str; N]; 25] = [
         "فائل ایکسپلورر میں",
         "زون میں کھولیں",
         "بازیافت شدہ فائلیں",
+        "کونے",
+        "خطوں کے کونے کتنے گول ہوں۔",
+        "چوکور",
     ],
     [
         "Area baru",
@@ -2013,6 +2043,9 @@ pub static S: [[&str; N]; 25] = [
         "Di File Explorer",
         "Buka di zona",
         "File yang dipulihkan",
+        "Sudut",
+        "Seberapa bulat sudut area.",
+        "Siku",
     ],
     [
         "Neuer Bereich",
@@ -2196,6 +2229,9 @@ pub static S: [[&str; N]; 25] = [
         "Im Explorer",
         "Im Bereich öffnen",
         "Wiederhergestellte Dateien",
+        "Ecken",
+        "Wie stark die Ecken der Bereiche abgerundet sind.",
+        "Eckig",
     ],
     [
         "新しいフェンス",
@@ -2379,6 +2415,9 @@ pub static S: [[&str; N]; 25] = [
         "エクスプローラーで",
         "ゾーン内で開く",
         "復元されたファイル",
+        "角",
+        "フェンスの角の丸み。",
+        "角型",
     ],
     [
         "Eneo jipya",
@@ -2562,6 +2601,9 @@ pub static S: [[&str; N]; 25] = [
         "Katika File Explorer",
         "Fungua ndani ya eneo",
         "Faili zilizorejeshwa",
+        "Pembe",
+        "Kiasi cha mviringo wa pembe za maeneo.",
+        "Mraba",
     ],
     [
         "नवीन क्षेत्र",
@@ -2745,6 +2787,9 @@ pub static S: [[&str; N]; 25] = [
         "फाइल एक्सप्लोररमध्ये",
         "झोनमध्ये उघडा",
         "पुनर्प्राप्त फाइल्स",
+        "कोपरे",
+        "क्षेत्रांचे कोपरे किती गोलाकार असावेत.",
+        "चौकोनी",
     ],
     [
         "కొత్త ప్రాంతం",
@@ -2928,6 +2973,9 @@ pub static S: [[&str; N]; 25] = [
         "ఫైల్ ఎక్స్‌ప్లోరర్‌లో",
         "జోన్‌లో తెరువు",
         "పునరుద్ధరించిన ఫైల్‌లు",
+        "మూలలు",
+        "ప్రాంతాల మూలలు ఎంత గుండ్రంగా ఉండాలి.",
+        "చతురస్ర",
     ],
     [
         "Yeni alan",
@@ -3111,6 +3159,9 @@ pub static S: [[&str; N]; 25] = [
         "Dosya Gezgini'nde",
         "Bölgede aç",
         "Kurtarılan dosyalar",
+        "Köşeler",
+        "Alanların köşelerinin ne kadar yuvarlak olduğu.",
+        "Köşeli",
     ],
     [
         "புதிய பகுதி",
@@ -3294,6 +3345,9 @@ pub static S: [[&str; N]; 25] = [
         "கோப்பு எக்ஸ்ப்ளோரரில்",
         "மண்டலத்தில் திற",
         "மீட்கப்பட்ட கோப்புகள்",
+        "மூலைகள்",
+        "பகுதிகளின் மூலைகள் எவ்வளவு வட்டமாக இருக்கும்.",
+        "சதுரம்",
     ],
     [
         "Vùng mới",
@@ -3477,6 +3531,9 @@ pub static S: [[&str; N]; 25] = [
         "Trong File Explorer",
         "Mở trong vùng",
         "Tệp đã khôi phục",
+        "Góc",
+        "Độ bo tròn các góc của vùng.",
+        "Vuông",
     ],
     [
         "새 영역",
@@ -3660,6 +3717,9 @@ pub static S: [[&str; N]; 25] = [
         "파일 탐색기에서",
         "영역에서 열기",
         "복구된 파일",
+        "모서리",
+        "영역 모서리의 둥근 정도.",
+        "직각",
     ],
     [
         "Nuova area",
@@ -3843,6 +3903,9 @@ pub static S: [[&str; N]; 25] = [
         "In Esplora file",
         "Apri nella zona",
         "File recuperati",
+        "Angoli",
+        "Quanto sono arrotondati gli angoli delle aree.",
+        "Squadrati",
     ],
     [
         "พื้นที่ใหม่",
@@ -4026,6 +4089,9 @@ pub static S: [[&str; N]; 25] = [
         "ใน File Explorer",
         "เปิดในโซน",
         "ไฟล์ที่กู้คืน",
+        "มุม",
+        "ความโค้งมนของมุมพื้นที่",
+        "เหลี่ยม",
     ],
     [
         "Nowy obszar",
@@ -4209,6 +4275,9 @@ pub static S: [[&str; N]; 25] = [
         "W Eksploratorze plików",
         "Otwórz w strefie",
         "Odzyskane pliki",
+        "Narożniki",
+        "Jak zaokrąglone są narożniki obszarów.",
+        "Proste",
     ],
     [
         "Нова область",
@@ -4392,6 +4461,9 @@ pub static S: [[&str; N]; 25] = [
         "У Провіднику",
         "Відкрити в зоні",
         "Відновлені файли",
+        "Кути",
+        "Наскільки заокруглені кути областей.",
+        "Прямі",
     ],
     [
         "ناحیه جدید",
@@ -4575,5 +4647,8 @@ pub static S: [[&str; N]; 25] = [
         "در File Explorer",
         "باز کردن در ناحیه",
         "فایل‌های بازیابی‌شده",
+        "گوشه‌ها",
+        "میزان گردی گوشه‌های ناحیه‌ها.",
+        "تیز",
     ],
 ];
