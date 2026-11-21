@@ -24,6 +24,21 @@ impl App {
         self.cached(px * 1000 + weight as i32, w!("Segoe UI"), px, weight)
     }
 
+    pub fn fluent_font(&mut self, px: i32) -> HFONT {
+        static VARIABLE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+        let probe = |f: HFONT| unsafe {
+            let dc = CreateCompatibleDC(None);
+            let old = SelectObject(dc, f.into());
+            let mut name = [0u16; 64];
+            let n = GetTextFaceW(dc, Some(&mut name)).max(0) as usize;
+            SelectObject(dc, old);
+            let _ = DeleteDC(dc);
+            String::from_utf16_lossy(&name[..n.saturating_sub(1).min(64)]).starts_with("Segoe UI Variable")
+        };
+        let f = self.cached(-(px * 1000 + 600), w!("Segoe UI Variable Display"), px, 600);
+        if *VARIABLE.get_or_init(|| probe(f)) { f } else { self.font(px, 400) }
+    }
+
     pub fn icon_font(&mut self, px: i32) -> HFONT {
         self.cached(-px, w!("Segoe MDL2 Assets"), px, 400)
     }

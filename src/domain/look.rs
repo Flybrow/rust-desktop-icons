@@ -75,6 +75,7 @@ pub struct Look {
     pub list: bool,
     #[serde(deserialize_with = "compat::or_default")]
     pub style: Style,
+    pub fluent_folders: bool,
 }
 
 impl Default for Look {
@@ -103,6 +104,7 @@ impl Default for Look {
             home: false,
             list: false,
             style: Style::Classic,
+            fluent_folders: false,
         }
     }
 }

@@ -216,4 +216,6 @@ pub enum T {
     DStyle,
     StyleClassic,
     StyleFluent,
+    FluentFolders,
+    DFluentFolders,
 }

@@ -12,6 +12,7 @@ pub struct Item {
     pub name: Vec<u16>,
     pub icon: i32,
     pub thumb: Option<crate::shell::thumb::Thumb>,
+    pub dir: bool,
 }
 
 pub struct Filter {

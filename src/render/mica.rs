@@ -4,6 +4,10 @@ pub const MARGIN: i32 = 64;
 const SCALE: i32 = 8;
 const RADIUS: usize = 3;
 
+fn luma(argb: u32) -> u32 {
+    ((argb >> 16 & 0xFF) * 299 + (argb >> 8 & 0xFF) * 587 + (argb & 0xFF) * 114) / 1000
+}
+
 #[derive(Clone)]
 pub struct Mica {
     w: i32,
@@ -45,12 +49,20 @@ pub fn build(wallpaper: &[u32], (w, h): (i32, i32), tint: u32, strength: u8) -> 
     ch.iter_mut().for_each(|c| soften(c, (dw, dh)));
     let (m, cw, chh) = (MARGIN / SCALE, (w + SCALE - 1) / SCALE + 1, (h + SCALE - 1) / SCALE + 1);
     let tint = premul(tint, 255);
+    let (k, lt) = (strength as u32, luma(tint));
     let mut px = Vec::with_capacity((cw * chh) as usize);
     for y in 0..chh {
         for x in 0..cw {
             let i = ((y + m).min(dh - 1) * dw + (x + m).min(dw - 1)) as usize;
-            let base = 0xFF00_0000 | (ch[2][i] as u32) << 16 | (ch[1][i] as u32) << 8 | ch[0][i] as u32;
-            px.push(lerp(base, tint, strength as u32) | 0xFF00_0000);
+            let rgb = [ch[2][i] as u32, ch[1][i] as u32, ch[0][i] as u32];
+            let l = luma(0xFF00_0000 | rgb[0] << 16 | rgb[1] << 8 | rgb[2]);
+            let target = (l * (255 - k) + lt * k) / 255;
+            let fit = |v: u32| match target <= l {
+                true => (v * target).checked_div(l).unwrap_or(0),
+                false => v + (255 - v) * (target - l) / (255 - l).max(1),
+            };
+            let base = 0xFF00_0000 | fit(rgb[0]) << 16 | fit(rgb[1]) << 8 | fit(rgb[2]);
+            px.push(lerp(base, tint, k / 4) | 0xFF00_0000);
         }
     }
     Mica { w: cw, h: chh, px }
@@ -101,11 +113,20 @@ mod tests {
         let m = build(&wall(100, 60, |_, _| 0x00_FF_FF_FF), (100, 60), 0x00_0000, 128);
         let p = m.at(50, 30);
         assert_eq!(p >> 24, 0xFF);
-        assert!((0x7E..=0x81).contains(&(p & 0xFF)), "{p:08x}");
+        assert!((0x6A..=0x72).contains(&(p & 0xFF)), "{p:08x}");
         assert_eq!(m.at(0, 0), m.at(99, 59));
         let full = build(&wall(40, 40, |_, _| 0x00_12_34_56), (40, 40), 0x00_0000, 0);
         assert_eq!(full.at(10, 10), 0xFF_12_34_56);
         assert_eq!(full.average(), 0x56_34_12, "average is a COLORREF like the look colors");
+    }
+
+    #[test]
+    fn the_tint_sets_the_brightness_but_the_wallpaper_keeps_its_hue() {
+        let green = build(&wall(40, 40, |_, _| 0x00_20_C0_40), (40, 40), 0x20_2020, 217).at(10, 10);
+        let (r, g, b) = (green >> 16 & 0xFF, green >> 8 & 0xFF, green & 0xFF);
+        assert!(g > r + 10 && g > b + 10 && g < 0x60, "dark but still green: {green:08x}");
+        let pink = build(&wall(40, 40, |_, _| 0x00_F0_A0_C0), (40, 40), 0xF3_F3F3, 217).at(10, 10);
+        assert!(luma(pink) > 0xD0 && (pink >> 16 & 0xFF) > (pink >> 8 & 0xFF), "light and still pinkish: {pink:08x}");
     }
 
     #[test]

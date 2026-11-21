@@ -66,8 +66,9 @@ const ANIM: usize = 3;
 const PREPARE: usize = 5;
 
 fn title_font(a: &mut App, h: HWND) -> HFONT {
+    let fluent = a.fence_of(h).is_some_and(|f| f.look.style == crate::domain::Style::Fluent);
     let px = a.fence_of(h).map_or(14, |f| f.look.title_size.title_px());
-    a.font(scale(h, px), FW_SEMIBOLD.0)
+    if fluent { a.fluent_font(scale(h, px + 3)) } else { a.font(scale(h, px), FW_SEMIBOLD.0) }
 }
 
 fn label_font(a: &mut App, h: HWND) -> HFONT {

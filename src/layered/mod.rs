@@ -26,8 +26,17 @@ pub struct Frame {
 }
 
 pub fn measure(font: HFONT, text: &[u16], width: i32, flags: DRAW_TEXT_FORMAT) -> i32 {
+    calc(font, text, width, flags).bottom
+}
+
+pub fn width(font: HFONT, text: &str) -> i32 {
+    let t: Vec<u16> = text.encode_utf16().collect();
+    calc(font, &t, 0, DT_SINGLELINE | DT_NOPREFIX).right
+}
+
+fn calc(font: HFONT, text: &[u16], width: i32, flags: DRAW_TEXT_FORMAT) -> RECT {
     if text.is_empty() {
-        return 0;
+        return RECT::default();
     }
     let (mut w, mut r) = (text.to_vec(), RECT { left: 0, top: 0, right: width, bottom: 0 });
     let dc = MEASURE.with(|c| {
@@ -41,7 +50,7 @@ pub fn measure(font: HFONT, text: &[u16], width: i32, flags: DRAW_TEXT_FORMAT) -
         DrawTextW(dc, &mut w, &mut r, flags | DT_CALCRECT);
         SelectObject(dc, old);
     }
-    r.bottom
+    r
 }
 
 thread_local! {
@@ -76,6 +85,15 @@ impl Frame {
         unsafe {
             SelectObject(self.dc, font.into());
             DrawTextW(self.dc, text, r, flags | DT_NOPREFIX);
+        }
+    }
+
+    pub fn fill(&self, (x0, y0, x1, y1): (i32, i32, i32, i32), r: i32) {
+        unsafe {
+            let (brush, pen) = (SelectObject(self.dc, GetStockObject(WHITE_BRUSH)), SelectObject(self.dc, GetStockObject(NULL_PEN)));
+            let _ = RoundRect(self.dc, x0, y0, x1 + 1, y1 + 1, r, r);
+            SelectObject(self.dc, brush);
+            SelectObject(self.dc, pen);
         }
     }
 

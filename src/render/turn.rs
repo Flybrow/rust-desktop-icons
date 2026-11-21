@@ -20,7 +20,15 @@ pub fn blit_fit(dst: &mut [u32], dw: i32, src: &[u32], (sw, sh): (i32, i32), (x,
     blit(dst, dw, &scaled, fw, (x + (size - fw) / 2, y + (size - fh) / 2));
 }
 
-pub fn blit(dst: &mut [u32], dw: i32, src: &[u32], sw: i32, (dx, dy): (i32, i32)) {
+pub fn blit(dst: &mut [u32], dw: i32, src: &[u32], sw: i32, at: (i32, i32)) {
+    place(dst, dw, src, sw, at, |d, s| d.copy_from_slice(s));
+}
+
+pub fn blit_over(dst: &mut [u32], dw: i32, src: &[u32], sw: i32, at: (i32, i32)) {
+    place(dst, dw, src, sw, at, |d, s| d.iter_mut().zip(s).for_each(|(d, s)| *d = super::over(*d, *s)));
+}
+
+fn place(dst: &mut [u32], dw: i32, src: &[u32], sw: i32, (dx, dy): (i32, i32), put: impl Fn(&mut [u32], &[u32])) {
     let (dh, sh) = (dst.len() as i32 / dw.max(1), src.len() as i32 / sw.max(1));
     for y in dy.max(0)..(dy + sh).min(dh) {
         let (x0, x1) = (dx.max(0), (dx + sw).min(dw));
@@ -29,13 +37,23 @@ pub fn blit(dst: &mut [u32], dw: i32, src: &[u32], sw: i32, (dx, dy): (i32, i32)
         }
         let s = ((y - dy) * sw + x0 - dx) as usize;
         let d = (y * dw + x0) as usize;
-        dst[d..d + (x1 - x0) as usize].copy_from_slice(&src[s..s + (x1 - x0) as usize]);
+        put(&mut dst[d..d + (x1 - x0) as usize], &src[s..s + (x1 - x0) as usize]);
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn blit_over_keeps_what_is_under_transparent_pixels() {
+        let mut dst = vec![0xFF11_2233u32; 4];
+        blit_over(&mut dst, 2, &[0, 0xFF44_5566], 2, (0, 1));
+        assert_eq!(dst, vec![0xFF11_2233, 0xFF11_2233, 0xFF11_2233, 0xFF44_5566]);
+        let mut dst = vec![0xFF11_2233u32; 4];
+        blit(&mut dst, 2, &[0, 0xFF44_5566], 2, (0, 1));
+        assert_eq!(dst[2], 0);
+    }
 
     #[test]
     fn thumbnails_fit_their_box() {

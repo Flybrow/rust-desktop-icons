@@ -1,11 +1,11 @@
 use crate::{
     domain::{Fence, Style, color, grid::Align, side::Geo, vertical},
-    layered::{ACCENT, Frame, measure},
-    render::{Canvas, blit, flat, premul, rotate_cw},
+    layered::{Frame, WHITE, measure, width},
+    render::{Canvas, blit, blit_over, flat, premul, rotate_cw},
 };
 use windows::Win32::{
     Foundation::RECT,
-    Graphics::Gdi::{DT_CENTER, DT_END_ELLIPSIS, DT_LEFT, DT_RIGHT, DT_SINGLELINE, DT_VCENTER, HFONT},
+    Graphics::Gdi::{DRAW_TEXT_FORMAT, DT_CENTER, DT_END_ELLIPSIS, DT_LEFT, DT_RIGHT, DT_SINGLELINE, DT_VCENTER, HFONT},
 };
 
 fn segment(w: i32, n: usize, i: usize) -> (i32, i32) {
@@ -17,10 +17,29 @@ fn text_colors(f: &Fence) -> (u32, u32) {
     color::text_on(f.look.bar_color.unwrap_or(f.look.color))
 }
 
-fn text(frame: &Frame, font: HFONT, (f, hint): (&Fence, Option<&str>), t: i32, pad: i32, upright: bool) {
-    let (w, n) = (frame.w, f.tabs.len());
+fn text(frame: &Frame, font: HFONT, (f, hint): (&Fence, Option<&str>), (t, pad): (i32, i32), upright: bool, pick: impl Fn(usize) -> bool) {
+    let (w, n, fluent) = (frame.w, f.tabs.len(), f.look.style == Style::Fluent);
     let skip = |title: &str| upright && vertical::has_ideographic(title);
     let flags = DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS;
+    let draw = |title: &str, portal: bool, (x0, x1): (i32, i32), align: DRAW_TEXT_FORMAT| {
+        if !(fluent && portal) {
+            return frame.text(font, title, RECT { left: x0, top: 0, right: x1, bottom: t }, flags | align);
+        }
+        let (gh, gap) = (t * 3 / 8, pad * 3 / 4);
+        let gw = gh * 5 / 4;
+        let total = (gw + gap + width(font, title)).min(x1 - x0);
+        let left = if align == DT_LEFT {
+            x0
+        } else if align == DT_RIGHT {
+            x1 - total
+        } else {
+            (x0 + x1 - total) / 2
+        };
+        let top = (t - gh) / 2;
+        frame.fill((left, top, left + gw * 2 / 5, top + gh / 3), 2);
+        frame.fill((left, top + gh / 5, left + gw, top + gh), 3);
+        frame.text(font, title, RECT { left: left + gw + gap, top: 0, right: x1, bottom: t }, flags | DT_LEFT);
+    };
     if n == 1 || hint.is_some() {
         let title = hint.unwrap_or(&f.tabs[0].title);
         if skip(title) {
@@ -32,15 +51,14 @@ fn text(frame: &Frame, font: HFONT, (f, hint): (&Fence, Option<&str>), t: i32, p
             Align::Center => DT_CENTER,
             Align::Right => DT_RIGHT,
         };
-        return frame.text(font, title, RECT { left: t / 2, top: 0, right: w - t / 2, bottom: t }, flags | align);
+        return draw(title, hint.is_none() && f.tabs[0].portal.is_some(), (t / 2, w - t / 2), align);
     }
-    let flags = flags | DT_CENTER;
     for (i, tab) in f.tabs.iter().enumerate() {
-        if skip(&tab.title) {
+        if skip(&tab.title) || !pick(i) {
             continue;
         }
         let (x0, x1) = segment(w, n, i);
-        frame.text(font, &tab.title, RECT { left: x0 + pad, top: 0, right: x1 - pad, bottom: t }, flags);
+        draw(&tab.title, tab.portal.is_some(), (x0 + pad, x1 - pad), DT_CENTER);
     }
 }
 
@@ -51,11 +69,10 @@ fn shapes(c: &mut Canvas, f: &Fence, (active, tabs): (Option<usize>, bool), flip
     let (shape, line) = if flipped { ((0, -s(16), w, t), 0) } else { ((0, 0, w, t + s(16)), t - 1) };
     let r = f.look.corner.px();
     if f.look.style == Style::Fluent {
-        c.rrect((s(12), line, w - s(12), line + 1), 0., flat(premul(ink, 22)), (0, t), false);
         if let Some(i) = active.filter(|_| n > 1 && tabs) {
             let (x0, x1) = segment(w, n, i.min(n - 1));
-            let y = if flipped { s(3) } else { t - s(6) };
-            c.rrect((x0 + s(16), y, x1 - s(16), y + s(3)), s(1) as f32 + 0.5, flat(premul(ACCENT, 255)), (0, t), false);
+            let pill = premul(WHITE, if ink == 0 { 110 } else { 20 });
+            c.rrect((x0 + s(6), s(5), x1 - s(6), t - s(5)), s(r.min(4)) as f32, flat(pill), (0, t), false);
         }
         return;
     }
@@ -118,7 +135,7 @@ fn upright(turned: &[u32], (t, len): (i32, i32), font: HFONT, (f, hint): (&Fence
 pub(super) fn paint(
     main: &mut Frame,
     g: &Geo,
-    (font, loupe): (HFONT, Option<HFONT>),
+    (font, glyphs, loupe): (HFONT, HFONT, bool),
     (f, hint): (&Fence, Option<&str>),
     active: Option<usize>,
     s: impl Fn(i32) -> i32,
@@ -127,21 +144,32 @@ pub(super) fn paint(
     let (len, t) = (g.length(), g.bar);
     let side_bar = g.side.vertical();
     let Some(mut bar) = Frame::new(len, t) else { return };
-    text(&bar, font, (f, hint), t, s(8), side_bar);
-    if let Some(g) = loupe {
+    let fluent = f.look.style == Style::Fluent;
+    let (tabbed, current) = (fluent && f.tabs.len() > 1 && hint.is_none(), f.tab.min(f.tabs.len().saturating_sub(1)));
+    text(&bar, font, (f, hint), (t, s(8)), side_bar, |i| !tabbed || i == current);
+    if let Some(g) = loupe.then_some(glyphs) {
         let r = RECT { left: len - t, top: 0, right: len - s(4), bottom: t };
         bar.text(g, &crate::layered::glyph::SEARCH.to_string(), r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
     }
     bar.flush();
     shapes(&mut bar.canvas(), f, (active, hint.is_none()), g.side.flipped(), &s);
-    bar.text_layers(fg, shade, s(2), (0, t));
+    let halo = if fluent { f.look.bar_color.unwrap_or(f.look.color) } else { shade };
+    bar.text_layers(fg, halo, s(2), (0, t));
+    if tabbed {
+        bar.clear_mask();
+        text(&bar, font, (f, hint), (t, s(8)), side_bar, |i| i != current);
+        bar.flush();
+        let base = f.look.bar_color.unwrap_or(f.look.color);
+        bar.text_layers(crate::render::lerp(fg, base, 120) & 0xFF_FFFF, halo, s(2), (0, t));
+    }
     let (x0, y0, _, _) = g.bar_rect();
+    let put = if fluent { blit_over } else { blit };
     if !side_bar {
         let c = main.canvas();
-        return blit(c.px, c.w, bar.canvas.px(), len, (x0, y0));
+        return put(c.px, c.w, bar.canvas.px(), len, (x0, y0));
     }
     let turned = rotate_cw(bar.canvas.px(), len, t);
     let mut col = upright(&turned, (t, len), font, (f, hint), &s);
     let c = main.canvas();
-    blit(c.px, c.w, col.as_mut().map_or(&turned[..], |col| &*col.canvas.px()), t, (x0, y0));
+    put(c.px, c.w, col.as_mut().map_or(&turned[..], |col| &*col.canvas.px()), t, (x0, y0));
 }

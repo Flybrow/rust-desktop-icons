@@ -3,7 +3,7 @@ use crate::{
     app::with,
     domain::{self, color, grid},
     layered::{ACCENT, Dib, Frame},
-    render::{blit_fit, flat, opaque_if_flat, premul, tint},
+    render::{blit_fit, flat, opaque_if_flat, premul, tint, tint_rect},
     shell,
     win::*,
 };
@@ -84,7 +84,7 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
     let shape = super::shape(h, gw);
     let mica = super::wallpaper::mica(h, f, (w, ht));
     let alpha = with(|a| {
-        let (ft, fi, glyphs, empty) = (title_font(a, h), label_font(a, h), a.icon_font(s(13)), a.t(crate::i18n::T::FilterHint));
+        let (ft, fi, glyphs, empty) = (title_font(a, h), label_font(a, h), a.icon_font(s(14)), a.t(crate::i18n::T::FilterHint));
         let peeking = crate::visibility::peeking();
         let mask =
             a.view(h).map(|v| v.inside).map(|inside| a.cfg.privacy.mask(inside, crate::visibility::privacy::desktop_active(), peeking));
@@ -127,10 +127,17 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
                 None => opaque_if_flat(icons.px(), w, (ix, iy, ix + icon, iy + icon)),
             }
         }
+        let under = mica.as_ref().map_or(f.look.color, |m| m.average());
+        if f.look.fluent_folders && !mask.icons {
+            let folder = if color::ink(under) == 0 { 0xE8_D0AA } else { 0xD0_D2CC };
+            for &(_, x, y) in cells.iter().filter(|c| v.items[c.0].dir && thumb(c.0).is_none()) {
+                let (ix, iy) = cell::icon_at((x, y), shape, icon, s);
+                tint_rect(icons.px(), w, (ix, iy, ix + icon, iy + icon), folder);
+            }
+        }
         if let Some(c) = f.look.tint {
             tint(icons.px(), c);
         }
-        let under = mica.as_ref().map_or(f.look.color, |m| m.average());
         let (body, (fg, shade), ink) = (f.look.alpha, color::text_on(under), color::ink(under));
         let bar = !(f.look.bar_hover && !f.rolled && !v.inside);
         let (full, rad, rows) = (if bar { (0, 0, w, ht) } else { (bx0, by0, bx1, by1) }, s(f.look.corner.px()) as f32, (0, ht));
@@ -199,16 +206,21 @@ fn compose(h: HWND, f: &domain::Fence, (w, ht): (i32, i32), open: bool) -> Optio
         });
         let hint = hint.or_else(|| v.browse.last().map(|p| format!("←  {}", crate::store::name(p))));
         if bar {
-            let loupe = ((v.inside && !rolled && f.active().portal.is_some()) || v.filter.is_some()).then_some(glyphs);
+            let loupe = (v.inside && !rolled && f.active().portal.is_some()) || v.filter.is_some();
             let hidden = mask.titles.then(|| {
                 let mut m = f.clone();
                 m.tabs.iter_mut().for_each(|t| t.title = "•••".into());
                 m
             });
             let (hf, hint) = (hidden.as_ref().unwrap_or(f), hint.filter(|_| !mask.titles));
-            header::paint(&mut frame, &g, (ft, loupe), (hf, hint.as_deref()), (!rolled).then_some(f.tab), s);
+            header::paint(&mut frame, &g, (ft, glyphs, loupe), (hf, hint.as_deref()), (!rolled).then_some(f.tab), s);
         }
-        frame.canvas().rrect(full, rad, flat(premul(ink, if fluent { 30 } else { 48 })), rows, true);
+        let edge = match (fluent, ink) {
+            (false, _) => 48,
+            (true, 0) => 50,
+            (true, _) => 40,
+        };
+        frame.canvas().rrect(full, rad, flat(premul(ink, edge)), rows, true);
         #[cfg(debug_assertions)]
         frame.dump(&f.id.to_string());
         Some(domain::anim::opacity(v.glow))

@@ -27,8 +27,11 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
 
 ## Layout
 - `src/domain/` pure logic, all unit-tested: `model.rs` (Fence/Tab), `look.rs` (Look: colors, icons, names, title bar, wallpaper, thumbnails,
-  `Corner` radius 0/4/6/8 px, `mica`, `Style` Classic/Fluent: Fluent = flat body, no bar band (a thin line, the active tab
-  underlined in the accent color), softer hover tiles, a lighter outline), `theme.rs` (`Theme` Dark/Light/Auto, `Config::retheme` swaps only the default fence color),
+  `Corner` radius 0/4/6/8 px, `mica`, `Style` Classic/Fluent (measured on Fences 7 screenshots): flat body, no bar band or
+  divider, the bar composited over the body (`render::blit_over`), active tab in a white pill (13%/43%), other tabs dimmed,
+  titles in Segoe UI Variable Display Semibold +3 px without halo (`App::fluent_font`, Segoe UI Regular when missing), a drawn
+  folder before portal tab names, softer hover tiles, a 1 px outline; `fluent_folders` tints folder icons (gray on dark, blue on light);
+  picking Fluent also turns on Mica and Fluent folders. Settings page Style holds Style, Fluent folders, Mica and Corners), `theme.rs` (`Theme` Dark/Light/Auto, `Config::retheme` swaps only the default fence color),
   `history.rs` (undo steps: config before + file ops, nesting, cap 20, `rebase` so an undo is never recorded), `config.rs` (Config, recycle placement), `kind.rs` (file types + game
   shortcut detection for rules; `Kind::Other` = "Everything else", the inbox rule `Config::rule_for` falls back to),
   `order.rs` (per-tab sort + custom order), `anim.rs`, `grid.rs` (`Flow`: item positions with `Align` left/center/right,
@@ -155,7 +158,7 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   (a blocked UI thread would make Windows drop a low-level hook). Startup re-shows the desktop icon list if a previous run died hidden. Typing in a fence while peeking opens `src/search/`
   (`hits.rs` collects items from every view and tab cache, `paint.rs`, topmost layered window, closes on deactivate).
 - `src/prompt.rs`: one-line text prompt (`ask(initial, done)`), owned by the tray window (EN_KILLFOCUS commits), used to rename layouts.
-- `src/settings/` settings window (custom drawn, sidebar of `pages::PAGES` (9 pages); each row can carry a `desc` explanation
+- `src/settings/` settings window (custom drawn, sidebar of `pages::PAGES` (10 pages); each row can carry a `desc` explanation
   (2 lines max: row heights are fixed) and a `reset` link drawn on its own line, `layout::on_reset` hit test): `rows.rs` `Row`/`Act`/`Ctl`
   + row builders, `pages.rs` content per page (`build(a, page)`, window height = tallest page), `rules.rs` name/age rule editing
   (prompt + menus), `layout.rs` pure row geometry, `paint.rs`, `act.rs`, `mod.rs` window.

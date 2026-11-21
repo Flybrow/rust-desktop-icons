@@ -87,6 +87,7 @@ fn perform(h: HWND, act: rows::Act) {
         }
         Chameleon => restyle(|l| l.chameleon ^= true),
         Mica => restyle(|l| l.mica ^= true),
+        Folders => restyle(|l| l.fluent_folders ^= true),
         Home => restyle(|l| l.home ^= true),
         List => restyle(|l| l.list ^= true),
         Labels => restyle(|l| l.labels ^= true),
@@ -106,7 +107,11 @@ fn perform(h: HWND, act: rows::Act) {
             if let Some(st) =
                 pick(h, &crate::domain::Style::ALL, l.style, |st| with(|a| a.t(i18n::style(st)).to_string()).unwrap_or_default())
             {
-                restyle(|l| l.style = st);
+                restyle(|l| {
+                    l.style = st;
+                    l.mica |= st == crate::domain::Style::Fluent;
+                    l.fluent_folders |= st == crate::domain::Style::Fluent;
+                });
             }
         }
         Corners => {

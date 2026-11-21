@@ -218,6 +218,8 @@ pub static S: [[&str; N]; 25] = [
         "Classic: title bar and soft gradient. Fluent: the Windows 11 look, plain and light.",
         "Classic",
         "Fluent",
+        "Fluent folder icons",
+        "Folders take a soft tone matching the fence instead of yellow.",
     ],
     [
         "新建分区",
@@ -436,6 +438,8 @@ pub static S: [[&str; N]; 25] = [
         "经典：标题栏和柔和渐变。Fluent：Windows 11 风格，简洁轻盈。",
         "经典",
         "Fluent",
+        "Fluent 文件夹图标",
+        "文件夹使用与分区相配的柔和色调，而非黄色。",
     ],
     [
         "नया क्षेत्र",
@@ -654,6 +658,8 @@ pub static S: [[&str; N]; 25] = [
         "क्लासिक: शीर्षक पट्टी और हल्का ग्रेडिएंट। Fluent: Windows 11 जैसा सादा और हल्का रूप।",
         "क्लासिक",
         "Fluent",
+        "Fluent फ़ोल्डर आइकन",
+        "फ़ोल्डर पीले की जगह क्षेत्र से मेल खाता हल्का रंग लेते हैं।",
     ],
     [
         "Nueva zona",
@@ -872,6 +878,8 @@ pub static S: [[&str; N]; 25] = [
         "Clásico: barra de título y degradado suave. Fluent: el aspecto de Windows 11, sencillo y ligero.",
         "Clásico",
         "Fluent",
+        "Iconos de carpeta Fluent",
+        "Las carpetas toman un tono suave acorde con la zona en lugar de amarillo.",
     ],
     [
         "Nouvelle zone",
@@ -1090,6 +1098,8 @@ pub static S: [[&str; N]; 25] = [
         "Classique : barre de titre et léger dégradé. Fluent : l'aspect de Windows 11, sobre et léger.",
         "Classique",
         "Fluent",
+        "Icônes de dossier Fluent",
+        "Les dossiers prennent une teinte douce assortie à la zone au lieu du jaune.",
     ],
     [
         "منطقة جديدة",
@@ -1308,6 +1318,8 @@ pub static S: [[&str; N]; 25] = [
         "كلاسيكي: شريط عنوان وتدرج ناعم. Fluent: مظهر Windows 11 بسيط وخفيف.",
         "كلاسيكي",
         "Fluent",
+        "أيقونات مجلدات Fluent",
+        "تأخذ المجلدات لونًا هادئًا يناسب المنطقة بدل الأصفر.",
     ],
     [
         "নতুন অঞ্চল",
@@ -1526,6 +1538,8 @@ pub static S: [[&str; N]; 25] = [
         "ক্লাসিক: শিরোনাম বার ও হালকা গ্রেডিয়েন্ট। Fluent: Windows 11-এর সরল, হালকা রূপ।",
         "ক্লাসিক",
         "Fluent",
+        "Fluent ফোল্ডার আইকন",
+        "ফোল্ডার হলুদের বদলে অঞ্চলের সঙ্গে মানানসই হালকা রং নেয়।",
     ],
     [
         "Nova área",
@@ -1744,6 +1758,8 @@ pub static S: [[&str; N]; 25] = [
         "Clássico: barra de título e degradê suave. Fluent: o visual do Windows 11, simples e leve.",
         "Clássico",
         "Fluent",
+        "Ícones de pasta Fluent",
+        "As pastas ganham um tom suave a condizer com a área em vez de amarelo.",
     ],
     [
         "Новая область",
@@ -1962,6 +1978,8 @@ pub static S: [[&str; N]; 25] = [
         "Классический: строка заголовка и мягкий градиент. Fluent: стиль Windows 11, простой и лёгкий.",
         "Классический",
         "Fluent",
+        "Значки папок Fluent",
+        "Папки получают мягкий оттенок под цвет области вместо жёлтого.",
     ],
     [
         "نیا خطہ",
@@ -2180,6 +2198,8 @@ pub static S: [[&str; N]; 25] = [
         "کلاسک: عنوان کی پٹی اور ہلکا گریڈینٹ۔ Fluent: Windows 11 جیسا سادہ اور ہلکا انداز۔",
         "کلاسک",
         "Fluent",
+        "Fluent فولڈر آئیکنز",
+        "فولڈر پیلے کے بجائے خطے سے میل کھاتا ہلکا رنگ لیتے ہیں۔",
     ],
     [
         "Area baru",
@@ -2398,6 +2418,8 @@ pub static S: [[&str; N]; 25] = [
         "Klasik: bilah judul dan gradasi lembut. Fluent: tampilan Windows 11 yang polos dan ringan.",
         "Klasik",
         "Fluent",
+        "Ikon folder Fluent",
+        "Folder memakai warna lembut yang cocok dengan area, bukan kuning.",
     ],
     [
         "Neuer Bereich",
@@ -2616,6 +2638,8 @@ pub static S: [[&str; N]; 25] = [
         "Klassisch: Titelleiste und sanfter Verlauf. Fluent: der Windows-11-Look, schlicht und leicht.",
         "Klassisch",
         "Fluent",
+        "Fluent-Ordnersymbole",
+        "Ordner erhalten statt Gelb einen sanften, zum Bereich passenden Ton.",
     ],
     [
         "新しいフェンス",
@@ -2834,6 +2858,8 @@ pub static S: [[&str; N]; 25] = [
         "クラシック：タイトル バーとやわらかなグラデーション。Fluent：Windows 11 らしいシンプルで軽い見た目。",
         "クラシック",
         "Fluent",
+        "Fluent フォルダー アイコン",
+        "フォルダーが黄色ではなくフェンスに合う淡い色になります。",
     ],
     [
         "Eneo jipya",
@@ -3052,6 +3078,8 @@ pub static S: [[&str; N]; 25] = [
         "Kawaida: upau wa kichwa na mwinuko laini. Fluent: mwonekano wa Windows 11, rahisi na mwepesi.",
         "Kawaida",
         "Fluent",
+        "Aikoni za folda za Fluent",
+        "Folda zinachukua rangi laini inayolingana na eneo badala ya njano.",
     ],
     [
         "नवीन क्षेत्र",
@@ -3270,6 +3298,8 @@ pub static S: [[&str; N]; 25] = [
         "क्लासिक: शीर्षक पट्टी आणि सौम्य ग्रेडियंट. Fluent: Windows 11 सारखे साधे, हलके रूप.",
         "क्लासिक",
         "Fluent",
+        "Fluent फोल्डर आयकॉन",
+        "फोल्डर पिवळ्याऐवजी क्षेत्राशी जुळणारी सौम्य छटा घेतात.",
     ],
     [
         "కొత్త ప్రాంతం",
@@ -3488,6 +3518,8 @@ pub static S: [[&str; N]; 25] = [
         "క్లాసిక్: శీర్షిక పట్టీ, మృదువైన గ్రేడియంట్. Fluent: Windows 11 లాంటి సరళమైన తేలికైన రూపం.",
         "క్లాసిక్",
         "Fluent",
+        "Fluent ఫోల్డర్ ఐకాన్లు",
+        "ఫోల్డర్లు పసుపుకు బదులు ప్రాంతానికి సరిపోయే మృదువైన రంగు తీసుకుంటాయి.",
     ],
     [
         "Yeni alan",
@@ -3706,6 +3738,8 @@ pub static S: [[&str; N]; 25] = [
         "Klasik: başlık çubuğu ve hafif geçiş. Fluent: sade ve hafif Windows 11 görünümü.",
         "Klasik",
         "Fluent",
+        "Fluent klasör simgeleri",
+        "Klasörler sarı yerine alana uyan yumuşak bir ton alır.",
     ],
     [
         "புதிய பகுதி",
@@ -3924,6 +3958,8 @@ pub static S: [[&str; N]; 25] = [
         "கிளாசிக்: தலைப்புப் பட்டை, மென்மையான சாய்வு. Fluent: எளிய, இலகுவான Windows 11 தோற்றம்.",
         "கிளாசிக்",
         "Fluent",
+        "Fluent கோப்புறை ஐகான்கள்",
+        "கோப்புறைகள் மஞ்சளுக்குப் பதில் பகுதிக்கு ஏற்ற மென்மையான நிறம் பெறும்.",
     ],
     [
         "Vùng mới",
@@ -4142,6 +4178,8 @@ pub static S: [[&str; N]; 25] = [
         "Cổ điển: thanh tiêu đề và chuyển màu nhẹ. Fluent: giao diện Windows 11, đơn giản và nhẹ.",
         "Cổ điển",
         "Fluent",
+        "Biểu tượng thư mục Fluent",
+        "Thư mục có tông màu dịu hợp với vùng thay vì màu vàng.",
     ],
     [
         "새 영역",
@@ -4360,6 +4398,8 @@ pub static S: [[&str; N]; 25] = [
         "클래식: 제목 표시줄과 부드러운 그라데이션. Fluent: 단순하고 가벼운 Windows 11 스타일.",
         "클래식",
         "Fluent",
+        "Fluent 폴더 아이콘",
+        "폴더가 노란색 대신 영역에 어울리는 부드러운 색이 됩니다.",
     ],
     [
         "Nuova area",
@@ -4578,6 +4618,8 @@ pub static S: [[&str; N]; 25] = [
         "Classico: barra del titolo e sfumatura leggera. Fluent: l'aspetto di Windows 11, semplice e leggero.",
         "Classico",
         "Fluent",
+        "Icone cartella Fluent",
+        "Le cartelle prendono un tono tenue intonato all'area invece del giallo.",
     ],
     [
         "พื้นที่ใหม่",
@@ -4796,6 +4838,8 @@ pub static S: [[&str; N]; 25] = [
         "คลาสสิก: แถบชื่อและการไล่สีอ่อนๆ Fluent: หน้าตาแบบ Windows 11 เรียบและเบา",
         "คลาสสิก",
         "Fluent",
+        "ไอคอนโฟลเดอร์ Fluent",
+        "โฟลเดอร์จะใช้สีอ่อนที่เข้ากับพื้นที่แทนสีเหลือง",
     ],
     [
         "Nowy obszar",
@@ -5014,6 +5058,8 @@ pub static S: [[&str; N]; 25] = [
         "Klasyczny: pasek tytułu i delikatny gradient. Fluent: wygląd Windows 11, prosty i lekki.",
         "Klasyczny",
         "Fluent",
+        "Ikony folderów Fluent",
+        "Foldery mają delikatny odcień pasujący do obszaru zamiast żółtego.",
     ],
     [
         "Нова область",
@@ -5232,6 +5278,8 @@ pub static S: [[&str; N]; 25] = [
         "Класичний: рядок заголовка й м'який градієнт. Fluent: стиль Windows 11, простий і легкий.",
         "Класичний",
         "Fluent",
+        "Значки тек Fluent",
+        "Теки отримують м'який відтінок під колір області замість жовтого.",
     ],
     [
         "ناحیه جدید",
@@ -5450,5 +5498,7 @@ pub static S: [[&str; N]; 25] = [
         "کلاسیک: نوار عنوان و گرادیان ملایم. Fluent: ظاهر Windows 11، ساده و سبک.",
         "کلاسیک",
         "Fluent",
+        "آیکون‌های پوشه Fluent",
+        "پوشه‌ها به‌جای زرد، رنگی ملایم و هماهنگ با ناحیه می‌گیرند.",
     ],
 ];

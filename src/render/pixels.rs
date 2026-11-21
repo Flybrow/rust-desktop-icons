@@ -29,6 +29,13 @@ pub fn straight(px: &mut [u32]) {
     }
 }
 
+pub fn tint_rect(px: &mut [u32], w: i32, (x0, y0, x1, y1): (i32, i32, i32, i32), color: u32) {
+    let (x0, x1) = (x0.clamp(0, w), x1.clamp(0, w));
+    for y in y0.max(0)..y1.min(px.len() as i32 / w.max(1)) {
+        tint(&mut px[(y * w + x0) as usize..(y * w + x1) as usize], color);
+    }
+}
+
 pub fn tint(px: &mut [u32], color: u32) {
     let t = premul(color, 255) & 0xFF_FFFF;
     for p in px.iter_mut().filter(|p| **p >> 24 != 0) {

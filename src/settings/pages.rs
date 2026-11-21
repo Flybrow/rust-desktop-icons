@@ -7,8 +7,9 @@ use crate::{
     prefs,
 };
 
-pub const PAGES: [(T, char); 9] = [
+pub const PAGES: [(T, char); 10] = [
     (T::Appearance, g::COLOR),
+    (T::Style, g::CORNER),
     (T::IconsPage, g::SIZE),
     (T::TitleBar, g::TAB),
     (T::Behavior, g::TAB),
@@ -72,14 +73,18 @@ pub fn build(a: &App, page: usize) -> Vec<Row> {
             note(a.t(T::LookNote)),
             row(a.t(T::Color), Ctl::Swatch(Some(l.color)), Act::Color, g::COLOR).about(a.t(T::DColor)),
             row(a.t(T::Wallpaper), Ctl::Toggle(l.wallpaper), Act::Wallpaper, g::PICTURE).about(a.t(T::DWallpaper)),
-            row(a.t(T::Mica), Ctl::Toggle(l.mica), Act::Mica, g::OPACITY).about(a.t(T::DMica)),
             row(a.t(T::Opacity), Ctl::Value(Look::label(l.percent())), Act::Opacity, g::OPACITY).about(a.t(T::DOpacity)),
-            row(a.t(T::Corners), Ctl::Value(l.corner.label(a.t(T::CornerSquare))), Act::Corners, g::CORNER).about(a.t(T::DCorners)),
-            row(a.t(T::Style), Ctl::Value(a.t(i18n::style(l.style)).into()), Act::Style, g::COLOR).about(a.t(T::DStyle)),
             row(a.t(T::Tint), Ctl::Swatch(l.tint), Act::Tint, g::TINT).about(a.t(T::DTint)),
             row(a.t(T::ApplyAll), Ctl::Button, Act::ApplyAll, g::CHECK).about(a.t(T::DApplyAll)),
         ],
         1 => vec![
+            note(a.t(T::LookNote)),
+            row(a.t(T::Style), Ctl::Value(a.t(i18n::style(l.style)).into()), Act::Style, g::COLOR).about(a.t(T::DStyle)),
+            row(a.t(T::FluentFolders), Ctl::Toggle(l.fluent_folders), Act::Folders, g::FOLDER).about(a.t(T::DFluentFolders)),
+            row(a.t(T::Mica), Ctl::Toggle(l.mica), Act::Mica, g::OPACITY).about(a.t(T::DMica)),
+            row(a.t(T::Corners), Ctl::Value(l.corner.label(a.t(T::CornerSquare))), Act::Corners, g::CORNER).about(a.t(T::DCorners)),
+        ],
+        2 => vec![
             note(a.t(T::LookNote)),
             row(a.t(T::IconSize), Ctl::Value(icons::label(l.icon)), Act::IconSize, g::SIZE).about(a.t(T::DIconSize)),
             row(a.t(T::Labels), Ctl::Toggle(l.labels), Act::Labels, g::LABEL).about(a.t(T::DLabels)),
@@ -91,7 +96,7 @@ pub fn build(a: &App, page: usize) -> Vec<Row> {
             row(a.t(T::Spacing), Ctl::Value(a.t(i18n::spacing(l.spacing)).into()), Act::Spacing, g::HEIGHT).about(a.t(T::DSpacing)),
             row(a.t(T::Align), Ctl::Value(a.t(i18n::align(l.align)).into()), Act::Align, g::ALIGN).about(a.t(T::DAlign)),
         ],
-        2 => vec![
+        3 => vec![
             note(a.t(T::LookNote)),
             row(a.t(T::TitleAlign), Ctl::Value(a.t(i18n::align(l.title_align)).into()), Act::TitleAlign, g::ALIGN)
                 .about(a.t(T::DTitleAlign)),
@@ -100,7 +105,7 @@ pub fn build(a: &App, page: usize) -> Vec<Row> {
             row(a.t(T::BarColor), Ctl::Swatch(l.bar_color), Act::BarColor, g::COLOR).about(a.t(T::DBarColor)),
             row(a.t(T::BarHover), Ctl::Toggle(l.bar_hover), Act::BarHover, g::HIDE).about(a.t(T::DBarHover)),
         ],
-        3 => vec![
+        4 => vec![
             note(a.t(T::LookNote)),
             row(a.t(T::Chameleon), Ctl::Toggle(l.chameleon), Act::Chameleon, g::EYE).about(a.t(T::DChameleon)),
             row(a.t(T::AutoHeight), Ctl::Toggle(l.auto_height), Act::AutoHeight, g::HEIGHT).about(a.t(T::DAutoHeight)),
@@ -109,15 +114,15 @@ pub fn build(a: &App, page: usize) -> Vec<Row> {
             row(a.t(T::RollSpeed), Ctl::Value(speed_label(a, c.roll_ms)), Act::Speed, g::SPEED).about(a.t(T::DRollSpeed)),
             note(a.t(T::SnapHint)),
         ],
-        4 => vec![
+        5 => vec![
             row(a.t(T::KeepOnDesktop), Ctl::Toggle(c.keep_on_desktop), Act::KeepOnDesktop, g::FOLDER).about(a.t(T::DKeep)),
             row(a.t(T::ScreenChange), Ctl::Value(adapt_label(a, c.screen_adapt).into()), Act::Screens, g::PC).about(a.t(T::DScreens)),
             row(a.t(T::DblClickHide), Ctl::Toggle(c.dblclick_hide), Act::DblClick, g::HIDE).about(a.t(T::DDblClick)),
             row(a.t(T::HideDesktop), Ctl::Toggle(c.hide_desktop), Act::HideDesktop, g::HIDE).about(a.t(T::DHideDesktop)),
         ],
-        5 => rules(a),
-        6 => Slot::ALL.iter().map(|s| key_row(a, *s)).chain(capturing(a).map(|_| note(a.t(T::PressKeys)))).collect(),
-        7 => {
+        6 => rules(a),
+        7 => Slot::ALL.iter().map(|s| key_row(a, *s)).chain(capturing(a).map(|_| note(a.t(T::PressKeys)))).collect(),
+        8 => {
             let p = c.privacy;
             vec![
                 row(a.t(T::PrivacyOn), Ctl::Toggle(p.on), Act::Privacy, g::HIDE).about(a.t(T::DPrivacy)),
@@ -179,6 +184,7 @@ mod tests {
             Act::Spacing,
             Act::Corners,
             Act::Style,
+            Act::Folders,
             Act::Mica,
             Act::Align,
             Act::Thumbs,
@@ -219,13 +225,13 @@ mod tests {
         }
         let dynamic = |a: &Act| matches!(a, Act::NameRule(_) | Act::AgeRule(..));
         assert!(pages.iter().flatten().filter(|r| r.act.is_some_and(|x| !dynamic(&x))).all(|r| !r.label.is_empty() && !r.desc.is_empty()));
-        assert!(tallest(&a) >= total(&pages[5]));
+        assert!(tallest(&a) >= total(&pages[6]));
     }
 
     #[test]
     fn rules_page_lists_tabs_and_both_rule_kinds() {
         let a = app();
-        let rows = build(&a, 5);
+        let rows = build(&a, 6);
         let acts: Vec<Act> = rows.iter().filter_map(|r| r.act).collect();
         assert!(acts.contains(&Act::Rule(1, 1)) && acts.contains(&Act::Rule(2, 2)) && !acts.contains(&Act::Rule(1, 5)));
         let name = rows.iter().find(|r| r.act == Some(Act::NameRule(0))).unwrap();
@@ -238,7 +244,7 @@ mod tests {
     fn shortcuts_show_their_keys_and_a_reset_when_changed() {
         let mut a = app();
         a.cfg.peek_key = None;
-        let rows = build(&a, 6);
+        let rows = build(&a, 7);
         let peek = rows.iter().find(|r| r.act == Some(Act::Key(Slot::Peek))).unwrap();
         let hide = rows.iter().find(|r| r.act == Some(Act::Key(Slot::HideAll))).unwrap();
         assert_eq!((peek.reset, hide.reset), (Some(Act::ResetKey(Slot::Peek)), None));

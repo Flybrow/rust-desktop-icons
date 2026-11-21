@@ -84,6 +84,8 @@ pub(super) fn context(h: HWND) {
         for (k, st) in Style::ALL.iter().enumerate() {
             item(styles, STYLE + k, a.t(i18n::style(*st)), f.look.style == *st);
         }
+        separator(styles);
+        item(styles, 255, a.t(T::FluentFolders), f.look.fluent_folders);
         a.sub(look, T::Style, styles, g::COLOR);
         a.sub(look, T::IconSize, sizes, g::SIZE);
         a.sub(look, T::Tint, tint, g::TINT);
@@ -161,6 +163,7 @@ pub(super) fn context(h: HWND) {
         209 => update(h, |f| f.set(Field::Wallpaper, |l| l.wallpaper ^= true)),
         211 => update(h, |f| f.set(Field::Mica, |l| l.mica ^= true)),
         212 => filter::toggle(h),
+        255 => update(h, |f| f.set(Field::Folders, |l| l.fluent_folders ^= true)),
         213 => update(h, |f| f.set(Field::Home, |l| l.home ^= true)),
         214 => {
             update(h, |f| f.set(Field::List, |l| l.list ^= true));
@@ -182,7 +185,14 @@ pub(super) fn context(h: HWND) {
         k @ NAMES..=NAMES_END => update(h, |f| f.set(Field::LabelSize, |l| l.label_size = LabelSize::ALL[k - NAMES])),
         k @ SPACING..=SPACING_END => update(h, |f| f.set(Field::Spacing, |l| l.spacing = Spacing::ALL[k - SPACING])),
         k @ CORNER..=CORNER_END => update(h, |f| f.set(Field::Corner, |l| l.corner = Corner::ALL[k - CORNER])),
-        k @ STYLE..=STYLE_END => update(h, |f| f.set(Field::Style, |l| l.style = Style::ALL[k - STYLE])),
+        k @ STYLE..=STYLE_END => update(h, |f| {
+            let st = Style::ALL[k - STYLE];
+            f.set(Field::Style, |l| l.style = st);
+            if st == Style::Fluent {
+                f.set(Field::Mica, |l| l.mica = true);
+                f.set(Field::Folders, |l| l.fluent_folders = true);
+            }
+        }),
         51 => actions::tint(h),
         60 => tabs::new_tab(h),
         61 => tabs::new_portal(h),
