@@ -219,7 +219,7 @@ fn main() {
             thread::sleep(Duration::from_millis(10));
         }
         thread::sleep(Duration::from_millis(4000));
-        before = flags();
+        before = r.config()["desk_flags"].as_u64().map_or_else(flags, |f| f as u32 & support::desk::MASK);
         let visible = shown.zip(t).map_or(0, |(s, e)| (e - s).as_millis());
         println!("      explorer restart: hidden icons visible for {visible} ms (first seen at {shown:?}, all hidden at {t:?})");
         r.check(t.is_some() && hidden(&names) == names.len(), "icons hidden again after Explorer restart (and stay hidden)");

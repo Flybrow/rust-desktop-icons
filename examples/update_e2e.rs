@@ -67,6 +67,11 @@ fn main() {
         }
         let r = support::rect(h);
         shot(&r, "whatsnew");
+        let (bx, by) = button(&r, k);
+        let (_, _, px) =
+            support::grab(&RECT { left: bx - 30 * k / 96, top: by - 7 * k / 96, right: bx + 30 * k / 96, bottom: by + 7 * k / 96 });
+        let light = px.chunks(4).filter(|c| c[0] > 200 && c[1] > 200 && c[2] > 200).count();
+        check(light > 10, &format!("its OK button shows its label ({light} light pixels)"));
         click(button(&r, k));
         check(poll(5, || dialog(pid).is_none().then_some(())).is_some(), "its OK button closes it");
     }

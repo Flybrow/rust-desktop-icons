@@ -75,7 +75,9 @@ pub(super) fn render(h: HWND, l: &Layout) {
         frame.text_layers(ui.text, ui.shade, s(1), (0, ht));
         if let (Some(b), Some(r)) = (d.spec.buttons.first(), l.buttons.first()) {
             frame.clear_mask();
+            frame.unclip();
             frame.text(bold, &b.label, rect(*r), DT_CENTER | single);
+            frame.clip((x0, y0, x1, y1));
             frame.flush();
             frame.text_layers(ui.on_accent, ui.shade, s(1), (0, ht));
         }
