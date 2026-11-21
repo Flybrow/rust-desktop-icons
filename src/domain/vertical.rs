@@ -35,6 +35,17 @@ pub fn stack(n: usize, line: i32, (from, to): (i32, i32), align: Align) -> Vec<i
     (0..shown).map(|i| start + i as i32 * line).collect()
 }
 
+pub fn column(title: &str, line: i32, (from, to): (i32, i32), align: Align) -> Vec<(char, i32)> {
+    let mut chars: Vec<char> = title.split_whitespace().collect::<Vec<_>>().join(" ").chars().collect();
+    let room = ((to - from).max(0) / line.max(1)) as usize;
+    if chars.len() > room {
+        chars.truncate(room.saturating_sub(1));
+        chars.extend((room > 0).then_some('…'));
+    }
+    let ys = stack(chars.len(), line, (from, to), align);
+    chars.into_iter().zip(ys).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -56,5 +67,17 @@ mod tests {
         assert_eq!(stack(3, 40, (10, 50), Align::Left), vec![10]);
         assert_eq!(stack(0, 20, (0, 100), Align::Center), Vec::<i32>::new());
         assert_eq!(stack(1, 0, (0, 100), Align::Left), vec![0]);
+    }
+
+    #[test]
+    fn columns_keep_one_space_and_end_with_an_ellipsis_when_cut() {
+        let chars = |v: Vec<(char, i32)>| v.into_iter().map(|(c, _)| c).collect::<String>();
+        assert_eq!(column("  文件   夹 ", 10, (0, 100), Align::Left), vec![('文', 0), ('件', 10), (' ', 20), ('夹', 30)]);
+        assert_eq!(chars(column("分区一二三四", 10, (0, 30), Align::Left)), "分区…");
+        assert_eq!(chars(column("分区", 10, (0, 20), Align::Left)), "分区");
+        assert_eq!(column("分区", 10, (0, 25), Align::Right), vec![('分', 5), ('区', 15)]);
+        assert_eq!(chars(column("分区", 10, (0, 10), Align::Left)), "…");
+        assert!(column("分区", 10, (0, 9), Align::Left).is_empty());
+        assert!(column("   ", 10, (0, 100), Align::Center).is_empty());
     }
 }

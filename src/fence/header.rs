@@ -62,67 +62,46 @@ fn shapes(c: &mut Canvas, f: &Fence, (active, tabs): (Option<usize>, bool), flip
     }
 }
 
-fn upright(main: &mut Frame, g: &Geo, font: HFONT, (f, hint): (&Fence, Option<&str>), s: impl Fn(i32) -> i32) {
-    let wide = match hint {
-        Some(h) => vertical::has_ideographic(h),
-        None => f.tabs.iter().any(|t| vertical::has_ideographic(&t.title)),
-    };
-    if !wide {
-        return;
-    }
-    let (x0, y0, x1, y1) = g.bar_rect();
-    let (w, len, n, pad, inset) = (x1 - x0, y1 - y0, f.tabs.len(), s(8), g.bar / 2);
-    let probe: Vec<u16> = "国Ag".encode_utf16().collect();
-    let line = measure(font, &probe, w, DT_SINGLELINE | DT_CENTER).max(1);
-    let mut columns = vec![];
+fn columns(len: i32, t: i32, (f, hint): (&Fence, Option<&str>), pad: i32) -> Vec<(String, (i32, i32), Align)> {
+    let n = f.tabs.len();
     match hint {
-        Some(h) => {
+        Some(h) if vertical::has_ideographic(h) => {
             let back = h.starts_with('←');
-            let label = if back { h.replace('←', "↑") } else { h.to_string() };
-            columns.push((label, (y0 + inset, y1 - inset), if back { Align::Left } else { f.look.title_align }));
+            vec![(h.replace('←', "↑"), (t / 2, len - t / 2), if back { Align::Left } else { f.look.title_align })]
         }
-        None => {
-            for (i, tab) in f.tabs.iter().enumerate() {
-                if !vertical::has_ideographic(&tab.title) {
-                    continue;
-                }
-                let (from, to) = if n == 1 {
-                    (y0 + inset, y1 - inset)
-                } else {
-                    (y0 + i as i32 * len / n as i32 + pad, y0 + (i as i32 + 1) * len / n as i32 - pad)
-                };
-                let align = if n == 1 { f.look.title_align } else { Align::Center };
-                columns.push((tab.title.clone(), (from, to), align));
-            }
+        Some(_) => vec![],
+        None if n == 1 => {
+            let title = &f.tabs[0].title;
+            if vertical::has_ideographic(title) { vec![(title.clone(), (t / 2, len - t / 2), f.look.title_align)] } else { vec![] }
+        }
+        None => (f.tabs.iter().enumerate())
+            .filter(|(_, tab)| vertical::has_ideographic(&tab.title))
+            .map(|(i, tab)| {
+                let (y0, y1) = segment(len, n, i);
+                (tab.title.clone(), (y0 + pad, y1 - pad), Align::Center)
+            })
+            .collect(),
+    }
+}
+
+fn upright(turned: &[u32], (t, len): (i32, i32), font: HFONT, (f, hint): (&Fence, Option<&str>), s: &impl Fn(i32) -> i32) -> Option<Frame> {
+    let columns = columns(len, t, (f, hint), s(8));
+    if columns.is_empty() {
+        return None;
+    }
+    let mut col = Frame::new(t, len)?;
+    col.canvas.px().copy_from_slice(turned);
+    let probe: Vec<u16> = "国Ag".encode_utf16().collect();
+    let line = measure(font, &probe, t, DT_SINGLELINE | DT_CENTER).max(1);
+    for (title, range, align) in columns {
+        for (ch, y) in vertical::column(&title, line, range, align).into_iter().filter(|(c, _)| *c != ' ') {
+            col.text(font, &ch.to_string(), RECT { left: 0, top: y, right: t, bottom: y + line }, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
         }
     }
-    let mut cells = vec![];
-    for (title, (from, to), align) in columns {
-        let mut chars: Vec<char> = title.chars().filter(|c| !c.is_whitespace()).collect();
-        let ys = vertical::stack(chars.len(), line, (from, to), align);
-        if ys.is_empty() {
-            continue;
-        }
-        if ys.len() < chars.len() {
-            chars.truncate(ys.len() - 1);
-            chars.push('…');
-        }
-        cells.extend(chars.into_iter().zip(ys));
-    }
-    if cells.is_empty() {
-        return;
-    }
-    main.unclip();
-    main.clear_mask();
-    main.clip((x0, y0, x1, y1));
-    for (ch, y) in cells {
-        let r = RECT { left: x0, top: y, right: x1, bottom: y + line };
-        main.text(font, &ch.to_string(), r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-    }
-    main.flush();
+    col.flush();
     let (fg, shade) = text_colors(f);
-    main.text_layers(fg, shade, s(2), (y0, y1));
-    main.unclip();
+    col.text_layers(fg, shade, s(2), (0, len));
+    Some(col)
 }
 
 pub(super) fn paint(
@@ -142,15 +121,12 @@ pub(super) fn paint(
     shapes(&mut bar.canvas(), f, (active, hint.is_none()), g.side.flipped(), &s);
     bar.text_layers(fg, shade, s(2), (0, t));
     let (x0, y0, _, _) = g.bar_rect();
-    {
+    if !side_bar {
         let c = main.canvas();
-        if side_bar {
-            blit(c.px, c.w, &rotate_cw(bar.canvas.px(), len, t), t, (x0, y0));
-        } else {
-            blit(c.px, c.w, bar.canvas.px(), len, (x0, y0));
-        }
+        return blit(c.px, c.w, bar.canvas.px(), len, (x0, y0));
     }
-    if side_bar {
-        upright(main, g, font, (f, hint), s);
-    }
+    let turned = rotate_cw(bar.canvas.px(), len, t);
+    let mut col = upright(&turned, (t, len), font, (f, hint), &s);
+    let c = main.canvas();
+    blit(c.px, c.w, col.as_mut().map_or(&turned[..], |col| &*col.canvas.px()), t, (x0, y0));
 }

@@ -31,7 +31,8 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   shortcut detection for rules; `Kind::Other` = "Everything else", the inbox rule `Config::rule_for` falls back to),
   `order.rs` (per-tab sort + custom order), `anim.rs`, `grid.rs` (`Flow`: item positions with `Align` left/center/right,
   last row included; build it with `fence::layout::flow`, which mirrors the alignment for right-side bars), `vertical.rs`
-  (vertical title layout: ideographic characters stack upright top to bottom, Latin titles stay rotated sideways), `icons.rs`, `color.rs`, `zone.rs`,
+  (vertical title layout: a title with ideographic characters stacks every character upright top to bottom, `column` keeps one
+  space per run and ends a cut title with "…"; Latin-only titles stay rotated sideways), `icons.rs`, `color.rs`, `zone.rs`,
   `snap.rs` (screen edges, other fences' edges and equal spacing -> `Guide` lines, icon-grid sizes `grid_len`),
   `screens.rs` (monitor setups: `Config::adapt` keeps / scales / restores a per-setup `Layout`, setting `screen_adapt`),
   `layouts.rs` (`Layout`, named `Snapshot`s from the tray menu, `Config::restore` scales them to the current screens,
@@ -178,8 +179,8 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   room below/right. `f.x/f.y` is always the bar top-left; the window grows away from it (`layout::origin`, `crop`).
   Items hug the bar (Bottom/Right mirror the grid). The bar is drawn in its own `Frame`, rotated clockwise
   (`render::rotate_cw`) for vertical bars and blitted over the body (`header::paint`). A title with ideographic (CJK)
-  characters is not rotated but stacked upright, top to bottom, over the bar (`fence::header` + `domain::vertical`); Latin
-  titles keep the rotated line, like Latin runs in Chinese vertical text. E2E: `cargo run --example unroll_e2e [-- --shots <dir>]`.
+  characters is not rotated: every character of it (Latin ones too) is stacked upright, top to bottom, in a bar-sized `Frame`
+  that starts from the rotated bar pixels (`header::upright`, `domain::vertical::column`); Latin-only titles keep the rotated line. E2E: `cargo run --example unroll_e2e [-- --shots <dir>]`.
 - Roll/fade animation never re-renders per frame: `paint::draw(.., open=true)` once into `View.frame`, then
   `Frame::present_top` crops it; ticks use the QPC clock (`win::now_ms`; DWM vblank timing goes stale on an idle desktop, never use it), WM_SIZE skips render
   while animating (`View.sizing` marks self-caused resizes). RAM first: the open frame is cached (canvas only,
