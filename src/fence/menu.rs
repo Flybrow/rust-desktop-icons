@@ -191,6 +191,9 @@ pub(super) fn context(h: HWND) {
             if st == Style::Fluent {
                 f.set(Field::Mica, |l| l.mica = true);
                 f.set(Field::Folders, |l| l.fluent_folders = true);
+                if f.look.corner == Corner::Round {
+                    f.set(Field::Corner, |l| l.corner = Corner::Medium);
+                }
             }
         }),
         51 => actions::tint(h),

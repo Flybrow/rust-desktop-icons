@@ -49,7 +49,8 @@ pub fn build(wallpaper: &[u32], (w, h): (i32, i32), tint: u32, strength: u8) -> 
     ch.iter_mut().for_each(|c| soften(c, (dw, dh)));
     let (m, cw, chh) = (MARGIN / SCALE, (w + SCALE - 1) / SCALE + 1, (h + SCALE - 1) / SCALE + 1);
     let tint = premul(tint, 255);
-    let (k, lt) = (strength as u32, luma(tint));
+    let k = strength as u32 + (255 - strength as u32) * strength as u32 * 3 / (5 * 255);
+    let lt = luma(tint);
     let mut px = Vec::with_capacity((cw * chh) as usize);
     for y in 0..chh {
         for x in 0..cw {
@@ -61,8 +62,11 @@ pub fn build(wallpaper: &[u32], (w, h): (i32, i32), tint: u32, strength: u8) -> 
                 true => (v * target).checked_div(l).unwrap_or(0),
                 false => v + (255 - v) * (target - l) / (255 - l).max(1),
             };
-            let base = 0xFF00_0000 | fit(rgb[0]) << 16 | fit(rgb[1]) << 8 | fit(rgb[2]);
-            px.push(lerp(base, tint, k / 4) | 0xFF00_0000);
+            let fitted = rgb.map(fit);
+            let mid = (fitted[0] * 299 + fitted[1] * 587 + fitted[2] * 114) / 1000;
+            let vivid = fitted.map(|v| (mid as i32 + (v as i32 - mid as i32) * (510 + k as i32) / 510).clamp(0, 255) as u32);
+            let base = 0xFF00_0000 | vivid[0] << 16 | vivid[1] << 8 | vivid[2];
+            px.push(lerp(base, tint, k / 8) | 0xFF00_0000);
         }
     }
     Mica { w: cw, h: chh, px }
@@ -113,7 +117,7 @@ mod tests {
         let m = build(&wall(100, 60, |_, _| 0x00_FF_FF_FF), (100, 60), 0x00_0000, 128);
         let p = m.at(50, 30);
         assert_eq!(p >> 24, 0xFF);
-        assert!((0x6A..=0x72).contains(&(p & 0xFF)), "{p:08x}");
+        assert!((0x48..=0x58).contains(&(p & 0xFF)), "{p:08x}");
         assert_eq!(m.at(0, 0), m.at(99, 59));
         let full = build(&wall(40, 40, |_, _| 0x00_12_34_56), (40, 40), 0x00_0000, 0);
         assert_eq!(full.at(10, 10), 0xFF_12_34_56);

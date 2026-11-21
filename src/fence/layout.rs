@@ -28,7 +28,7 @@ pub(super) fn side(h: HWND) -> Side {
 }
 
 pub(super) fn geo(h: HWND, size: (i32, i32)) -> Geo {
-    Geo { side: side(h), size, bar: bar(h), gap: scale(h, GAP) }
+    Geo { side: side(h), size, bar: bar(h), gap: scale(h, if fluent(h) { 1 } else { GAP }) }
 }
 
 pub(super) fn geo_now(h: HWND) -> Geo {
@@ -43,8 +43,12 @@ pub(super) fn flow(a: &mut App, h: HWND, w: i32, cell: i32) -> Option<Flow> {
     Some(Flow { w, cell, cw, n: v.items.len(), align: if v.side == Side::Right { align.mirrored() } else { align } })
 }
 
+fn fluent(h: HWND) -> bool {
+    read(h, |f| f.look.style == crate::domain::Style::Fluent) == Some(true)
+}
+
 pub(super) fn chrome(h: HWND, vertical: bool) -> i32 {
-    scale(h, TITLE + GAP + if vertical { 4 } else { EDGE })
+    scale(h, if fluent(h) { TITLE + 1 } else { TITLE + GAP + if vertical { 4 } else { EDGE } })
 }
 
 pub(super) fn tail(a: &mut App, h: HWND, w: i32, (cell, icon): (i32, i32)) -> i32 {
@@ -52,14 +56,17 @@ pub(super) fn tail(a: &mut App, h: HWND, w: i32, (cell, icon): (i32, i32)) -> i3
     if a.fence_of(h).is_some_and(|f| f.look.list) {
         return cell + s(GAP);
     }
+    if a.fence_of(h).is_some_and(|f| f.look.style == crate::domain::Style::Fluent) {
+        return cell;
+    }
     let font = a.fence_of(h).is_some_and(|f| f.look.labels).then(|| label_font(a, h));
-    let square = cell::Cell::square(cell);
+    let square = a.fence_of(h).map_or(cell::Cell::square(cell), |f| cell::Cell::of(&f.look, w, cell));
     let width = cell::label_width(square, s);
     let names: Vec<i32> = a.view(h).map_or(vec![], |v| {
         let row = grid::last_row(v.items.len(), w, cell);
         v.items[row].iter().map(|it| font.map_or(0, |f| crate::layered::measure(f, &it.name, width, cell::LABEL))).collect()
     });
-    cell::content(square, icon, names.into_iter(), s) + s(GAP + cell::TOP - EDGE)
+    cell::content(square, icon, names.into_iter(), s) + s(GAP + square.top - EDGE)
 }
 
 fn fit(h: HWND, f: &Fence, max: i32) -> i32 {

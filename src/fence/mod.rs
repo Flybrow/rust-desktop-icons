@@ -129,12 +129,12 @@ fn metrics(h: HWND) -> (i32, i32) {
         let icon = scale(h, look.icon.min(32));
         return (icon + scale(h, 12), icon);
     }
-    (scale(h, icons::cell(look.icon, look.labels.then_some(look.label_size), look.spacing)), scale(h, look.icon))
+    let tight = if look.style == crate::domain::Style::Fluent { 13 } else { 0 };
+    (scale(h, icons::cell(look.icon, look.labels.then_some(look.label_size), look.spacing) - tight), scale(h, look.icon))
 }
 
 fn shape(h: HWND, gw: i32) -> cell::Cell {
-    let (ch, list) = (metrics(h).0, read(h, |f| f.look.list) == Some(true));
-    cell::Cell { w: if list { gw } else { ch }, h: ch, list }
+    cell::Cell::of(&read(h, |f| f.look.clone()).unwrap_or_default(), gw, metrics(h).0)
 }
 
 pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {

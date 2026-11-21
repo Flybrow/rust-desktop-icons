@@ -111,6 +111,9 @@ fn perform(h: HWND, act: rows::Act) {
                     l.style = st;
                     l.mica |= st == crate::domain::Style::Fluent;
                     l.fluent_folders |= st == crate::domain::Style::Fluent;
+                    if st == crate::domain::Style::Fluent && l.corner == crate::domain::Corner::Round {
+                        l.corner = crate::domain::Corner::Medium;
+                    }
                 });
             }
         }

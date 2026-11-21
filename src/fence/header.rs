@@ -21,9 +21,10 @@ fn text(frame: &Frame, font: HFONT, (f, hint): (&Fence, Option<&str>), (t, pad):
     let (w, n, fluent) = (frame.w, f.tabs.len(), f.look.style == Style::Fluent);
     let skip = |title: &str| upright && vertical::has_ideographic(title);
     let flags = DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS;
+    let band = if fluent && (n == 1 || hint.is_some()) { t - t * 6 / 34 } else { t };
     let draw = |title: &str, portal: bool, (x0, x1): (i32, i32), align: DRAW_TEXT_FORMAT| {
         if !(fluent && portal) {
-            return frame.text(font, title, RECT { left: x0, top: 0, right: x1, bottom: t }, flags | align);
+            return frame.text(font, title, RECT { left: x0, top: 0, right: x1, bottom: band }, flags | align);
         }
         let (gh, gap) = (t * 3 / 8, pad * 3 / 4);
         let gw = gh * 5 / 4;
@@ -35,10 +36,10 @@ fn text(frame: &Frame, font: HFONT, (f, hint): (&Fence, Option<&str>), (t, pad):
         } else {
             (x0 + x1 - total) / 2
         };
-        let top = (t - gh) / 2;
+        let top = (band - gh) / 2;
         frame.fill((left, top, left + gw * 2 / 5, top + gh / 3), 2);
         frame.fill((left, top + gh / 5, left + gw, top + gh), 3);
-        frame.text(font, title, RECT { left: left + gw + gap, top: 0, right: x1, bottom: t }, flags | DT_LEFT);
+        frame.text(font, title, RECT { left: left + gw + gap, top: 0, right: x1, bottom: band }, flags | DT_LEFT);
     };
     if n == 1 || hint.is_some() {
         let title = hint.unwrap_or(&f.tabs[0].title);
@@ -71,7 +72,7 @@ fn shapes(c: &mut Canvas, f: &Fence, (active, tabs): (Option<usize>, bool), flip
     if f.look.style == Style::Fluent {
         if let Some(i) = active.filter(|_| n > 1 && tabs) {
             let (x0, x1) = segment(w, n, i.min(n - 1));
-            let pill = premul(WHITE, if ink == 0 { 110 } else { 20 });
+            let pill = premul(WHITE, if ink == 0 { 110 } else { 13 });
             c.rrect((x0 + s(6), s(5), x1 - s(6), t - s(5)), s(r.min(4)) as f32, flat(pill), (0, t), false);
         }
         return;
