@@ -147,6 +147,10 @@ fn perform(h: HWND, act: rows::Act) {
             }
         }
         KeepOnDesktop => keep::toggle(),
+        HideDesktop => {
+            visibility::reveal();
+            change(|c| c.hide_desktop ^= true);
+        }
         DblClick => {
             change(|c| c.dblclick_hide ^= true);
             visibility::sync_dblclick();

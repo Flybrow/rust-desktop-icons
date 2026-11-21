@@ -3,7 +3,7 @@ pub mod desks;
 pub mod hotkeys;
 mod overlay;
 
-use crate::{fence, keep, search, shell::hide::listview, tray, win::typed};
+use crate::{app::with, fence, keep, search, shell::hide::listview, tray, win::typed};
 use std::cell::Cell;
 use windows::Win32::{
     Foundation::{HWND, LPARAM, WPARAM},
@@ -19,6 +19,7 @@ const PEEK_TIMER: usize = tray::timers::PEEK;
 thread_local! {
     static HIDDEN: Cell<bool> = const { Cell::new(false) };
     static PEEKING: Cell<bool> = const { Cell::new(false) };
+    static DESK: Cell<bool> = const { Cell::new(false) };
 }
 
 pub fn peeking() -> bool {
@@ -30,7 +31,9 @@ fn show_all(show: bool) {
     for h in fence::hwnds().into_iter().filter(|h| !show || desks::shown(*h)) {
         let _ = unsafe { ShowWindow(h, cmd) };
     }
-    if let Some(lv) = listview().filter(|_| keep::live()) {
+    let desk = if show { DESK.replace(false) } else { with(|a| a.cfg.hide_desktop).unwrap_or(true) };
+    if let Some(lv) = listview().filter(|_| desk && keep::live()) {
+        DESK.set(!show);
         let _ = unsafe { ShowWindow(lv, if show { SW_SHOWNA } else { SW_HIDE }) };
     }
 }

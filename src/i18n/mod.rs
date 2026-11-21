@@ -12,7 +12,7 @@ mod table;
 
 use table::S;
 
-const N: usize = 184;
+const N: usize = 186;
 
 pub const LANGS: [(&str, &str); 25] = [
     ("en", "English"),
@@ -113,7 +113,7 @@ mod tests {
     #[test]
     fn complete_tables() {
         assert!(S.iter().flatten().all(|s| !s.trim().is_empty()));
-        assert_eq!(T::CornerSquare as usize, N - 1);
+        assert_eq!(T::DHideDesktop as usize, N - 1);
     }
 
     #[test]

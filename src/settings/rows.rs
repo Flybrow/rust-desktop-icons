@@ -38,6 +38,7 @@ pub enum Act {
     KeepOnDesktop,
     Screens,
     DblClick,
+    HideDesktop,
     Key(Slot),
     ResetKey(Slot),
     ApplyAll,

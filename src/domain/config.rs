@@ -30,6 +30,7 @@ pub struct Config {
     #[serde(deserialize_with = "compat::or_default")]
     pub screen_adapt: Adapt,
     pub dblclick_hide: bool,
+    pub hide_desktop: bool,
     pub peek_key: Option<Hotkey>,
     pub search_key: Option<Hotkey>,
     pub hide_key: Option<Hotkey>,
@@ -61,6 +62,7 @@ impl Default for Config {
             desk_icons: vec![],
             screen_adapt: Adapt::default(),
             dblclick_hide: false,
+            hide_desktop: true,
             peek_key: Some(Hotkey::PEEK),
             search_key: Some(Hotkey::SEARCH),
             hide_key: None,
@@ -189,7 +191,9 @@ mod tests {
         assert!(c.auto_update && c.autostart && c.auto_sort && f.look.auto_height && f.look.labels && !c.keep_on_desktop);
         assert!(!c.dblclick_hide && c.peek_key == Some(Hotkey::PEEK));
         let set: Config = serde_json::from_str(r#"{"peek_key":null,"dblclick_hide":true}"#).unwrap();
-        assert!(set.dblclick_hide && set.peek_key.is_none());
+        assert!(set.dblclick_hide && set.peek_key.is_none() && set.hide_desktop && Config::default().hide_desktop);
+        let off: Config = serde_json::from_str(r#"{"hide_desktop":false}"#).unwrap();
+        assert!(!off.hide_desktop);
         let bom = Config::parse("\u{feff}{\"dblclick_hide\":true}".as_bytes()).unwrap();
         assert!(bom.dblclick_hide && Config::parse(b"{\"dblclick_hide\":true}").unwrap().dblclick_hide);
         assert_eq!((f.w, f.look.color, f.look.icon, f.tabs.len(), f.active().title.as_str()), (360, 255, 48, 1, "Jeux"));

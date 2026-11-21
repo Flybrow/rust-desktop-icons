@@ -186,6 +186,8 @@ pub static S: [[&str; N]; 25] = [
         "Corners",
         "How rounded the corners of the fences are.",
         "Square",
+        "Hide all: desktop icons too",
+        "When everything is hidden, also hide the icons that are not in a fence.",
     ],
     [
         "新建分区",
@@ -372,6 +374,8 @@ pub static S: [[&str; N]; 25] = [
         "圆角",
         "分区四角的圆润程度。",
         "直角",
+        "全部隐藏：也隐藏桌面图标",
+        "全部隐藏时，也隐藏不在分区中的图标。",
     ],
     [
         "नया क्षेत्र",
@@ -558,6 +562,8 @@ pub static S: [[&str; N]; 25] = [
         "कोने",
         "क्षेत्रों के कोने कितने गोल हों।",
         "चौकोर",
+        "सब छिपाएँ: डेस्कटॉप आइकन भी",
+        "सब छिपाने पर उन आइकनों को भी छिपाएँ जो किसी क्षेत्र में नहीं हैं।",
     ],
     [
         "Nueva zona",
@@ -744,6 +750,8 @@ pub static S: [[&str; N]; 25] = [
         "Esquinas",
         "Cuánto se redondean las esquinas de las zonas.",
         "Rectas",
+        "Ocultar todo: también los iconos del escritorio",
+        "Al ocultarlo todo, oculta también los iconos que no están en una zona.",
     ],
     [
         "Nouvelle zone",
@@ -930,6 +938,8 @@ pub static S: [[&str; N]; 25] = [
         "Coins",
         "Arrondi des coins des zones.",
         "Carrés",
+        "Tout masquer : aussi les icônes du bureau",
+        "Quand tout est masqué, masquer aussi les icônes qui ne sont dans aucune zone.",
     ],
     [
         "منطقة جديدة",
@@ -1116,6 +1126,8 @@ pub static S: [[&str; N]; 25] = [
         "الزوايا",
         "مدى استدارة زوايا المناطق.",
         "قائمة",
+        "إخفاء الكل: أيقونات سطح المكتب أيضًا",
+        "عند إخفاء الكل، أخفِ أيضًا الأيقونات غير الموجودة في منطقة.",
     ],
     [
         "নতুন অঞ্চল",
@@ -1302,6 +1314,8 @@ pub static S: [[&str; N]; 25] = [
         "কোণ",
         "অঞ্চলগুলোর কোণ কতটা গোল।",
         "চৌকো",
+        "সব লুকান: ডেস্কটপ আইকনও",
+        "সব লুকালে যে আইকনগুলো কোনো অঞ্চলে নেই সেগুলোও লুকান।",
     ],
     [
         "Nova área",
@@ -1488,6 +1502,8 @@ pub static S: [[&str; N]; 25] = [
         "Cantos",
         "Quão arredondados são os cantos das áreas.",
         "Retos",
+        "Ocultar tudo: também os ícones da área de trabalho",
+        "Ao ocultar tudo, oculta também os ícones que não estão em nenhuma área.",
     ],
     [
         "Новая область",
@@ -1674,6 +1690,8 @@ pub static S: [[&str; N]; 25] = [
         "Углы",
         "Насколько скруглены углы областей.",
         "Прямые",
+        "Скрыть всё: и значки рабочего стола",
+        "При скрытии всего скрывать и значки вне областей.",
     ],
     [
         "نیا خطہ",
@@ -1860,6 +1878,8 @@ pub static S: [[&str; N]; 25] = [
         "کونے",
         "خطوں کے کونے کتنے گول ہوں۔",
         "چوکور",
+        "سب چھپائیں: ڈیسک ٹاپ آئیکنز بھی",
+        "سب چھپانے پر وہ آئیکنز بھی چھپائیں جو کسی خطے میں نہیں ہیں۔",
     ],
     [
         "Area baru",
@@ -2046,6 +2066,8 @@ pub static S: [[&str; N]; 25] = [
         "Sudut",
         "Seberapa bulat sudut area.",
         "Siku",
+        "Sembunyikan semua: ikon desktop juga",
+        "Saat semua disembunyikan, sembunyikan juga ikon yang tidak ada di area.",
     ],
     [
         "Neuer Bereich",
@@ -2232,6 +2254,8 @@ pub static S: [[&str; N]; 25] = [
         "Ecken",
         "Wie stark die Ecken der Bereiche abgerundet sind.",
         "Eckig",
+        "Alles ausblenden: auch Desktopsymbole",
+        "Beim Ausblenden auch die Symbole ausblenden, die in keinem Bereich liegen.",
     ],
     [
         "新しいフェンス",
@@ -2418,6 +2442,8 @@ pub static S: [[&str; N]; 25] = [
         "角",
         "フェンスの角の丸み。",
         "角型",
+        "すべて隠す：デスクトップのアイコンも",
+        "すべて隠すとき、フェンスにないアイコンも隠します。",
     ],
     [
         "Eneo jipya",
@@ -2604,6 +2630,8 @@ pub static S: [[&str; N]; 25] = [
         "Pembe",
         "Kiasi cha mviringo wa pembe za maeneo.",
         "Mraba",
+        "Ficha vyote: pamoja na aikoni za eneo-kazi",
+        "Vyote vikifichwa, ficha pia aikoni zisizo katika eneo lolote.",
     ],
     [
         "नवीन क्षेत्र",
@@ -2790,6 +2818,8 @@ pub static S: [[&str; N]; 25] = [
         "कोपरे",
         "क्षेत्रांचे कोपरे किती गोलाकार असावेत.",
         "चौकोनी",
+        "सर्व लपवा: डेस्कटॉप आयकॉनही",
+        "सर्व लपवताना कोणत्याही क्षेत्रात नसलेले आयकॉनही लपवा.",
     ],
     [
         "కొత్త ప్రాంతం",
@@ -2976,6 +3006,8 @@ pub static S: [[&str; N]; 25] = [
         "మూలలు",
         "ప్రాంతాల మూలలు ఎంత గుండ్రంగా ఉండాలి.",
         "చతురస్ర",
+        "అన్నీ దాచు: డెస్క్‌టాప్ ఐకాన్లు కూడా",
+        "అన్నీ దాచినప్పుడు, ఏ ప్రాంతంలోనూ లేని ఐకాన్లను కూడా దాచు.",
     ],
     [
         "Yeni alan",
@@ -3162,6 +3194,8 @@ pub static S: [[&str; N]; 25] = [
         "Köşeler",
         "Alanların köşelerinin ne kadar yuvarlak olduğu.",
         "Köşeli",
+        "Tümünü gizle: masaüstü simgeleri de",
+        "Tümü gizlenince, hiçbir alanda olmayan simgeleri de gizle.",
     ],
     [
         "புதிய பகுதி",
@@ -3348,6 +3382,8 @@ pub static S: [[&str; N]; 25] = [
         "மூலைகள்",
         "பகுதிகளின் மூலைகள் எவ்வளவு வட்டமாக இருக்கும்.",
         "சதுரம்",
+        "அனைத்தையும் மறை: டெஸ்க்டாப் ஐகான்களும்",
+        "அனைத்தையும் மறைக்கும்போது, எந்தப் பகுதியிலும் இல்லாத ஐகான்களையும் மறை.",
     ],
     [
         "Vùng mới",
@@ -3534,6 +3570,8 @@ pub static S: [[&str; N]; 25] = [
         "Góc",
         "Độ bo tròn các góc của vùng.",
         "Vuông",
+        "Ẩn tất cả: cả biểu tượng màn hình",
+        "Khi ẩn tất cả, ẩn cả các biểu tượng không nằm trong vùng nào.",
     ],
     [
         "새 영역",
@@ -3720,6 +3758,8 @@ pub static S: [[&str; N]; 25] = [
         "모서리",
         "영역 모서리의 둥근 정도.",
         "직각",
+        "모두 숨기기: 바탕 화면 아이콘도",
+        "모두 숨길 때 영역에 없는 아이콘도 숨깁니다.",
     ],
     [
         "Nuova area",
@@ -3906,6 +3946,8 @@ pub static S: [[&str; N]; 25] = [
         "Angoli",
         "Quanto sono arrotondati gli angoli delle aree.",
         "Squadrati",
+        "Nascondi tutto: anche le icone del desktop",
+        "Quando tutto è nascosto, nascondi anche le icone fuori dalle aree.",
     ],
     [
         "พื้นที่ใหม่",
@@ -4092,6 +4134,8 @@ pub static S: [[&str; N]; 25] = [
         "มุม",
         "ความโค้งมนของมุมพื้นที่",
         "เหลี่ยม",
+        "ซ่อนทั้งหมด: รวมไอคอนบนเดสก์ท็อป",
+        "เมื่อซ่อนทั้งหมด ให้ซ่อนไอคอนที่ไม่ได้อยู่ในพื้นที่ใดด้วย",
     ],
     [
         "Nowy obszar",
@@ -4278,6 +4322,8 @@ pub static S: [[&str; N]; 25] = [
         "Narożniki",
         "Jak zaokrąglone są narożniki obszarów.",
         "Proste",
+        "Ukryj wszystko: także ikony pulpitu",
+        "Przy ukrywaniu wszystkiego ukryj też ikony spoza obszarów.",
     ],
     [
         "Нова область",
@@ -4464,6 +4510,8 @@ pub static S: [[&str; N]; 25] = [
         "Кути",
         "Наскільки заокруглені кути областей.",
         "Прямі",
+        "Сховати все: і значки робочого столу",
+        "Під час приховування всього ховати й значки поза областями.",
     ],
     [
         "ناحیه جدید",
@@ -4650,5 +4698,7 @@ pub static S: [[&str; N]; 25] = [
         "گوشه‌ها",
         "میزان گردی گوشه‌های ناحیه‌ها.",
         "تیز",
+        "پنهان کردن همه: آیکون‌های میزکار هم",
+        "هنگام پنهان کردن همه، آیکون‌هایی را که در هیچ ناحیه‌ای نیستند هم پنهان کن.",
     ],
 ];

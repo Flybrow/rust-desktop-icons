@@ -184,4 +184,6 @@ pub enum T {
     Corners,
     DCorners,
     CornerSquare,
+    HideDesktop,
+    DHideDesktop,
 }
