@@ -31,7 +31,7 @@ unsafe extern "system" fn event(_: HWINEVENTHOOK, _: u32, _: HWND, _: i32, _: i3
     refresh();
 }
 
-pub fn sync() {
+pub fn sync(repaint: bool) {
     let want = with(|a| a.cfg.privacy.on && a.cfg.privacy.reveal == Reveal::Desktop) == Some(true);
     let hook = HOOK.get();
     if want && hook == 0 {
@@ -42,6 +42,8 @@ pub fn sync() {
         let _ = unsafe { UnhookWinEvent(HWINEVENTHOOK(hook as _)) };
         HOOK.set(0);
     }
-    refresh();
-    fence::hwnds().into_iter().for_each(fence::render);
+    ACTIVE.set(on_desktop(unsafe { GetForegroundWindow() }));
+    if repaint {
+        fence::hwnds().into_iter().for_each(fence::render);
+    }
 }

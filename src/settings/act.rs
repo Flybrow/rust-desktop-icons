@@ -12,7 +12,7 @@ use windows::Win32::Foundation::HWND;
 
 pub fn private(f: impl FnOnce(&mut crate::domain::privacy::Privacy)) {
     change(|c| f(&mut c.privacy));
-    visibility::privacy::sync();
+    visibility::privacy::sync(true);
 }
 
 pub(super) fn choose(h: HWND, options: Vec<(String, bool)>) -> Option<usize> {
