@@ -10,14 +10,18 @@ use windows::Win32::{
     UI::WindowsAndMessaging::{IDYES, MB_ICONQUESTION, MB_ICONWARNING, MB_OK, MB_YESNO},
 };
 
-fn append(file: &str, msg: &str) {
+pub fn rotated(file: &str) -> std::path::PathBuf {
     let dir = store::root();
     let _ = std::fs::create_dir_all(&dir);
     let path = dir.join(file);
     if std::fs::metadata(&path).is_ok_and(|m| m.len() > 1 << 20) {
         let _ = std::fs::rename(&path, dir.join(format!("{file}.old")));
     }
-    if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(path) {
+    path
+}
+
+fn append(file: &str, msg: &str) {
+    if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(rotated(file)) {
         let _ = writeln!(f, "[{}] v{} {msg}", stamp(true), env!("CARGO_PKG_VERSION"));
     }
 }
@@ -39,7 +43,10 @@ pub fn alert(k: T, detail: &str) {
 
 pub fn failures(k: T, errors: &[String]) {
     if !errors.is_empty() {
-        let shown: Vec<&str> = errors.iter().take(10).map(String::as_str).collect();
+        let mut shown: Vec<String> = errors.iter().take(10).cloned().collect();
+        if errors.len() > 10 {
+            shown.push(format!("+{}", errors.len() - 10));
+        }
         alert(k, &shown.join("\n"));
     }
 }

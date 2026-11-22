@@ -1,7 +1,7 @@
 use super::{read, reload, update, view};
 use crate::{
     app::{App, change},
-    domain::{Kind, Sort, Tab, order},
+    domain::{Kind, Sort, Tab, columns::Mode, order},
     i18n::{self, T},
     layered::glyph as g,
     store,
@@ -12,8 +12,14 @@ use windows::Win32::{Foundation::HWND, UI::WindowsAndMessaging::HMENU};
 
 const SORT: usize = 70;
 const RULE: usize = 80;
+const MODE: usize = 250;
 
-pub(super) fn submenus(a: &mut App, m: HMENU, t: &Tab) {
+pub(super) fn submenus(a: &mut App, m: HMENU, (t, list): (&Tab, bool)) {
+    let modes = menu();
+    for (k, md) in Mode::ALL.iter().enumerate() {
+        item(modes, MODE + k, a.t(i18n::mode(*md)), t.mode(list) == *md);
+    }
+    a.sub(m, T::ViewMode, modes, g::VIEW);
     let sorts = menu();
     for (k, s) in Sort::ALL.iter().enumerate() {
         item(sorts, SORT + k, a.t(i18n::sort(*s)), t.sort == *s);
@@ -35,13 +41,17 @@ fn names(h: HWND) -> Vec<String> {
 fn set_order(h: HWND, sort: Sort, order: Vec<String>) {
     update(h, |f| {
         let t = f.active_mut();
-        (t.sort, t.order) = (sort, order);
+        (t.sort, t.order, t.desc) = (sort, order, false);
     });
     reload(h);
 }
 
 pub(super) fn handle(h: HWND, id: usize) -> bool {
     match id {
+        k if (MODE..MODE + Mode::ALL.len()).contains(&k) => {
+            update(h, |f| f.active_mut().view = Some(Mode::ALL[k - MODE]));
+            reload(h);
+        }
         k if (SORT..SORT + Sort::ALL.len()).contains(&k) => set_order(h, Sort::ALL[k - SORT], names(h)),
         k if (RULE..RULE + Kind::ALL.len()).contains(&k) => {
             let kind = Kind::ALL[k - RULE];

@@ -68,7 +68,7 @@ impl Native {
     pub fn verb(&self, id: u32) -> String {
         let mut b = [0u16; 64];
         let ok = unsafe { self.cm.GetCommandString(id as usize, GCS_VERBW, None, PSTR(b.as_mut_ptr().cast()), b.len() as u32) };
-        ok.map(|_| String::from_utf16_lossy(&b[..b.iter().position(|&c| c == 0).unwrap_or(0)])).unwrap_or_default()
+        ok.map(|_| String::from_utf16_lossy(crate::win::until_nul(&b))).unwrap_or_default()
     }
 
     pub fn invoke(&self, id: u32, h: HWND, (x, y): (i32, i32)) {

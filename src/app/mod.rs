@@ -85,9 +85,12 @@ impl App {
     }
 
     pub fn save(&mut self) {
-        if let Err(e) = store::save(&self.cfg) {
-            report::log(&format!("save failed: {e}"));
-            self.save_error.get_or_insert(e.to_string());
+        match store::save(&self.cfg) {
+            Err(e) => {
+                report::log(&format!("save failed: {e}"));
+                self.save_error.get_or_insert(e.to_string());
+            }
+            Ok(()) => self.save_reported = false,
         }
     }
 }
@@ -154,6 +157,7 @@ pub fn run() {
         let Some(tray) = tray::create() else { return };
         let existed = store::root().join("config.json").exists();
         let (cfg, damaged) = store::load();
+        std::thread::spawn(crate::update::clean);
         if !cfg.autostart {
             shell::set_autostart(false);
         }
@@ -161,13 +165,15 @@ pub fn run() {
         let taskbar = RegisterWindowMessageW(w!("TaskbarCreated"));
         APP.with(|a| *a.borrow_mut() = Some(App::new(cfg, taskbar)));
         theme::apply(false);
-        tray::icon(tray, NIM_ADD);
+        tray::add_icon(tray);
         recover();
         crate::keep::sync(false);
         screens::adapt();
         rebuild();
-        if let Some(bad) = damaged {
-            report::alert(T::ErrConfig, &bad.display().to_string());
+        match damaged {
+            Some(store::Damage::SetAside(bad)) => report::alert(T::ErrConfig, &bad.display().to_string()),
+            Some(store::Damage::Held(main)) => report::alert(T::ErrConfigHeld, &main.display().to_string()),
+            None => {}
         }
         desk_icons::hide_placed();
         rules::watch(tray);
@@ -187,7 +193,7 @@ pub fn run() {
             }
         }
         crate::visibility::shutdown();
-        tray::icon(tray, NIM_DELETE);
+        let _ = tray::icon(tray, NIM_DELETE);
         save_now();
         APP.with(|a| a.borrow_mut().take());
     }

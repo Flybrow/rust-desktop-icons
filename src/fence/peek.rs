@@ -34,7 +34,7 @@ pub(super) fn check(h: HWND) {
         return;
     }
     let _ = unsafe { KillTimer(Some(h), PEEK) };
-    view(h, |v| (v.inside, v.hold, v.bar_tab) = (false, false, None));
+    view(h, |v| (v.inside, v.hold, v.bar_tab, v.labels) = (false, false, None, None));
     anim::start(h);
     bar_hover(h);
 }

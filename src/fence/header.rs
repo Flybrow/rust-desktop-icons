@@ -14,11 +14,15 @@ fn segment(w: i32, n: usize, i: usize) -> (i32, i32) {
     (i as i32 * w / n, (i as i32 + 1) * w / n)
 }
 
+pub(super) fn loupe_end(len: i32, f: &Fence, single: bool) -> i32 {
+    if single || f.tabs.len() < 2 { len } else { segment(len, f.tabs.len(), f.tab.min(f.tabs.len() - 1)).1 }
+}
+
 fn text_colors(f: &Fence) -> (u32, u32) {
     color::text_on(f.look.bar_color.unwrap_or(f.look.color))
 }
 
-fn text(frame: &Frame, font: HFONT, (f, hint): (&Fence, Option<&str>), t: i32, pad: i32, upright: bool) {
+fn text(frame: &Frame, font: HFONT, (f, hint): (&Fence, Option<&str>), t: i32, (pad, loupe): (i32, Option<bool>), upright: bool) {
     let (w, n) = (frame.w, f.tabs.len());
     let skip = |title: &str| upright && vertical::has_ideographic(title);
     let flags = DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS;
@@ -41,6 +45,7 @@ fn text(frame: &Frame, font: HFONT, (f, hint): (&Fence, Option<&str>), t: i32, p
             continue;
         }
         let (x0, x1) = segment(w, n, i);
+        let x1 = if loupe == Some(false) && i == f.tab { x1 - t + pad } else { x1 };
         frame.text(font, &tab.title, RECT { left: x0 + pad, top: 0, right: x1 - pad, bottom: t }, flags);
     }
 }
@@ -111,7 +116,7 @@ fn upright(turned: &[u32], (t, len): (i32, i32), font: HFONT, (f, hint): (&Fence
 pub(super) fn paint(
     main: &mut Frame,
     g: &Geo,
-    (font, plain, glyphs, loupe): (HFONT, HFONT, HFONT, bool),
+    (font, plain, glyphs, loupe): (HFONT, HFONT, HFONT, Option<bool>),
     (f, hint): (&Fence, Option<&str>),
     active: Option<usize>,
     field: Option<&Field>,
@@ -123,10 +128,11 @@ pub(super) fn paint(
     let Some(mut bar) = Frame::new(len, t) else { return };
     match field {
         Some(fl) => field::text(&bar, (plain, glyphs), fl, t, &s),
-        None => text(&bar, font, (f, hint), t, s(8), side_bar),
+        None => text(&bar, font, (f, hint), t, (s(8), loupe), side_bar),
     }
-    if loupe && field.is_none() {
-        let r = RECT { left: len - t, top: 0, right: len - s(4), bottom: t };
+    if let Some(single) = loupe.filter(|_| field.is_none()) {
+        let end = loupe_end(len, f, single);
+        let r = RECT { left: end - t, top: 0, right: end - s(4), bottom: t };
         bar.text(glyphs, &crate::layered::glyph::SEARCH.to_string(), r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
     }
     bar.flush();

@@ -8,6 +8,7 @@ mod fence;
 mod i18n;
 mod keep;
 mod layered;
+mod perf;
 mod prefs;
 mod prompt;
 mod render;
@@ -26,5 +27,6 @@ mod whatsnew;
 mod win;
 
 fn main() {
+    unsafe { std::env::remove_var("ELECTRON_RUN_AS_NODE") };
     app::run();
 }

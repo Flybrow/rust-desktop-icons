@@ -1,5 +1,6 @@
 pub mod clip;
 mod data;
+pub mod details;
 mod dnd;
 pub mod hide;
 mod icons;
@@ -29,7 +30,10 @@ use windows::{
         Globalization::GetUserDefaultLocaleName,
         Storage::FileSystem::*,
         System::Com::CoTaskMemFree,
-        UI::{Shell::*, WindowsAndMessaging::SW_SHOWNORMAL},
+        UI::{
+            Shell::*,
+            WindowsAndMessaging::{ASFW_ANY, AllowSetForegroundWindow, SW_SHOWNORMAL},
+        },
     },
     core::*,
 };
@@ -86,11 +90,21 @@ pub fn info(p: &Path) -> (i32, Vec<u16>) {
     let w = wide_path(p);
     let flags = SHGFI_SYSICONINDEX | SHGFI_DISPLAYNAME;
     unsafe { SHGetFileInfoW(PCWSTR(w.as_ptr()), FILE_FLAGS_AND_ATTRIBUTES(0), Some(&mut i), size_of::<SHFILEINFOW>() as u32, flags) };
-    let n = i.szDisplayName.iter().position(|&c| c == 0).unwrap_or(i.szDisplayName.len());
-    (i.iIcon, i.szDisplayName[..n].to_vec())
+    (i.iIcon, crate::win::until_nul(&i.szDisplayName).to_vec())
 }
 
 pub fn open(p: &Path) {
-    let w = crate::domain::system::Sys::of(p).map_or_else(|| wide_path(p), |s| wide_path(Path::new(s.folder())));
-    unsafe { ShellExecuteW(None, w!("open"), PCWSTR(w.as_ptr()), None, None, SW_SHOWNORMAL) };
+    let sys = crate::domain::system::Sys::of(p);
+    let w = sys.map_or_else(|| wide_path(p), |s| wide_path(Path::new(s.folder())));
+    let dir = p.parent().filter(|_| sys.is_none() && p.is_file()).map(wide_path);
+    let mut info = SHELLEXECUTEINFOW {
+        cbSize: size_of::<SHELLEXECUTEINFOW>() as u32,
+        fMask: SEE_MASK_FLAG_LOG_USAGE,
+        lpFile: PCWSTR(w.as_ptr()),
+        lpDirectory: dir.as_ref().map_or(PCWSTR::null(), |d| PCWSTR(d.as_ptr())),
+        nShow: SW_SHOWNORMAL.0,
+        ..Default::default()
+    };
+    let _ = unsafe { AllowSetForegroundWindow(ASFW_ANY) };
+    let _ = unsafe { ShellExecuteExW(&mut info) };
 }

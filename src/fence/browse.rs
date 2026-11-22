@@ -1,4 +1,4 @@
-use super::{WM_CHANGED, bind, fence_of, layout, read, to_client, view};
+use super::{WM_CHANGED, bind, layout, read, to_client, view};
 use crate::{
     domain::{Tab, system::Sys},
     shell,
@@ -11,7 +11,7 @@ pub(super) fn current(h: HWND) -> Option<PathBuf> {
 }
 
 pub(super) fn tab(h: HWND, tab: Tab) -> Tab {
-    let active = fence_of(h).is_some_and(|f| f.active().id == tab.id);
+    let active = read(h, |f| f.active().id == tab.id) == Some(true);
     match current(h).filter(|_| active) {
         Some(dir) => tab.browsing(dir),
         None => tab,

@@ -26,8 +26,7 @@ pub fn info(s: Sys) -> (i32, Vec<u16>) {
             CoTaskMemFree(Some(pidl as _));
         }
     }
-    let n = i.szDisplayName.iter().position(|&c| c == 0).unwrap_or(0);
-    (i.iIcon, i.szDisplayName[..n].to_vec())
+    (i.iIcon, crate::win::until_nul(&i.szDisplayName).to_vec())
 }
 
 pub fn name(s: Sys) -> String {

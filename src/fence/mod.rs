@@ -3,7 +3,9 @@ mod anim;
 mod arrange;
 mod browse;
 mod cell;
+mod columns;
 mod desks;
+mod detail;
 mod drop;
 mod edit;
 mod field;
@@ -18,9 +20,11 @@ mod keys;
 mod layout;
 mod loader;
 mod menu;
+mod modes;
 mod moveto;
 mod native;
 mod nav;
+mod pacer;
 mod paint;
 mod peek;
 mod select;
@@ -37,6 +41,7 @@ use crate::{
     domain::{Fence, icons},
     win::*,
 };
+use modes::{metrics, shape};
 use windows::{
     Win32::{
         Foundation::*,
@@ -63,7 +68,6 @@ const MK_CONTROL: usize = 0x0008;
 const TABS: usize = 64;
 const RELOAD: usize = 1;
 const PEEK: usize = 2;
-const ANIM: usize = 3;
 const PREPARE: usize = 5;
 const CARET: usize = 6;
 
@@ -128,20 +132,6 @@ pub fn restyle_all() {
     items::windows().into_iter().for_each(restyle);
 }
 
-fn metrics(h: HWND) -> (i32, i32) {
-    let look = read(h, |f| f.look.clone()).unwrap_or_default();
-    if look.list {
-        let icon = scale(h, look.icon.min(32));
-        return (icon + scale(h, 12), icon);
-    }
-    (scale(h, icons::cell(look.icon, look.labels.then_some(look.label_size), look.spacing)), scale(h, look.icon))
-}
-
-fn shape(h: HWND, gw: i32) -> cell::Cell {
-    let (ch, list) = (metrics(h).0, read(h, |f| f.look.list) == Some(true));
-    cell::Cell { w: if list { gw } else { ch }, h: ch, list }
-}
-
 pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {
     match m {
         WM_NCHITTEST => return LRESULT(layout::hit(h, lp) as isize),
@@ -189,15 +179,21 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
             tabs::hover(h, xy(lp));
         }
         WM_NCRBUTTONUP if wp.0 as u32 == HTCAPTION => peek::keep_open(h, || crate::undo::step(|| menu::context(h))),
+        WM_LBUTTONDBLCLK if crate::undo::step(|| columns::down(h, xy(lp))) => {}
         WM_LBUTTONDBLCLK => items::item_at(h, xy(lp)).iter().for_each(|p| browse::open(h, p, wp.0 & MK_CONTROL != 0)),
-        WM_LBUTTONDOWN => crate::undo::step(|| select::down(h, xy(lp), wp.0 & MK_CONTROL != 0)),
-        WM_LBUTTONUP | WM_CAPTURECHANGED => select::up(h),
+        WM_LBUTTONDOWN => crate::undo::step(|| {
+            if !columns::down(h, xy(lp)) {
+                select::down(h, xy(lp), wp.0 & MK_CONTROL != 0);
+            }
+        }),
+        WM_LBUTTONUP | WM_CAPTURECHANGED if !columns::up(h) => select::up(h),
+        WM_SETCURSOR if (lp.0 & 0xFFFF) as u32 == HTCLIENT && columns::cursor(h) => return LRESULT(1),
         WM_CONTEXTMENU => peek::keep_open(h, || crate::undo::step(|| menu::context(h))),
         WM_MOUSEMOVE => {
             track_leave(h);
             tabs::off_bar(h);
             peek::enter(h);
-            if !select::track(h, xy(lp)) {
+            if !columns::track(h, xy(lp)) && !select::track(h, xy(lp)) {
                 items::hover(h, items::index_at(h, xy(lp)));
             }
         }
@@ -213,6 +209,7 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
             render(h);
         }
         WM_DESTROY => {
+            pacer::leave(h);
             target::revoke(h);
             loader::discard(h);
         }
@@ -227,7 +224,7 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
             items::refresh(h);
         }
         WM_TIMER if wp.0 == PEEK => peek::check(h),
-        WM_TIMER if wp.0 == ANIM => anim::tick(h),
+        pacer::WM_FRAME => anim::tick(h),
         WM_TIMER if wp.0 == PREPARE => paint::prepare(h),
         WM_TIMER if wp.0 == CARET => filter::blink(h),
         WM_COMMAND if (wp.0 >> 16) as u32 == EN_KILLFOCUS => edit::finish(h, true),

@@ -12,6 +12,7 @@ pub struct Item {
     pub name: Vec<u16>,
     pub icon: i32,
     pub thumb: Option<crate::shell::thumb::Thumb>,
+    pub info: Option<Box<crate::shell::details::Info>>,
 }
 
 pub struct Filter {
@@ -32,6 +33,7 @@ pub struct View {
     pub inside: bool,
     pub hold: bool,
     pub unroll: f32,
+    pub floor: i32,
     pub opening: bool,
     pub side: Side,
     pub glow: f32,
@@ -55,6 +57,8 @@ pub struct View {
     pub bar_tab: Option<usize>,
     pub selected: HashSet<PathBuf>,
     pub band: Option<((i32, i32), (i32, i32))>,
+    pub stale: bool,
+    pub resize: Option<(usize, Vec<crate::domain::columns::Column>, Vec<crate::domain::columns::Span>)>,
 }
 
 impl View {
@@ -72,6 +76,7 @@ impl View {
             hover: None,
             inside: false,
             hold: false,
+            floor: 0,
             unroll,
             opening: false,
             side: Side::default(),
@@ -96,6 +101,8 @@ impl View {
             bar_tab: None,
             selected: HashSet::new(),
             band: None,
+            resize: None,
+            stale: false,
         }
     }
 }

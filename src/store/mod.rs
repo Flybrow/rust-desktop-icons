@@ -4,8 +4,18 @@ use std::{
     ffi::OsStr,
     fs, io,
     path::{Path, PathBuf},
-    time::{SystemTime, UNIX_EPOCH},
+    sync::Mutex,
+    thread,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
+
+#[derive(Debug, PartialEq)]
+pub enum Damage {
+    SetAside(PathBuf),
+    Held(PathBuf),
+}
+
+static HELD: Mutex<Option<PathBuf>> = Mutex::new(None);
 
 pub fn root() -> PathBuf {
     env::var_os("LOCALAPPDATA").map_or_else(env::temp_dir, PathBuf::from).join("RustDesktopIcons")
@@ -19,7 +29,7 @@ pub fn tab_dir(t: &Tab) -> PathBuf {
     t.portal.clone().unwrap_or_else(|| fence_dir(t.id))
 }
 
-pub fn load() -> (Config, Option<PathBuf>) {
+pub fn load() -> (Config, Option<Damage>) {
     load_from(&root())
 }
 
@@ -31,20 +41,46 @@ fn parse(p: &Path) -> Option<Config> {
     Config::parse(&fs::read(p).ok()?).ok()
 }
 
-fn load_from(dir: &Path) -> (Config, Option<PathBuf>) {
+fn read(p: &Path) -> io::Result<Vec<u8>> {
+    let mut last = fs::read(p);
+    for _ in 0..10 {
+        match &last {
+            Err(e) if e.kind() != io::ErrorKind::NotFound => thread::sleep(Duration::from_millis(200)),
+            _ => break,
+        }
+        last = fs::read(p);
+    }
+    last
+}
+
+fn hold(main: PathBuf) -> Option<Damage> {
+    *HELD.lock().unwrap_or_else(|e| e.into_inner()) = Some(main.clone());
+    Some(Damage::Held(main))
+}
+
+fn load_from(dir: &Path) -> (Config, Option<Damage>) {
     let (main, bak) = (dir.join("config.json"), dir.join("config.json.bak"));
-    if let Some(c) = parse(&main) {
+    let fallback = || parse(&bak).unwrap_or_default().sanitized();
+    let bytes = match read(&main) {
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return (fallback(), None),
+        Err(_) => return (fallback(), hold(main)),
+        Ok(b) => b,
+    };
+    if let Ok(c) = Config::parse(&bytes) {
         return (c.sanitized(), None);
     }
-    let bad = main.exists().then(|| {
-        let secs = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs());
-        let bad = dir.join(format!("config.json.bad-{secs}"));
-        fs::rename(&main, &bad).map(|_| bad)
-    });
-    (parse(&bak).unwrap_or_default().sanitized(), bad.and_then(Result::ok))
+    let secs = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs());
+    let bad = dir.join(format!("config.json.bad-{secs}"));
+    match fs::rename(&main, &bad) {
+        Ok(()) => (fallback(), Some(Damage::SetAside(bad))),
+        Err(_) => (fallback(), hold(main)),
+    }
 }
 
 fn save_to(dir: &Path, c: &Config) -> io::Result<()> {
+    if HELD.lock().unwrap_or_else(|e| e.into_inner()).as_deref() == Some(&dir.join("config.json")) {
+        return Err(io::Error::other("config.json is kept as it was: restart to save again"));
+    }
     fs::create_dir_all(dir)?;
     let (tmp, main) = (dir.join("config.json.tmp"), dir.join("config.json"));
     let mut f = fs::File::create(&tmp)?;

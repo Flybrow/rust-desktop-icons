@@ -26,9 +26,11 @@ struct Batch(Vec<(u64, u64, Vec<Item>)>);
 
 fn meta(p: &Path) -> Meta {
     let md = fs::metadata(p).ok();
-    let modified = md.as_ref().and_then(|m| m.modified().ok()).and_then(|t| t.duration_since(UNIX_EPOCH).ok()).map_or(0, |d| d.as_secs());
+    let secs =
+        |t: std::io::Result<std::time::SystemTime>| t.ok().and_then(|t| t.duration_since(UNIX_EPOCH).ok()).map_or(0, |d| d.as_secs());
+    let (modified, created) = md.as_ref().map_or((0, 0), |m| (secs(m.modified()), secs(m.created())));
     let (dir, size) = md.as_ref().map_or((false, 0), |m| (m.is_dir(), m.len()));
-    Meta { name: store::name(p), dir, modified, size }
+    Meta { name: store::name(p), dir, modified, created, size }
 }
 
 fn shown(tab: &Tab, p: &Path) -> bool {
@@ -41,7 +43,7 @@ fn thumb(p: &Path, size: Option<i32>) -> Option<crate::shell::thumb::Thumb> {
     size.filter(|_| kind::thumbable(ext)).and_then(|s| crate::shell::thumb::thumbnail(p, s))
 }
 
-fn load(tab: &Tab, thumbs: Option<i32>) -> Vec<Item> {
+fn load(tab: &Tab, (thumbs, rich): (Option<i32>, bool)) -> Vec<Item> {
     let paths: Vec<PathBuf> = tab
         .system
         .iter()
@@ -50,11 +52,12 @@ fn load(tab: &Tab, thumbs: Option<i32>) -> Vec<Item> {
         .chain(tab.pins.iter().map(|p| p.path.clone()).filter(|p| p.exists()))
         .collect();
     let metas: Vec<Meta> = paths.iter().map(|p| meta(p)).collect();
-    order::arrange(&metas, tab.sort, &tab.order)
+    order::arrange(&metas, (tab.sort, tab.desc), &tab.order)
         .into_iter()
         .map(|i| {
             let (icon, name) = Sys::of(&paths[i]).map_or_else(|| shell::info(&paths[i]), shell::system::info);
-            Item { path: paths[i].clone(), name, icon, thumb: thumb(&paths[i], thumbs) }
+            let info = (rich && Sys::of(&paths[i]).is_none()).then(|| Box::new(shell::details::info(&paths[i], &metas[i])));
+            Item { path: paths[i].clone(), name, icon, thumb: thumb(&paths[i], thumbs), info }
         })
         .collect()
 }
@@ -92,10 +95,18 @@ pub(super) fn request(h: HWND, tabs: Vec<Tab>) {
         return;
     };
     let hwnd = h.0 as isize;
-    let thumbs = read(h, |f| f.look.thumbs).unwrap_or(false).then(|| super::metrics(h).1);
+    let Some(look) = read(h, |f| f.look.clone()) else { return };
+    let jobs: Vec<(u64, Tab, (Option<i32>, bool))> = jobs
+        .into_iter()
+        .map(|(g, t)| {
+            let mode = t.mode(look.list);
+            let thumbs = look.thumbs.then(|| super::modes::metrics_of(h, &look, mode).1);
+            (g, t, (thumbs, mode.rich()))
+        })
+        .collect();
     thread::spawn(move || {
         let _ = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED) };
-        let loaded = std::panic::catch_unwind(|| jobs.into_iter().map(|(g, t)| (t.id, g, load(&t, thumbs))).collect());
+        let loaded = std::panic::catch_unwind(|| jobs.into_iter().map(|(g, t, how)| (t.id, g, load(&t, how))).collect());
         let batch = Box::new(Batch(loaded.unwrap_or_default()));
         let raw = Box::into_raw(batch);
         if unsafe { PostMessageW(Some(HWND(hwnd as _)), WM_LOADED, WPARAM(0), LPARAM(raw as isize)) }.is_err() {
@@ -128,7 +139,8 @@ pub(super) fn receive(h: HWND, lp: LPARAM) {
             }
             if id == active {
                 v.cache.retain(|(t, _)| *t != id);
-                v.selected.retain(|p| items.iter().any(|i| &i.path == p));
+                let present: std::collections::HashSet<&PathBuf> = items.iter().map(|i| &i.path).collect();
+                v.selected.retain(|p| present.contains(p));
                 let key = Some((id, v.browse.last().cloned()));
                 changed |= v.items != items || v.shown != key;
                 v.shown = key;

@@ -17,8 +17,9 @@ pub(super) fn show(h: HWND, paths: &[PathBuf], at: (i32, i32)) {
     let extended = key_down(VK_SHIFT);
     let Some(native) = menu::build(paths, extended) else { return };
     let (sub, mut targets) = moveto::submenu(h);
-    if let Some(label) = with(|a| a.t(T::MoveTo)) {
-        native.prepend(label, sub);
+    match with(|a| a.t(T::MoveTo)) {
+        Some(label) => native.prepend(label, sub),
+        None => _ = unsafe { windows::Win32::UI::WindowsAndMessaging::DestroyMenu(sub) },
     }
     let folder = paths.first().filter(|_| paths.len() == 1).and_then(|p| super::browse::folder(p));
     if let Some(label) = with(|a| a.t(T::OpenInFence)).filter(|_| folder.is_some()) {

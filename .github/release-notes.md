@@ -1,21 +1,22 @@
-## What's new in Rust Desktop Icons 1.1.0
+## What's new in Rust Desktop Icons 1.2.0
 
 ### New
 
-- **Icons hidden right inside File Explorer:** with "Keep files on the desktop", the icons you put in a fence are now hidden by File Explorer itself, like Fences does. They no longer flash after F5, a rename or a new file. If this cannot work on your PC, the previous method (one hidden cell in a corner) is used.
-- **Filter a fence as you type:** press Ctrl+F in a fence, click the magnifier of a portal, or use the fence menu. A search field appears in the title bar and only the matching icons stay (accents ignored). Enter opens the first one, Escape closes the filter.
-- **Privacy mode:** for screen sharing or people nearby, names become gray bars, icons plain squares and, if you want, titles dots. Choose when they come back: mouse over the fence, desktop in use, or never. Settings → Privacy, or the tray menu.
-- **List view:** "Show as a list" puts one item per row, a small icon with its name beside it. Works for fences and portals.
-- **Dark, light or automatic theme:** for the fences, menus, settings and dialogs. Automatic follows Windows. Colors you picked yourself are kept.
-- **Rounded corners:** square, 4, 6 or 8 px, for every fence or only one.
-- **Portal fences in one step:** "New portal fence…" in the tray menu and "Create an RDI portal fence…" in the desktop right-click menu create a fence that shows a folder.
-- **Back to the start when clicking elsewhere:** a folder opened inside a fence can close by itself when you click outside the fence.
-- **Hide all can leave the other desktop icons visible:** new option "Hide all: desktop icons too" in Settings → Desktop.
+- **Choose how each tab shows its items, like in File Explorer:** right-click a fence, open the new View menu and pick Icons, List, Details, Tiles or Content. The choice applies to the current tab only, so each tab of a fence can have its own view. This menu replaces "Show as a list" in the Appearance menu; Settings → Icons → "List view by default" still sets the view of tabs that have none.
+- **Details view with columns:** each item takes one row with its name, date modified, type and size, as in File Explorer. Click a column title to sort the items by that column; click it again to reverse the order.
+- **Tiles view:** a large icon with the name, the type and the size of the item written beside it.
+- **Content view:** one wide row per item, with the name and the type on the left and the date modified and the size on the right.
+- **Sort by date created:** a new choice in the fence menu → Sort by, next to name, type, date modified and size.
+
+### Improvements
+
+- **Smoother roll up and unroll:** the animation of a rolled fence now runs at the refresh rate of your screen, with evenly spaced frames. The small jolt at the start of each unroll is gone.
+- **The magnifier of a portal now sits at the end of its own tab:** in a fence with several tabs, it used to sit at the far end of the title bar, over another tab, even though it filters the active tab.
 
 ### Fixes
 
-- **Sharp icons at every size:** icons resized with Ctrl+wheel or the icon size setting are no longer blurry or jagged between the sizes Windows provides.
-- **Chinese, Japanese and Korean titles in a side bar** are stacked upright, top to bottom, instead of being turned sideways. Thanks to @asir66 for this contribution.
-- **A rolled fence switched to a vertical title** is drawn correctly at once, not only after it has been unrolled.
-- **Rolled fences keep their rounded corners** on all four sides.
-- **Faster after an Explorer restart:** hidden icons show for a fraction of a second instead of up to 3 seconds.
+- **A rolled fence stays open when you open a smaller folder inside it:** the fence used to shrink, leave the mouse outside, then roll up and go back to its own items.
+- **No more crash with a very narrow side-bar fence:** a fence with its title bar on the side, shown as a list and made very narrow, could close the app.
+- **A settings file that cannot be read is never overwritten:** if the file is locked by another program when the app starts, the app now says so and saves nothing until it is restarted, instead of replacing your layout.
+- **"Start with Windows" and update messages tell the truth:** the option only stays ticked when Windows accepted it, and a failed update download now says so instead of "Could not check for updates".
+- **Clearing "Filter files…" now shows every file again:** emptying the field and pressing Enter used to keep the old filter. The field also no longer starts with `*.pdf`, so opening it and clicking elsewhere no longer sets a filter by mistake.

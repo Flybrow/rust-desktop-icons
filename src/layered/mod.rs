@@ -105,6 +105,17 @@ impl Frame {
         gray(self.mask.px());
     }
 
+    pub fn dim(&mut self, (x0, y0, x1, y1): (i32, i32, i32, i32), k: u32) {
+        let (w, h) = (self.w, self.h);
+        let px = self.mask.px();
+        let (x0, x1) = (x0.clamp(0, w), x1.clamp(0, w));
+        for y in y0.max(0)..y1.min(h) {
+            for p in &mut px[(y * w + x0) as usize..(y * w + x1.max(x0)) as usize] {
+                *p = (*p & 0xFF) * k / 255;
+            }
+        }
+    }
+
     pub fn sync(&self) {
         let _ = unsafe { GdiFlush() };
     }
@@ -217,5 +228,17 @@ mod tests {
         assert!(a.canvas.px().iter().any(|p| *p != 0xFF_20_30_40));
         assert_eq!(a.canvas.px(), c.canvas.px());
         assert_eq!(labels.key, 7);
+    }
+
+    #[test]
+    fn dimming_an_inverted_or_outside_rect_is_harmless() {
+        let mut f = frame_with_text();
+        let before = f.mask.px().to_vec();
+        f.dim((80, 0, 20, 60), 100);
+        f.dim((-50, -10, -5, 70), 100);
+        f.dim((130, 0, 200, 60), 100);
+        assert_eq!(f.mask.px().to_vec(), before);
+        f.dim((0, 0, 120, 60), 0);
+        assert!(f.mask.px().iter().all(|p| *p == 0));
     }
 }

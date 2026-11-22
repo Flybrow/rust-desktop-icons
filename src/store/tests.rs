@@ -19,8 +19,27 @@ fn save_then_load() {
     fs::write(d.join("config.json"), "{broken").unwrap();
     let (restored, bad) = load_from(&d);
     assert_eq!(restored, c);
-    assert_eq!(fs::read_to_string(bad.unwrap()).unwrap(), "{broken");
+    let Some(Damage::SetAside(bad)) = bad else { panic!("not set aside") };
+    assert_eq!(fs::read_to_string(bad).unwrap(), "{broken");
     assert!(!d.join("config.json").exists());
+    fs::remove_dir_all(d).unwrap();
+}
+
+#[test]
+fn a_config_that_cannot_be_read_is_never_overwritten() {
+    use std::os::windows::fs::OpenOptionsExt;
+    let d = tmp("held");
+    let mut c = Config::default();
+    c.fences.push(Fence::new(4, "Kept", (0, 0, 300, 200), Look::default()));
+    save_to(&d, &c).unwrap();
+    save_to(&d, &c).unwrap();
+    let lock = fs::OpenOptions::new().read(true).share_mode(0).open(d.join("config.json")).unwrap();
+    let (restored, damage) = load_from(&d);
+    assert_eq!((restored, damage), (c.clone(), Some(Damage::Held(d.join("config.json")))));
+    drop(lock);
+    assert!(save_to(&d, &Config::default()).is_err());
+    assert_eq!(parse(&d.join("config.json")), Some(c));
+    *HELD.lock().unwrap() = None;
     fs::remove_dir_all(d).unwrap();
 }
 
@@ -79,12 +98,12 @@ fn interrupted_saves_never_lose_the_config() {
     save_to(&d, &c).unwrap();
     fs::write(d.join("config.json"), "").unwrap();
     let (restored, bad) = load_from(&d);
-    assert_eq!((restored, bad.is_some()), (c.clone(), true));
+    assert_eq!((restored, matches!(bad, Some(Damage::SetAside(_)))), (c.clone(), true));
     for junk in ["", "null", "[]", "{\"fences\": 5}", "\u{feff}"] {
         let e = tmp("junk");
         fs::write(e.join("config.json"), junk).unwrap();
         let (cfg, bad) = load_from(&e);
-        assert_eq!((cfg, bad.is_some()), (Config::default().sanitized(), true), "{junk:?}");
+        assert_eq!((cfg, matches!(bad, Some(Damage::SetAside(_)))), (Config::default().sanitized(), true), "{junk:?}");
         fs::remove_dir_all(e).unwrap();
     }
     fs::remove_dir_all(d).unwrap();

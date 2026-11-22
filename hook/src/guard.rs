@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicIsize, AtomicU32, Ordering::SeqCst};
 use windows::{
     Win32::{
-        Foundation::{HANDLE, HMODULE, HWND, LPARAM, LRESULT, WAIT_TIMEOUT, WPARAM},
+        Foundation::{CloseHandle, HANDLE, HMODULE, HWND, LPARAM, LRESULT, WAIT_TIMEOUT, WPARAM},
         System::{LibraryLoader::*, Threading::*},
         UI::WindowsAndMessaging::*,
     },
@@ -10,6 +10,7 @@ use windows::{
 
 static PID: AtomicU32 = AtomicU32::new(0);
 static PROC: AtomicIsize = AtomicIsize::new(0);
+static WAIT: AtomicIsize = AtomicIsize::new(0);
 static WINDOW: AtomicIsize = AtomicIsize::new(0);
 pub static DEFVIEW: AtomicIsize = AtomicIsize::new(0);
 const DIED: u32 = WM_APP + 1;
@@ -69,7 +70,16 @@ pub fn watch(pid: u32) {
         return;
     }
     if let Some(w) = crate::exit::watch(pid, Some(died)) {
-        PROC.store(w.process.0 as isize, SeqCst);
+        let (process, wait) = (w.process.0 as isize, w.wait.0 as isize);
         std::mem::forget(w);
+        let (old, waited) = (PROC.swap(process, SeqCst), WAIT.swap(wait, SeqCst));
+        unsafe {
+            if waited != 0 {
+                let _ = UnregisterWait(HANDLE(waited as _));
+            }
+            if old != 0 {
+                let _ = CloseHandle(HANDLE(old as _));
+            }
+        }
     }
 }

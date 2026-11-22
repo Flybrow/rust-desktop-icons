@@ -37,13 +37,15 @@ pub(super) fn put(h: HWND, fence: u64, tab: &Tab, paths: Vec<PathBuf>, force: bo
     let dir = store::tab_dir(tab);
     let is = |q: Option<&Path>, d: &Path| q.is_some_and(|q| shell::same_path(q, d));
     if keep::on() && tab.portal.is_none() {
-        let desk = shell::desktop();
-        let to_desk = |p: PathBuf| match &desk {
-            Some(d) if force && shell::on_desktop(&p).is_none() && !store::in_fences(&p) => store::move_into(&p, d).unwrap_or(p),
-            _ => p,
+        let (desk, mut errors) = (shell::desktop(), vec![]);
+        let mut to_desk = |p: PathBuf| match &desk {
+            Some(d) if force && shell::on_desktop(&p).is_none() && !store::in_fences(&p) => {
+                store::move_into(&p, d).map_err(|e| errors.push(format!("{} ({e})", store::name(&p)))).ok()
+            }
+            _ => Some(p),
         };
-        let moving: Vec<PathBuf> = paths.into_iter().filter(|p| !tab.pinned(p)).map(to_desk).collect();
-        let errors = keep::place(&moving, fence, tab.id);
+        let moving: Vec<PathBuf> = paths.into_iter().filter(|p| !tab.pinned(p)).filter_map(&mut to_desk).collect();
+        errors.extend(keep::place(&moving, fence, tab.id));
         reload_all();
         return report::failures(T::ErrMove, &errors);
     }

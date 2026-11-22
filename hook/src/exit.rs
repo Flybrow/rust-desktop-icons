@@ -5,7 +5,7 @@ use windows::Win32::{
 
 pub struct Watch {
     pub process: HANDLE,
-    wait: HANDLE,
+    pub wait: HANDLE,
 }
 
 impl Drop for Watch {

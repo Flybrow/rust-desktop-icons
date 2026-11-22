@@ -28,12 +28,12 @@ Organize your Windows desktop into beautiful, translucent groups of icons. Tiny,
 | --- | --- |
 | 🪟 **Translucent fences** | Semi-transparent groups that sit on your desktop, behind every window, with square or rounded corners (4, 6 or 8 px) |
 | 🌗 **Dark, light or automatic** | Fences, menus, settings and popups in a dark or light theme, or following Windows |
-| 🎨 **Make it yours** | Any color, opacity, icon size and tint, name size and color, icon spacing, icons aligned left, centered or right, chameleon mode, compact view without names, list view (one item per row), rename, resize, lock. Settings apply to every fence; any fence can override them from its right-click menu |
+| 🎨 **Make it yours** | Any color, opacity, icon size and tint, name size and color, icon spacing, icons aligned left, centered or right, chameleon mode, compact view without names, the File Explorer views per tab (icons, list, details with sortable and resizable columns, tiles, content), rename, resize, lock. Settings apply to every fence; any fence can override them from its right-click menu |
 | 🧲 **Snapping** | Fences line up with each other (with guide lines), keep equal spacing and resize to whole rows and columns of icons; hold **Alt** to move freely |
 | 📜 **Roll up** | A rolled fence shows only its title and unrolls on hover, away from the screen edge (upward near the bottom) |
 | ↔️ **Vertical fences** | Put the title on the side and park the fence on a screen edge: it unrolls toward the middle |
 | 🗂️ **Tabs and portals** | Several tabs per fence; a portal fence or tab shows any folder of your PC; folders open right inside the fence and can close when you click elsewhere |
-| 🔎 **Filter as you type** | **Ctrl+F** in a fence (or the magnifier of a portal) shows a search field in its title bar: only the matching icons stay |
+| 🔎 **Filter as you type** | **Ctrl+F** in a fence (or the magnifier of a portal tab) shows a search field in its title bar: only the matching icons stay |
 | 🔗 **Groups and virtual desktops** | Group fences so they move together; show a fence on every virtual desktop or only on one |
 | 🧹 **Sorting rules** | New desktop files go to the right fence automatically (apps, games, images, documents…); an "Everything else" rule makes any fence an inbox. Rules by name (`invoice*.pdf`) and by age (move items not modified for 30 days to an archive fence). New files never land hidden behind a fence |
 | 👀 **Peek and search** | A shortcut (Ctrl+Alt+Space by default, customizable) brings your fences above all windows; start typing to search every fence, or press Ctrl+Alt+F. Optional shortcuts to hide everything, create a fence or open the settings |
@@ -81,13 +81,13 @@ updates are automatic again afterwards.
 | Move / resize | Drag the title bar / drag an edge (hold **Alt** to turn off snapping) |
 | Peek | **Ctrl+Alt+Space** (change it in Settings → Keyboard shortcuts); **Esc** or a click outside ends it |
 | Search | Type while peeking, or **Ctrl+Alt+F**, or tray icon → **Search…**; **Enter** opens the item |
-| Filter a fence | **Ctrl+F** in it, its menu → **Filter the icons**, or the magnifier at the end of a portal's title bar; type, **Enter** opens the first match, **Esc** or ✕ closes the filter |
+| Filter a fence | **Ctrl+F** in it, its menu → **Filter the icons**, or the magnifier at the end of a portal tab in the title bar; type, **Enter** opens the first match, **Esc** or ✕ closes the filter |
 | Privacy mode | Tray icon → **Privacy mode**, or Settings → **Privacy** (what to mask and when to show it again) |
 | Theme | Settings → General → **Theme**: Dark, Light or Automatic (follows Windows) |
 | More shortcuts | Settings → **Keyboard shortcuts**: hide/show everything, new fence, open the settings (none by default) |
 | Hide everything | Turn on Settings → Desktop → **Hide all on desktop double-click**, then double-click an empty spot of the desktop (**Hide all: desktop icons too** decides whether the other desktop icons hide as well) |
 | Show names / compact view | Right-click a fence → **Appearance** → **Show names** |
-| List view | Settings → Icons → **Show as a list**, or per fence from its Appearance menu |
+| Views | Right-click a fence → **View** → Icons, List, Details, Tiles or Content (each tab keeps its own). In Details, click a column title to sort (again to reverse), drag its edge to resize it, right-click the titles to show or hide columns. Settings → Icons → **List view by default** sets the view of tabs that have none |
 | Corners | Settings → Default appearance → **Corners** (square, 4, 6 or 8 px), or per fence from its Appearance menu |
 | Thumbnails | Pictures, videos and PDFs show a preview; turn off in Settings → Icons or right-click → **Appearance** → **Show thumbnails** |
 | Title bar | Settings → **Title bar** (alignment, size, color, show on hover), or right-click → **Appearance** → **Title bar** |
@@ -95,7 +95,7 @@ updates are automatic again afterwards.
 | Filtered portal | Right-click a fence → **Tabs** → **Filter files…** (`*.pdf; *.jpg`) |
 | Names and spacing | Right-click a fence → **Appearance** → **Name size**, **Name color**, **Icon spacing**, or Settings → Icons for every fence |
 | Icon alignment | Right-click a fence → **Appearance** → **Icon alignment** (left, centered, right), or Settings for every fence |
-| Sort | Right-click a fence → **Sort by** (name, type, date, size or your own order) |
+| Sort | Right-click a fence → **Sort by** (name, type, date modified, date created, size or your own order) |
 | Inbox | Right-click a fence → **Sorting rules** → **Everything else** |
 | Rules by name / age | Settings → **Sorting rules**: send new files matching `invoice*.pdf` to a fence; move items not modified for N days to another fence |
 | Duplicate a fence | Right-click it → **Duplicate**: same look, size and tabs (names, rules, sort, portals), placed next to it, without the files |
@@ -157,7 +157,7 @@ End-to-end checks on a real desktop (isolated data, test files only): `cargo bui
 `cargo run --example update_e2e`, `cargo run --example layout_e2e [-- --desktop]`, `cargo run --example peek_e2e`,
 `menu_e2e`, `actions_e2e` (every fence and item menu command), `settings_e2e` (every settings page), `tray_e2e`, `features_e2e`,
 `rules_e2e`, `browse_e2e` (folders and folder shortcuts opened inside fences), `display_e2e`, `filter_e2e`, `look_e2e` (corners, list view,
-search field, theme and privacy mode as drawn), `undo_e2e`, `recover_e2e`,
+search field, theme and privacy mode as drawn), `views_e2e` (details, tiles and content views, column headers), `perf_e2e` (animation smoothness, run with the release build), `undo_e2e`, `recover_e2e`,
 `load_e2e` (41 fences, 3,800 files), `soak_e2e` (resources stay flat), `vdesk_e2e` (creates and closes a temporary virtual desktop)
 and `uninstall_e2e`. They move the mouse and press keys:
 don't touch the PC while they run. CI runs the ones that need no input on every push.

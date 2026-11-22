@@ -3,6 +3,7 @@ use crate::{
     app::{App, with},
     domain::{
         Fence, Zone, anim,
+        columns::Mode,
         grid::{self, Flow},
         side::{self, Geo, Side},
         zone,
@@ -28,7 +29,7 @@ pub(super) fn side(h: HWND) -> Side {
 }
 
 pub(super) fn geo(h: HWND, size: (i32, i32)) -> Geo {
-    Geo { side: side(h), size, bar: bar(h), gap: scale(h, GAP) }
+    Geo { side: side(h), size, bar: bar(h), gap: scale(h, GAP), head: super::modes::head(h) }
 }
 
 pub(super) fn geo_now(h: HWND) -> Geo {
@@ -36,11 +37,10 @@ pub(super) fn geo_now(h: HWND) -> Geo {
     geo(h, (r.right, r.bottom))
 }
 
-pub(super) fn flow(a: &mut App, h: HWND, w: i32, cell: i32) -> Option<Flow> {
-    let (align, list) = a.fence_of(h).map(|f| (f.look.align, f.look.list))?;
+pub(super) fn flow(a: &mut App, h: HWND, w: i32, c: cell::Cell) -> Option<Flow> {
+    let align = a.fence_of(h).map(|f| f.look.align)?;
     let v = a.view(h)?;
-    let cw = if list { w } else { cell };
-    Some(Flow { w, cell, cw, n: v.items.len(), align: if v.side == Side::Right { align.mirrored() } else { align } })
+    Some(Flow { w, cell: c.h, cw: c.w, n: v.items.len(), align: if v.side == Side::Right { align.mirrored() } else { align } })
 }
 
 pub(super) fn chrome(h: HWND, vertical: bool) -> i32 {
@@ -49,7 +49,7 @@ pub(super) fn chrome(h: HWND, vertical: bool) -> i32 {
 
 pub(super) fn tail(a: &mut App, h: HWND, w: i32, (cell, icon): (i32, i32)) -> i32 {
     let s = |v| scale(h, v);
-    if a.fence_of(h).is_some_and(|f| f.look.list) {
+    if a.fence_of(h).is_some_and(|f| f.mode() != Mode::Icons) {
         return cell + s(GAP);
     }
     let font = a.fence_of(h).is_some_and(|f| f.look.labels).then(|| label_font(a, h));
@@ -66,12 +66,14 @@ fn fit(h: HWND, f: &Fence, max: i32) -> i32 {
     let n = view(h, |v| v.items.len()).unwrap_or(0);
     let (m, min) = (metrics(h), scale(h, Fence::MIN.1));
     let cell = m.0;
-    match (f.vertical, f.look.auto_height && !(f.vertical && f.look.list)) {
+    let icons = f.mode() == Mode::Icons;
+    match (f.vertical, f.look.auto_height && !(f.vertical && !icons)) {
         (false, false) => f.h,
         (true, false) => f.w,
         (false, true) => {
             let tail = with(|a| tail(a, h, f.w, m)).unwrap_or(cell);
-            grid::fit(n, if f.look.list { cell } else { f.w }, (cell, tail), chrome(h, false), (min, max))
+            let chrome = chrome(h, false) + super::modes::head(h);
+            grid::fit(n, super::shape(h, f.w).span(f.w), (cell, tail), chrome, (min, max))
         }
         (true, true) => grid::fit_cols(n, f.h, cell, chrome(h, true), (min, max)),
     }
@@ -100,7 +102,12 @@ pub(super) fn reorient(h: HWND, f: &Fence) {
 pub(super) fn full(h: HWND, f: &Fence) -> i32 {
     let (pos, (lo, hi)) = spot(h, f);
     let room = if side(h).far() { pos + bar(h) - lo } else { hi - pos };
-    fit(h, f, room - scale(h, MARGIN))
+    let fit = fit(h, f, room - scale(h, MARGIN));
+    view(h, |v| {
+        v.floor = if f.rolled && v.unroll > 0. { v.floor.max(fit) } else { 0 };
+        v.floor.max(fit)
+    })
+    .unwrap_or(fit)
 }
 
 fn shape(f: &Fence, extent: i32) -> (i32, i32) {
@@ -112,8 +119,12 @@ pub(super) fn open_size(h: HWND, f: &Fence) -> (i32, i32) {
 }
 
 pub(super) fn size(h: HWND, f: &Fence) -> (i32, i32) {
-    let (p, opening) = progress(h, f);
-    shape(f, anim::height(bar(h), full(h, f), p, opening))
+    sizes(h, f).1
+}
+
+pub(super) fn sizes(h: HWND, f: &Fence) -> ((i32, i32), (i32, i32)) {
+    let ((p, opening), full) = (progress(h, f), full(h, f));
+    (shape(f, full), shape(f, anim::height(bar(h), full, p, opening)))
 }
 
 pub(super) fn origin(h: HWND, f: &Fence, (w, ht): (i32, i32)) -> (i32, i32) {

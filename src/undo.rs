@@ -19,12 +19,19 @@ fn now() -> Config {
 }
 
 pub fn step<R>(f: impl FnOnce() -> R) -> R {
-    let before = now();
-    HISTORY.with(|h| h.borrow_mut().begin(&before));
+    HISTORY.with(|h| h.borrow_mut().begin(now));
     let out = f();
-    let after = now();
-    HISTORY.with(|h| h.borrow_mut().end(&after));
+    HISTORY.with(|h| h.borrow_mut().end(now));
     out
+}
+
+pub fn snapshot() -> Config {
+    now()
+}
+
+pub fn since(before: Config) {
+    HISTORY.with(|h| h.borrow_mut().begin(|| before));
+    HISTORY.with(|h| h.borrow_mut().end(now));
 }
 
 fn note(op: Op) {

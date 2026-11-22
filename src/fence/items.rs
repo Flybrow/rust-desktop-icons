@@ -1,4 +1,4 @@
-use super::{fence_of, layout, loader, metrics, render, update, view};
+use super::{fence_of, layout, loader, render, update, view};
 use crate::app::with;
 use crate::domain::inherit::Field;
 use std::path::PathBuf;
@@ -31,13 +31,14 @@ pub(super) fn set_icon(h: HWND, px: i32) {
 }
 
 pub(super) fn index_at(h: HWND, (x, y): (i32, i32)) -> Option<usize> {
-    let (g, cell) = (layout::geo_now(h), metrics(h).0);
-    let (x0, y0, x1, y1) = g.body();
+    let g = layout::geo_now(h);
+    let shape = super::shape(h, g.grid_w());
+    let (x0, y0, x1, y1) = g.rows();
     let (cx, cy) = g.to_content((x, y));
     with(|a| {
-        let flow = layout::flow(a, h, g.grid_w(), cell)?;
+        let flow = layout::flow(a, h, g.grid_w(), shape)?;
         let v = a.view(h)?;
-        ((x0..x1).contains(&x) && (y0..y1).contains(&y)).then(|| flow.index_at((cx, cy + v.scroll)))?
+        ((x0..x1).contains(&x) && (y0..y1).contains(&y) && cy >= 0).then(|| flow.index_at((cx, cy + v.scroll)))?
     })
     .flatten()
 }

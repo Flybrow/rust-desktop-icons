@@ -45,7 +45,6 @@ fn changed(h: HWND, edit: impl FnOnce(&mut View)) {
     });
     wake(h);
     layout::apply(h);
-    render(h);
 }
 
 fn wake(h: HWND) {
@@ -90,8 +89,10 @@ pub(super) fn toggle(h: HWND) {
 
 pub(super) fn bar_click(h: HWND, screen: (i32, i32)) -> bool {
     let g = layout::geo_now(h);
-    let shown = active(h) || super::read(h, |f| f.active().portal.is_some()) == Some(true);
-    let hit = shown && g.along_bar(to_client(h, screen)).is_some_and(|a| a >= g.length() - g.bar);
+    let single = super::browse::current(h).is_some();
+    let end = super::read(h, |f| f.active().portal.is_some().then(|| super::header::loupe_end(g.length(), f, single))).flatten();
+    let end = if active(h) { Some(g.length()) } else { end };
+    let hit = end.is_some_and(|e| g.along_bar(to_client(h, screen)).is_some_and(|a| (e - g.bar..e).contains(&a)));
     if hit {
         toggle(h);
     }

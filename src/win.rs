@@ -65,6 +65,14 @@ pub fn scale(h: HWND, v: i32) -> i32 {
     v * unsafe { GetDpiForWindow(h) }.max(96) as i32 / 96
 }
 
+pub fn until_nul(buf: &[u16]) -> &[u16] {
+    &buf[..buf.iter().position(|&c| c == 0).unwrap_or(buf.len())]
+}
+
+pub fn unscale(h: HWND, v: i32) -> i32 {
+    v * 96 / scale(h, 96)
+}
+
 pub const WM_MOUSELEAVE: u32 = 0x02A3;
 
 pub fn xy(lp: LPARAM) -> (i32, i32) {

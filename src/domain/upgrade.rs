@@ -1,12 +1,13 @@
 use super::{Config, Fence, Kind, Sort, inherit::Field, system::Sys};
 use std::path::Path;
 
-pub(super) const FIXTURES: [(&str, &str); 5] = [
+pub(super) const FIXTURES: [(&str, &str); 6] = [
     ("0.1.0", include_str!("fixtures/v0.1.0.json")),
     ("0.7.0", include_str!("fixtures/v0.7.0.json")),
     ("0.7.14", include_str!("fixtures/v0.7.14.json")),
     ("0.8.1", include_str!("fixtures/v0.8.1.json")),
     ("0.9.4", include_str!("fixtures/v0.9.4.json")),
+    ("1.1.0", include_str!("fixtures/v1.1.0.json")),
 ];
 
 fn load(v: &str) -> Config {
@@ -81,4 +82,17 @@ fn v0_8_and_v0_9_desktop_state_survives() {
     assert_eq!((a.vertical, a.rolled, a.tabs[0].system.clone()), (true, true, vec![Sys::RecycleBin, Sys::ThisPc]));
     assert_eq!((b.look.icon, custom(b), b.tabs[0].portal.as_deref()), (64, vec![Field::Icon], Some(Path::new("C:\\Projets"))));
     assert_eq!((b.tabs[0].kinds.clone(), b.tabs[0].sort), (vec![Kind::Folders], Sort::Date));
+}
+
+#[test]
+fn v1_1_list_fences_keep_their_view_and_gain_columns() {
+    use super::{
+        Corner,
+        columns::{self, Mode},
+    };
+    let c = load("1.1.0");
+    let (a, b) = (fence(&c, 1), fence(&c, 3));
+    assert_eq!((a.look.list, a.look.corner, a.look.home, custom(a)), (false, Corner::Square, true, vec![Field::Corner, Field::Home]));
+    assert!(a.tabs.iter().all(|t| t.view == Some(Mode::List) && t.columns() == columns::defaults() && !t.desc));
+    assert_eq!((a.tabs[1].sort, b.active().mode(b.look.list)), (Sort::Date, Mode::Icons));
 }

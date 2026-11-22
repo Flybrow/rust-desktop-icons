@@ -19,6 +19,7 @@ use windows::Win32::{Foundation::*, UI::WindowsAndMessaging::*};
 pub const WM_UPDATE: u32 = WM_APP + 2;
 static AUTO: AtomicBool = AtomicBool::new(false);
 static BUSY: AtomicBool = AtomicBool::new(false);
+static ASKED: AtomicBool = AtomicBool::new(false);
 static QUEUED: AtomicBool = AtomicBool::new(false);
 static LATEST: AtomicU32 = AtomicU32::new(0);
 static DISMISSED: Mutex<Option<[u64; 3]>> = Mutex::new(None);
@@ -30,6 +31,7 @@ thread_local! {
 enum Msg {
     Current,
     Failed,
+    DownloadFailed,
     Available(Release),
     Progress,
     Installing,
@@ -49,9 +51,12 @@ pub fn enable(on: bool) {
 
 fn check(h: isize, manual: bool) {
     if BUSY.swap(true, Ordering::AcqRel) {
+        ASKED.fetch_or(manual, Ordering::AcqRel);
         return;
     }
-    let msg = match update::check() {
+    let found = update::check();
+    let manual = manual || ASKED.swap(false, Ordering::AcqRel);
+    let msg = match found {
         Ok(Some(r)) if manual || *DISMISSED.lock().unwrap_or_else(|e| e.into_inner()) != Some(r.version) => Some(Msg::Available(r)),
         Ok(Some(_)) => None,
         Ok(None) => manual.then_some(Msg::Current),
@@ -118,7 +123,7 @@ fn install() {
             Ok(p) => p,
             Err(e) => {
                 report::log(&format!("update download: {e}"));
-                return post(h, Msg::Failed);
+                return post(h, Msg::DownloadFailed);
             }
         };
         post(h, Msg::Installing);
@@ -145,6 +150,7 @@ pub fn received(lp: LPARAM) {
     match *unsafe { Box::from_raw(lp.0 as *mut Msg) } {
         Msg::Current => notice(t(T::UpToDate)),
         Msg::Failed => notice(t(T::UpdateFailed)),
+        Msg::DownloadFailed => notice(t(T::UpdateDownloadFailed)),
         Msg::Available(r) => offer(r),
         Msg::Progress => {
             QUEUED.store(false, Ordering::Release);

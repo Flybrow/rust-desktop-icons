@@ -49,12 +49,12 @@ pub(super) fn item(h: HWND, path: &PathBuf) {
         return;
     }
     let s = |v| scale(h, v);
-    let (cell, icon) = metrics(h);
+    let icon = metrics(h).1;
     let g = layout::geo_now(h);
     let shape = super::shape(h, g.grid_w());
     let Some((text, font, origin)) = with(|a| {
         let font = label_font(a, h);
-        let flow = layout::flow(a, h, g.grid_w(), cell)?;
+        let flow = layout::flow(a, h, g.grid_w(), shape)?;
         let v = a.view(h)?;
         let i = v.items.iter().position(|it| &it.path == path)?;
         let (x, y) = flow.origin(i);

@@ -119,8 +119,8 @@ proptest! {
     }
 
     #[test]
-    fn bar_side_mapping_round_trips(s in side(), w in 50..3000i32, h in 50..3000i32, bar in 0..60i32, gap in 0..30i32, x in -500..3000i32, y in -500..3000i32) {
-        let g = Geo { side: s, size: (w, h), bar, gap };
+    fn bar_side_mapping_round_trips(s in side(), w in 50..3000i32, h in 50..3000i32, bar in 0..60i32, gap in 0..30i32, head in 0..40i32, x in -500..3000i32, y in -500..3000i32) {
+        let g = Geo { side: s, size: (w, h), bar, gap, head };
         prop_assert_eq!(g.to_content(g.to_window((x, y))), (x, y));
         prop_assert_eq!(g.to_window(g.to_content((x, y))), (x, y));
         let (b, body) = (g.bar_rect(), g.body());
@@ -204,7 +204,7 @@ proptest! {
     }
 
     #[test]
-    fn damaged_real_configs_load_safely(which in 0..5usize, path in prop::collection::vec(0..12usize, 1..5), v in json()) {
+    fn damaged_real_configs_load_safely(which in 0..super::upgrade::FIXTURES.len(), path in prop::collection::vec(0..12usize, 1..5), v in json()) {
         let mut root: Value = serde_json::from_str(super::upgrade::FIXTURES[which].1).unwrap();
         let mut pointer = String::new();
         for k in path {

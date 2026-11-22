@@ -85,12 +85,18 @@ pub(super) fn moving(h: HWND, lp: LPARAM) {
 }
 
 fn grid(h: HWND, r: snap::Rect, sides: [bool; 4], a: snap::Rect) -> (Option<i32>, Option<i32>) {
-    let Some((vertical, auto, list)) = read(h, |f| (f.vertical, f.look.auto_height, f.look.list)) else { return (None, None) };
+    let Some((vertical, auto, list)) = read(h, |f| (f.vertical, f.look.auto_height, f.mode() != crate::domain::columns::Mode::Icons))
+    else {
+        return (None, None);
+    };
     let (cell, open) = (metrics(h).0, view(h, |v| v.unroll >= 1.) == Some(true));
     let room = |i: usize| if sides[i] { r[i + 2] - a[i] } else { a[i + 2] - r[i] };
     let along = |i: usize| (!list).then(|| snap::grid_len(r[i + 2] - r[i], 0, cell, scale(h, Fence::MIN.0), room(i)));
-    let across =
-        |i: usize| (open && !auto).then(|| snap::grid_len(r[i + 2] - r[i], layout::chrome(h, vertical), cell, layout::bar(h), room(i)));
+    let head = if vertical { 0 } else { super::modes::head(h) };
+    let across = |i: usize| {
+        (open && !auto && !(vertical && list))
+            .then(|| snap::grid_len(r[i + 2] - r[i], layout::chrome(h, vertical) + head, cell, layout::bar(h), room(i)))
+    };
     if vertical { (across(0), along(1)) } else { (along(0), across(1)) }
 }
 

@@ -26,6 +26,15 @@ pub fn check() -> Res<Option<Release>> {
     Ok(rel.newer_than(&current()).then_some(rel))
 }
 
+pub fn clean() {
+    for e in fs::read_dir(env::temp_dir()).into_iter().flatten().flatten() {
+        let name = e.file_name().to_string_lossy().to_lowercase();
+        if name.starts_with("rust-desktop-icons-") && name.ends_with(".msi") {
+            let _ = fs::remove_file(e.path());
+        }
+    }
+}
+
 pub fn download(rel: &Release, progress: impl FnMut(u64, u64)) -> Res<PathBuf> {
     let sum = String::from_utf8(net::get(&rel.sum, 1024)?)?;
     let msi = net::stream(&rel.msi, MAX_MSI, progress)?;

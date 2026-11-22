@@ -83,10 +83,6 @@ pub(super) fn mid(h: HWND) -> i32 {
     side + (w - side) / 2 + scale(h, 20)
 }
 
-fn unscale(h: HWND, v: i32) -> i32 {
-    v * 96 / scale(h, 96)
-}
-
 fn page_at(h: HWND, (x, y): (i32, i32)) -> Option<usize> {
     (x < scale(h, rows::SIDE)).then(|| rows::page_at(unscale(h, y - scale(h, rows::TOP + SIDE_TOP)))).flatten()
 }

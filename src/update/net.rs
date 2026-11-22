@@ -17,7 +17,7 @@ pub fn stream(url: &str, limit: u64, mut progress: impl FnMut(u64, u64)) -> Res<
         .call()?;
     let total = r.headers().get("content-length").and_then(|v| v.to_str().ok()?.parse().ok()).unwrap_or(0);
     let mut reader = r.body_mut().with_config().limit(limit).reader();
-    let (mut out, mut buf) = (vec![], vec![0u8; 64 << 10]);
+    let (mut out, mut buf) = (Vec::with_capacity((total as usize).min(limit as usize)), vec![0u8; 64 << 10]);
     loop {
         let n = reader.read(&mut buf)?;
         if n == 0 {

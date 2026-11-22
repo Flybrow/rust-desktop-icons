@@ -212,4 +212,13 @@ pub enum T {
     DListView,
     NewPortalFence,
     DesktopPortalVerb,
+    SortCreated,
+    ViewMode,
+    ModeIcons,
+    ModeList,
+    ModeDetails,
+    ModeTiles,
+    ModeContent,
+    ErrConfigHeld,
+    UpdateDownloadFailed,
 }

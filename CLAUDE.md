@@ -23,15 +23,17 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
 - Build: `cargo build --release`
 - MSI (local): needs WiX 5.0.2 (`dotnet tool install wix --version 5.0.2`) + `wix extension add -g WixToolset.UI.wixext/5.0.2 WixToolset.Util.wixext/5.0.2`:
   `wix build installer/main.wxs -d Version=0.1.0 -arch x64 -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext -o target/rdi.msi`
-- Release: bump `version` in Cargo.toml, write the changelog in English in `.github/release-notes.md` (release body + embedded in the exe, shown once after an update by `whatsnew.rs`), commit, push tag `vX.Y.Z` → `.github/workflows/release.yml` builds and publishes MSI + `.sha256`.
+- Release: bump `version` in Cargo.toml, write the changelog in English in `.github/release-notes.md` and in French in `.github/release-notes.fr.md` (release body + both embedded in the exe, shown once after an update by `whatsnew.rs`, whose test requires the version in the title), commit, push tag `vX.Y.Z` → `.github/workflows/release.yml` builds and publishes MSI + `.sha256`.
 
 ## Layout
 - `src/domain/` pure logic, all unit-tested: `model.rs` (Fence/Tab), `look.rs` (Look: colors, icons, names, title bar, wallpaper, thumbnails,
   `Corner` radius 0/4/6/8 px), `theme.rs` (`Theme` Dark/Light/Auto, `Config::retheme` swaps only the default fence color),
   `history.rs` (undo steps: config before + file ops, nesting, cap 20, `rebase` so an undo is never recorded), `config.rs` (Config, recycle placement), `kind.rs` (file types + game
   shortcut detection for rules; `Kind::Other` = "Everything else", the inbox rule `Config::rule_for` falls back to),
-  `order.rs` (per-tab sort + custom order), `anim.rs`, `grid.rs` (`Flow`: item positions with `Align` left/center/right,
-  last row included; `cw` is the column width (= `cell` for icons, the whole grid width for `Look.list`); build it with
+  `order.rs` (per-tab sort + custom order, `Tab.desc` reverses any sort but Custom),
+  `columns.rs` (per-tab view `Mode` Icons/List/Details/Tiles/Content: `Tab.view` None follows `look.list`; Details columns:
+  `Tab.columns` None = defaults, Name is implicit, first and takes the rest; `spans`/`edge`/`resize`/`toggle`, `click` sorts then reverses), `anim.rs`, `grid.rs` (`Flow`: item positions with `Align` left/center/right,
+  last row included; `cw` is the column width (`Cell.w`: the icon cell, 260 px tiles, or the whole grid width for List/Details/Content); build it with
   `fence::layout::flow`, which mirrors the alignment for right-side bars), `vertical.rs`
   (vertical title layout: a title with ideographic characters stacks every character upright top to bottom, `column` keeps one
   space per run and ends a cut title with "…"; Latin-only titles stay rotated sideways), `icons.rs`, `color.rs`, `zone.rs`,
@@ -44,7 +46,8 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   `stack.rs` (pure plan for "keep files on the desktop": hidden stack cell, icons to hide/show and where, `row` for drops),
   `inherit.rs` (look inheritance: `Fence.custom` lists the `Field`s changed on that fence; `Config::inherit` copies every
   other field from `Config.look`, run on load (legacy configs: fields that differ from the default become custom) and after
-  any Settings change; per-fence edits must go through `Fence::set(field, ..)`; `reset_look` clears overrides),
+  any Settings change; per-fence edits must go through `Fence::set(field, ..)`; `reset_look` clears overrides; a legacy `Field::List`
+  override becomes the `view` of the fence's tabs and is dropped, so `look.list` is only the default view for tabs without one),
   `hotkey.rs` (`Hotkey` mods/vk + label, reserved system combos rejected, `Slot` peek/search/hide all/new fence/settings:
   all configurable, never equal; `Config::key`/`set_key`/`sanitize_keys`),
   `matching.rs` (`glob` name patterns, `NameRule` (checked before kind rules), per-tab `Expire` age rule, `Config::targets`/`place_name`),
@@ -64,9 +67,10 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   `undo.rs` (`step(|| action)` around every user action entry point: fence/tray menus, drop, keys, moves, settings acts, prompts, rules;
   `store::move_into`, `link_into` and item renames note file ops; `undo()` moves files back in reverse (`revert`, unit-tested: never overwrites, skips what is gone, reports locked files) then `adopt(rewind)`; Ctrl+Z via `undo::shortcut`);
   `update/` updater: `release.rs` (pure, tested: GitHub release JSON, versions, notes, checksum, progress), `net.rs` (trusted
-  URLs only, streamed download with progress), `install.rs` (msiexec + relaunch chain; debug builds never install), `mod.rs` check/download.
+  URLs only, streamed download with progress), `install.rs` (msiexec + relaunch chain; debug builds never install), `mod.rs` check/download (`clean` deletes leftover `%TEMP%
+ust-desktop-icons-*.msi` at startup: a successful install kills the app before it can).
   `tray/updates.rs` drives it: auto (6 h) and manual checks open the themed popup (notes, Install / Later), download progress is
-  coalesced (`LATEST` + `QUEUED`, never one message per chunk). Debug `RDI_FAKE_VERSION=0.0.1` pretends to be old (E2E: `update_e2e`).
+  coalesced (`LATEST` + `QUEUED`, never one message per chunk); a manual check asked during an automatic one gets its answer (`ASKED`), download/checksum failures say so (`UpdateDownloadFailed`). Debug `RDI_FAKE_VERSION=0.0.1` pretends to be old (E2E: `update_e2e`).
 - `dialog/` themed popup (what's new, update available/progress, notices): `layout.rs` pure + tested, `paint.rs`, `mod.rs` window;
   notes are shown through `update::summary` (section titles + "Title — first sentence" per bullet, full notes behind "Read everything");
   the body height is a whole number of lines with a scrollbar, and the dialog and the settings window re-fit their screen on
@@ -109,8 +113,8 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   `PaintDesktop` only paints the primary monitor (use screen coordinates, not virtual-screen offsets, as `fence/wallpaper.rs` does).
 - `src/layered/` shared per-pixel window painting (`Frame`: text mask, compositing, present; `Dib`; `glyph.rs`
   Segoe MDL2 icon glyphs, also rendered to menu bitmaps via `App::entry`/`App::sub`).
-- `src/shell/` Win32 shell wrappers: `mod.rs` paths/icons/open, `reg.rs` registry (`reg_bytes`), `thumb.rs` (IShellItemImageFactory thumbnails, made in the loader thread for `kind::thumbable` files at the scaled icon size,
-  kept in `Item.thumb`, blitted with `render::blit_fit`), `vdesk.rs` virtual desktops
+- `src/shell/` Win32 shell wrappers: `mod.rs` paths/icons/open, `details.rs` (`Info`: local dates, type name, sizes; loaded only for rich modes), `reg.rs` registry (`reg_bytes`), `thumb.rs` (IShellItemImageFactory thumbnails, made in the loader thread for `kind::thumbable` files at the scaled icon size,
+  stored at most at that size (`render::shrink`) in `Item.thumb`, blitted with `render::blit_fit`), `vdesk.rs` virtual desktops
   (current + ids from HKCU VirtualDesktops, Win10 SessionInfo fallback, names), `pick.rs` folder/JSON file dialogs,
   `menu.rs` (item context menu: `Pick::Shell`/`Own`, our ids from `OWN`, `prepend` adds "Move to"), `link.rs` (`link_target`, `folder_target`, `link_into`), `watch.rs` (+ `notify_moved` after every move), `dnd.rs`,
   `system.rs` (system icons: Recycle Bin, This PC, User's Files, Network, Control Panel as `::{CLSID}` items,
@@ -118,21 +122,23 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   (`drag_out` = OLE drag via SHDoDragDrop with our IDropSource: a drop on the desktop can be cancelled
   for Explorer and handled by the app; the app calls OleInitialize). The keeper never calls Explorer while a mouse button is down.
   E2E helpers shared by the examples live in `examples/support`.
-- `src/fence/` fence window: `mod.rs` proc, `layout.rs` geometry, `items.rs` icons, `paint.rs` + `header.rs` rendering,
-  `cell.rs` (`Cell` w/h/list: icon, label, tile and text flags of one item; `fence::shape` builds it; list rows put a small icon
-  (max 32 px) left of a one-line name; grid helpers get `Cell::span` so a list has one column),
+- `src/fence/` fence window: `mod.rs` proc, `layout.rs` geometry, `items.rs` icons, `paint/` (`mod.rs` render/store/prepare, `compose.rs` one fence frame, `marks.rs` hover/selection tiles, privacy masks, rubber band, scrollbar) + `header.rs` rendering,
+  `cell.rs` (`Cell` w/h/mode/name_w/line: icon, label, tile and text flags of one item; list rows put a small icon
+  (max 32 px) left of a one-line name; grid helpers get `Cell::span` (columns x row height)), `modes.rs` (`mode`, `metrics`, `shape`, `head`,
+  `spans` of the active tab), `detail.rs` (secondary lines: Details columns, Tiles type/size, Content date/size, dimmed in the mask),
+  `columns.rs` (Details header: click sorts, edge drag resizes (`View.resize`, saved on release), right-click toggles columns, paint),
   `tabs.rs` tabs/portals, `anim.rs` unroll + chameleon fade, `peek.rs` hover, `menu.rs`, `actions.rs`, `title.rs` rename,
   `drop.rs` (from outside / onto a tab header / reorder inside a tab), `target.rs` (IDropTarget; an item under the cursor
   that accepts drops gets it through its own shell IDropTarget; drags of items already in fences only go into folders), `select.rs` (click,
   Ctrl+click, rubber band, drag out), `arrange.rs` (per-tab sort and rules submenus), `browse.rs` (folders and folder shortcuts (`.lnk` to a folder without arguments, `shell::folder_target`) opened inside
   the fence: `View.browse` stack, `browse::tab` swaps the active tab for a portal-like view used by loader/drop/paste, back via
-  a click on the left third of the bar ("← folder" is always left-aligned there) or Backspace; a rolled fence goes `home` once
+  a click on the left third of the bar ("← folder" is always left-aligned there) or Backspace; an open rolled fence never shrinks (`View.floor`, so a smaller folder never leaves the mouse outside), goes `home` once
   it has rolled up, and with `look.home` focus moving to another app or another fence does too (`browse::left`; our menus and popups never do); hovering the bar switches tabs only when the mouse enters another tab's part of it (`View.bar_tab`) and
   never while browsing (the tabs are hidden); a double click on the back arrow goes back instead of rolling the fence (`View.backed`);
   leaving the tab (click, Ctrl+Tab, add, remove) drops the folder without caching its items as the tab's own; the fence menu's "Open folders ▸ In the fence / In File Explorer" sets `look.browse`, a folder's own
   right-click menu starts with "Open in the fence"), `moveto.rs` ("Move to" submenu of an item's menu), `group.rs` (group submenu; mates follow
   WM_MOVING via `grab`/`follow`/`release` and are left out of snapping), `desks.rs` ("Show on" virtual desktop submenu), `titlebar.rs` (title bar submenu),
-  `filter.rs` (live filter: Ctrl+F, the fence menu or, on portals and while filtering, the magnifier at the far end of the bar; typing narrows
+  `filter.rs` (live filter: Ctrl+F, the fence menu or, on portals and while filtering, the magnifier at the end of the active tab (`header::loupe_end`; the whole bar while filtering); typing narrows
   `View.items` through `search::keep` (accent-folding, order kept); the bar then shows `field.rs`, a search field (faint rounded fill, magnifier, grayed hint, ✕, caret blinking at `GetCaretBlinkTime` through the `CARET` timer while focused) while `View.filter.all` keeps the full list that the loader and
   tab switches go through (`filter::show`/`clear`); Backspace/Escape edit or close it, Enter opens the first match, focus loss closes an empty one;
   E2E `filter_e2e`), `wallpaper.rs` (fence color from the wallpaper behind it: `PaintDesktop` into a DIB, cached per rect in `View.wall`, reset on
@@ -172,10 +178,11 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   `display_e2e` (thumbnails, title alignment/size, bar on hover, wallpaper color, filtered portal, arrow keys, Ctrl+Tab; reads the
   `RDI_DUMP` canvases, `KEEP_DUMPS=<dir>` keeps them), `rules_e2e` (name/kind/"Everything else" rules and Sort now on the real Desktop, `*.rdie2e` files only; Sort now is tested
   with a name rule only so no user file can move), `vdesk_e2e` (temporary virtual desktop, closed at the end), `uninstall_e2e`,
-  `browse_e2e` (folders opened in a fixed fence with tabs, a rolled fence and a side bar, and a folder shortcut (Enter, right-click): back arrow, double click, tab switches,
+  `views_e2e` (Details/Tiles/Content drawn, header sort/reverse/resize/column menu, View submenu, magnifier at the end of the active tab,
+  a rolled fence keeping its size when a smaller folder opens), `browse_e2e` (folders opened in a fixed fence with tabs, a rolled fence and a side bar, and a folder shortcut (Enter, right-click): back arrow, double click, tab switches,
   Ctrl+Tab, Backspace, deleted folder, roll-up; reads what is shown through Ctrl+A/Ctrl+C), `recover_e2e` (orphan fence folders come back in a "Recovered files" fence, damaged config restored from `.bak`, BOM config),
   `soak_e2e` (`SOAK_MIN` minutes of everyday actions; GDI/USER/handles/private bytes must stay flat: `support::usage`),
-  `load_e2e` (41 fences, 3,800 files: time to draw, memory, idle CPU). `look_e2e` checks what is drawn through the `RDI_DUMP` canvases (`support::dump`): corners, a rolled fence's
+  `load_e2e` (41 fences, 3,800 files: time to draw, memory, idle CPU), `perf_e2e` (animation smoothness, release build), `hook_probe` (manual diagnostic of the Explorer hook DLL: loads it and prints the filter state; not part of the suites). `look_e2e` checks what is drawn through the `RDI_DUMP` canvases (`support::dump`): corners, a rolled fence's
   corners, list rows, a 40 px icon, the search field and its blinking caret, the settings window brightness per theme (`support::grab`),
   privacy masking (Hover and Never). `peek_e2e` also runs quick hide with `hide_desktop` off, `browse_e2e` the `home` option.
   `support::tray` posts tray icon messages. Debug builds tag every layered window with the
@@ -198,16 +205,17 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
 - Never ignore a user-visible failure: collect errors and call `report::failures`/`report::alert` outside `app::with`.
   Yes/no questions use `report::confirm(h, T)`. After changing `Config.look`, call `fence::restyle_all()`.
 - `store::save` writes `config.json.tmp` + `sync_all` + rename and keeps `config.json.bak`; an unreadable config (`Config::parse`:
-  JSON object only, UTF-8 BOM accepted) is renamed `config.json.bad-<ts>` and never overwritten. `sanitized` never lets two tabs share an id (= a folder).
+  JSON object only, UTF-8 BOM accepted) is renamed `config.json.bad-<ts>` (`Damage::SetAside`); a file that cannot be read (locked, after 2 s of retries) or renamed is
+  `Damage::Held`: the app runs on the backup but `save_to` refuses to write until restart, and both cases alert. A save failure alerts once until a save succeeds again. `sanitized` never lets two tabs share an id (= a folder).
 - Items keep a system image-list index (`Item.icon: i32`), never an HICON: icons are drawn on demand via
   `shell::draw_icon` (`shell/icons.rs`: a size that is not one of the image lists' native sizes (asked with GetIconSize, they follow the
   DPI) is drawn from the next bigger list and shrunk with `render::shrink` (area average), cached per list/index/size up to 6 MB and
   copied with SetDIBitsToDevice, no GDI object kept). Folder reads + icon lookups run on a thread (`fence/loader.rs`, per-tab generations, one load at a
-  time per fence: requests made meanwhile are queued in `View.queued`, a panicking load still posts an empty batch);
+  time per fence: requests made meanwhile are queued in `View.queued`, a panicking load still posts an empty batch in debug builds only: release uses `panic = "abort"`, so nothing in the loader may panic);
   each tab has its own change message (`WM_CHANGED + tab index`, `WM_LOADED` sits after that range).
 - Present layered windows outside `app::with` (UpdateLayeredWindow re-enters the window proc).
 - Bar side: `domain/side.rs` (pure, tested) maps between window and canonical grid coordinates for the 4 bar sides
-  (`Geo`: bar/body rects, `to_content`/`to_window`, hit zones, `far` rule). `Fence.vertical` puts the bar on the side;
+  (`Geo`: bar/body rects, `head` = Details header strip between the bar and the rows (`head_rect`, `rows` = clip of the items; content y < 0 is the header), `to_content`/`to_window`, hit zones, `far` rule). `Fence.vertical` puts the bar on the side;
   `layout::orient` picks `View.side` (rolled fences only when folded, open ones at rest): Bottom/Right when there is no
   room below/right. `f.x/f.y` is always the bar top-left; the window grows away from it (`layout::origin`, `crop`).
   Items hug the bar (Bottom/Right mirror the grid). The bar is drawn in its own `Frame`, rotated clockwise
@@ -215,10 +223,13 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   characters is not rotated: every character of it (Latin ones too) is stacked upright, top to bottom, in a bar-sized `Frame`
   that starts from the rotated bar pixels (`header::upright`, `domain::vertical::column`); Latin-only titles keep the rotated line. E2E: `cargo run --example unroll_e2e [-- --shots <dir>]`.
 - Roll/fade animation never re-renders per frame: `paint::draw(.., open=true)` once into `View.frame`, then
-  `Frame::present_top` crops it; ticks use the QPC clock (`win::now_ms`; DWM vblank timing goes stale on an idle desktop, never use it), WM_SIZE skips render
-  while animating (`View.sizing` marks self-caused resizes). RAM first: the open frame is cached (canvas only,
-  `Frame::compact`) only while an animation can start (`anim::cached`: rolled fence hovered/animating, or chameleon);
-  `PREPARE` rebuilds it 150 ms after invalidation. `anim::start` does nothing when the fence is already at its targets
+  `Frame::present_part` crops it; ticks use the QPC clock (`win::now_ms`; DWM vblank timing goes stale on an idle desktop, never use it) and come
+  from `fence/pacer.rs` (one thread, high-resolution waitable timer + timeBeginPeriod(1) only while something animates, absolute schedule at the
+  screen refresh, 60 Hz minimum, posts `WM_FRAME` once per pending tick: USER timers ignore timeBeginPeriod and tick at 15.6/31 ms), WM_SIZE skips render
+  while animating (`View.sizing` marks self-caused resizes); a render asked during an animation only sets `View.stale` (drawn once at the end,
+  never drops the frame). The open frame is cached (canvas only, `Frame::compact`) for every rolled fence and chameleon fence (`anim::cached`),
+  so an unroll never starts with a full render (about 1 MB per rolled fence); `PREPARE` rebuilds it 150 ms after invalidation. `RDI_PERF=1` (release too) logs render/tick
+  timings to `<data>/perf.log` (`perf.rs`); `perf_e2e` (run the release exe from the Sandbox) prints intervals and costs per scenario. `anim::start` does nothing when the fence is already at its targets
   (a plain fence no longer re-renders on mouse enter/leave), a reload whose items did not change skips `layout::apply`, drag-over
   checks each hovered item once per drag (`Target.checked`), `layered::measure` reuses one DC per thread, the system locale is read once.
   Label cache: names are ~70% of a fence render, so while the mouse is inside a fence `View.labels` keeps the label mask and
@@ -240,7 +251,7 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   (`cell::tile`, names measured only for highlighted items) so they never run past a short last row.
 - The active tab is saved with the next config save (at the latest on exit), not on every switch.
 - Fences are `UpdateLayeredWindow` windows: no WM_PAINT, call `fence::render`; child controls don't show (rename edit is a popup).
-- Fence windows are owned by `Progman` and forced to `HWND_BOTTOM`; Explorer restart → `TaskbarCreated` → `rebuild()`.
+- Fence windows are owned by `Progman` and forced to `HWND_BOTTOM`; Explorer restart → `TaskbarCreated` → tray icon re-added (`tray::add_icon` retries every 2 s while Shell_NotifyIcon fails, also at logon), desktop watch re-bound (`rules::bind`), `rebuild()`.
 - The updater only accepts URLs under this repo's releases; the MSI asset must have a matching `<name>.msi.sha256`.
 - MSI `UpgradeCode` and component GUIDs must never change.
 - The MSI closes the running app first (`util:CloseApplication` → WM_CLOSE; Restart Manager → WM_QUERYENDSESSION/WM_ENDSESSION,

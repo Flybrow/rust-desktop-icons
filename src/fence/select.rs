@@ -1,4 +1,4 @@
-use super::{ghost, items, layout, metrics, render, system, view};
+use super::{ghost, items, layout, render, system, view};
 use crate::{app::with, domain::system::Sys, i18n::T, keep, report, rules, shell, win::cursor_pos};
 use std::{collections::HashSet, path::PathBuf};
 use windows::Win32::{
@@ -80,15 +80,19 @@ pub(super) fn down(h: HWND, p: (i32, i32), ctrl: bool) {
 }
 
 pub(super) fn track(h: HWND, p: (i32, i32)) -> bool {
+    if view(h, |v| v.band.is_none()) != Some(false) {
+        return false;
+    }
     let c = content(h, p);
-    let (w, cell) = (layout::geo_now(h).grid_w(), metrics(h).0);
+    let w = layout::geo_now(h).grid_w();
+    let shape = super::shape(h, w);
     let done = with(|a| {
-        let flow = layout::flow(a, h, w, cell)?;
+        let flow = layout::flow(a, h, w, shape)?;
         let v = a.view(h)?;
         let (start, _) = v.band?;
         v.band = Some((start, c));
-        let hit = flow.in_rect((start.0, start.1, c.0, c.1));
-        v.selected = hit.into_iter().map(|i| v.items[i].path.clone()).collect();
+        let hit: HashSet<PathBuf> = flow.in_rect((start.0, start.1, c.0, c.1)).into_iter().map(|i| v.items[i].path.clone()).collect();
+        v.selected = hit;
         Some(())
     });
     let active = done.flatten().is_some();

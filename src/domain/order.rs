@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Sort {
     #[default]
     Name,
@@ -9,10 +9,11 @@ pub enum Sort {
     Date,
     Size,
     Custom,
+    Created,
 }
 
 impl Sort {
-    pub const ALL: [Sort; 5] = [Sort::Name, Sort::Type, Sort::Date, Sort::Size, Sort::Custom];
+    pub const ALL: [Sort; 6] = [Sort::Name, Sort::Type, Sort::Date, Sort::Created, Sort::Size, Sort::Custom];
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -20,6 +21,7 @@ pub struct Meta {
     pub name: String,
     pub dir: bool,
     pub modified: u64,
+    pub created: u64,
     pub size: u64,
 }
 
@@ -33,15 +35,19 @@ impl Meta {
     }
 }
 
-pub fn arrange(items: &[Meta], sort: Sort, custom: &[String]) -> Vec<usize> {
+pub fn arrange(items: &[Meta], (sort, desc): (Sort, bool), custom: &[String]) -> Vec<usize> {
     let mut idx: Vec<usize> = (0..items.len()).collect();
     idx.sort_by_key(|&i| items[i].key());
     match sort {
         Sort::Name => {}
         Sort::Type => idx.sort_by_key(|&i| (!items[i].dir, items[i].ext())),
         Sort::Date => idx.sort_by_key(|&i| Reverse(items[i].modified)),
+        Sort::Created => idx.sort_by_key(|&i| Reverse(items[i].created)),
         Sort::Size => idx.sort_by_key(|&i| (items[i].dir, Reverse(items[i].size))),
         Sort::Custom => idx.sort_by_key(|&i| custom.iter().position(|n| n.eq_ignore_ascii_case(&items[i].name)).unwrap_or(usize::MAX)),
+    }
+    if desc && sort != Sort::Custom {
+        idx.reverse();
     }
     idx
 }
@@ -59,18 +65,21 @@ mod tests {
     use super::*;
 
     fn m(name: &str, dir: bool, modified: u64) -> Meta {
-        Meta { name: name.into(), dir, modified, size: modified * 10 % 7 }
+        Meta { name: name.into(), dir, modified, created: 10 - modified, size: modified * 10 % 7 }
     }
 
     #[test]
     fn sorting() {
         let items = [m("b.txt", false, 3), m("A.png", false, 1), m("zeta", true, 2), m("c.png", false, 5)];
-        assert_eq!(arrange(&items, Sort::Name, &[]), vec![1, 0, 3, 2]);
-        assert_eq!(arrange(&items, Sort::Type, &[]), vec![2, 1, 3, 0]);
-        assert_eq!(arrange(&items, Sort::Date, &[]), vec![3, 0, 2, 1]);
-        assert_eq!(arrange(&items, Sort::Size, &[]), vec![1, 0, 3, 2]);
+        assert_eq!(arrange(&items, (Sort::Name, false), &[]), vec![1, 0, 3, 2]);
+        assert_eq!(arrange(&items, (Sort::Name, true), &[]), vec![2, 3, 0, 1]);
+        assert_eq!(arrange(&items, (Sort::Created, false), &[]), vec![1, 2, 0, 3]);
+        assert_eq!(arrange(&items, (Sort::Type, false), &[]), vec![2, 1, 3, 0]);
+        assert_eq!(arrange(&items, (Sort::Date, false), &[]), vec![3, 0, 2, 1]);
+        assert_eq!(arrange(&items, (Sort::Size, false), &[]), vec![1, 0, 3, 2]);
         let custom = ["c.png".to_string(), "zeta".into()];
-        assert_eq!(arrange(&items, Sort::Custom, &custom), vec![3, 2, 1, 0]);
+        assert_eq!(arrange(&items, (Sort::Custom, false), &custom), vec![3, 2, 1, 0]);
+        assert_eq!(arrange(&items, (Sort::Custom, true), &custom), vec![3, 2, 1, 0]);
     }
 
     #[test]

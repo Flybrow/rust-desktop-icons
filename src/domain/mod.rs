@@ -1,6 +1,7 @@
 pub mod anim;
 pub mod backup;
 pub mod color;
+pub mod columns;
 mod compat;
 mod config;
 pub mod flight;

@@ -27,7 +27,7 @@ fn shortcut(p: &Path) -> Option<(String, String)> {
     if !p.extension().is_some_and(|e| e.eq_ignore_ascii_case("lnk")) {
         return None;
     }
-    let text = |buf: &[u16]| String::from_utf16_lossy(&buf[..buf.iter().position(|&c| c == 0).unwrap_or(buf.len())]);
+    let text = |buf: &[u16]| String::from_utf16_lossy(crate::win::until_nul(buf));
     unsafe {
         let link: IShellLinkW = CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER).ok()?;
         link.cast::<IPersistFile>().ok()?.Load(PCWSTR(wide_path(p).as_ptr()), STGM_READ).ok()?;

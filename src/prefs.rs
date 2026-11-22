@@ -32,10 +32,12 @@ pub fn set_lang(id: usize) -> bool {
 }
 
 pub fn toggle_autostart() {
-    change(|c| {
-        c.autostart ^= true;
-        shell::set_autostart(c.autostart);
-    });
+    let Some(on) = crate::app::with(|a| !a.cfg.autostart) else { return };
+    if shell::set_autostart(on) {
+        change(|c| c.autostart = on);
+    } else {
+        crate::report::alert(crate::i18n::T::ErrSave, r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run");
+    }
 }
 
 pub fn toggle_auto_update() {

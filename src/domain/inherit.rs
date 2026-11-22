@@ -1,3 +1,4 @@
+use super::columns::Mode;
 use super::{Config, Fence, Look};
 use serde::{Deserialize, Serialize};
 
@@ -102,7 +103,12 @@ impl Config {
     pub fn inherit(&mut self) {
         let base = self.look.clone();
         for f in &mut self.fences {
-            let custom = f.custom.take().unwrap_or_else(|| Field::ALL.into_iter().filter(|x| x.differs(&f.look, &base)).collect());
+            let mut custom = f.custom.take().unwrap_or_else(|| Field::ALL.into_iter().filter(|x| x.differs(&f.look, &base)).collect());
+            if custom.contains(&Field::List) {
+                let mode = if f.look.list { Mode::List } else { Mode::Icons };
+                f.tabs.iter_mut().filter(|t| t.view.is_none()).for_each(|t| t.view = Some(mode));
+                custom.retain(|x| *x != Field::List);
+            }
             for field in Field::ALL.into_iter().filter(|x| !custom.contains(x)) {
                 field.copy(&base, &mut f.look);
             }
@@ -121,6 +127,7 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::Tab;
 
     fn fence(id: u64, look: Look) -> Fence {
         Fence { id, look, ..Fence::default() }
@@ -186,7 +193,7 @@ mod tests {
         c.look = other.clone();
         c.inherit();
         assert_eq!(c.fences[0].look, other);
-        for f in Field::ALL {
+        for f in Field::ALL.into_iter().filter(|f| *f != Field::List) {
             let mut c = Config { look: base.clone(), fences: vec![fence(1, base.clone())], ..Config::default() };
             c.inherit();
             c.fences[0].set(f, |l| f.copy(&other, l));
@@ -196,5 +203,34 @@ mod tests {
             f.copy(&other, &mut expected);
             assert_eq!(c.fences[0].look, expected, "{f:?}");
         }
+    }
+
+    #[test]
+    fn a_fence_list_override_becomes_the_view_of_its_tabs() {
+        let mut c = Config { look: Look::default(), ..Config::default() };
+        let tabs = vec![Tab { id: 1, ..Tab::default() }, Tab { id: 2, view: Some(Mode::Details), ..Tab::default() }];
+        c.fences.push(Fence {
+            id: 1,
+            look: Look { list: true, ..Look::default() },
+            custom: Some(vec![Field::List, Field::Icon]),
+            tabs,
+            ..Fence::default()
+        });
+        c.fences.push(Fence {
+            id: 3,
+            look: Look { list: true, ..Look::default() },
+            tabs: vec![Tab { id: 3, ..Tab::default() }],
+            ..Fence::default()
+        });
+        c.inherit();
+        let views = |i: usize| c.fences[i].tabs.iter().map(|t| t.view).collect::<Vec<_>>();
+        assert_eq!(
+            (views(0), c.fences[0].custom.clone(), c.fences[0].look.list),
+            (vec![Some(Mode::List), Some(Mode::Details)], Some(vec![Field::Icon]), false)
+        );
+        assert_eq!((views(1), c.fences[1].custom.clone()), (vec![Some(Mode::List)], Some(vec![])));
+        let again = c.clone();
+        c.inherit();
+        assert_eq!(c, again);
     }
 }

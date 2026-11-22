@@ -115,9 +115,8 @@ pub(super) fn new_portal(h: HWND) {
 
 pub(super) fn filter(h: HWND) {
     let Some(current) = read(h, |f| f.active().filter.clone()) else { return };
-    let initial = if current.is_empty() { "*.pdf".to_string() } else { current };
     let hwnd = h.0 as isize;
-    crate::prompt::ask(&initial, move |text| {
+    crate::prompt::ask_any(&current, move |text| {
         let h = HWND(hwnd as _);
         update(h, |f| f.active_mut().filter = text.trim().to_string());
         reload(h);

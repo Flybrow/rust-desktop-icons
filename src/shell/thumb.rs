@@ -50,6 +50,9 @@ pub fn thumbnail(p: &Path, size: i32) -> Option<Thumb> {
         if px.iter().all(|p| p >> 24 == 0) {
             px.iter_mut().for_each(|p| *p |= 0xFF00_0000);
         }
-        (lines == h).then_some(Thumb { w, h, px })
+        let k = size as f32 / w.max(h).max(1) as f32;
+        let (dw, dh) = if k < 1. { (((w as f32 * k).round() as i32).max(1), ((h as f32 * k).round() as i32).max(1)) } else { (w, h) };
+        let px = if (dw, dh) == (w, h) { px } else { crate::render::shrink(&px, (w, h), (dw, dh)) };
+        (lines == h).then_some(Thumb { w: dw, h: dh, px })
     }
 }

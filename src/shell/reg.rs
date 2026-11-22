@@ -51,15 +51,16 @@ fn reg_set(key: &str, name: &str, value: &str) {
     reg_write(key, name, REG_SZ, &bytes);
 }
 
-pub fn set_autostart(on: bool) {
+pub fn set_autostart(on: bool) -> bool {
     if cfg!(debug_assertions) {
-        return;
+        return true;
     }
     if !on {
         reg_delete(RUN, NAME);
     } else if let Some(exe) = exe() {
         reg_set(RUN, NAME, &format!("\"{exe}\""));
     }
+    reg_bytes(RUN, NAME, RRF_RT_REG_SZ).is_some() == on
 }
 
 pub fn set_desktop_verbs(fence: &str, portal: &str) {

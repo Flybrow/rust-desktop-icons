@@ -50,8 +50,15 @@ fn put(cfg: &Config, p: &Path, (f, t): (u64, u64), keep: bool) -> Result<bool, S
 
 pub fn watch(tray: HWND) {
     age::start();
-    let Some(desk) = shell::desktop() else { return };
+    bind(tray);
+}
+
+pub fn bind(tray: HWND) {
+    let Some(desk) = shell::desktop() else { return report::log("auto-sort: no desktop folder") };
     let (seen, w) = (entries(&desk), shell::Watch::new(tray, &desk, WM_DESK));
+    if w.is_none() {
+        report::log("auto-sort: the desktop cannot be watched");
+    }
     with(|a| (a.seen, a.desk) = (seen, w));
 }
 

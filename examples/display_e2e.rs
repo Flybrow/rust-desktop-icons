@@ -155,6 +155,12 @@ fn main() {
         println!("      filter saved {saved_filter} ({}), portal {left:?}, pics {pics:?}", fence_cfg(&data, 4)["tabs"][0]["filter"]);
     }
     check(saved_filter && moved && portal.join("b.txt").exists(), "a filtered portal only shows matching files (and its folders)");
+    fence_menu(hwnd(4), &["Tabs", "Filter files"]);
+    thread::sleep(Duration::from_millis(400));
+    chord(&[VK_CONTROL, VK_A]);
+    chord(&[VK_BACK]);
+    chord(&[VK_RETURN]);
+    check(until(&|_| fence_cfg(&data, 4)["tabs"][0]["filter"].is_null()), "an emptied filter shows every file again");
 
     click(item(hwnd(5), 0));
     chord(&[VK_RIGHT]);

@@ -1,4 +1,14 @@
-use super::{Look, compat, inherit::Field, kind::Kind, matching::Expire, order::Sort, pins::Pin, system::Sys};
+use super::{
+    Look,
+    columns::{self, Column, Mode},
+    compat,
+    inherit::Field,
+    kind::Kind,
+    matching::Expire,
+    order::Sort,
+    pins::Pin,
+    system::Sys,
+};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -27,6 +37,22 @@ pub struct Tab {
     pub expire: Option<Expire>,
     #[serde(skip_serializing_if = "String::is_empty")]
     pub filter: String,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub desc: bool,
+    #[serde(skip_serializing_if = "Option::is_none", deserialize_with = "compat::or_default")]
+    pub view: Option<Mode>,
+    #[serde(skip_serializing_if = "Option::is_none", deserialize_with = "compat::some_known")]
+    pub columns: Option<Vec<Column>>,
+}
+
+impl Tab {
+    pub fn mode(&self, list: bool) -> Mode {
+        self.view.unwrap_or(if list { Mode::List } else { Mode::Icons })
+    }
+
+    pub fn columns(&self) -> Vec<Column> {
+        self.columns.clone().unwrap_or_else(columns::defaults)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -88,6 +114,10 @@ impl Fence {
         &self.tabs[self.tab.min(self.tabs.len() - 1)]
     }
 
+    pub fn mode(&self) -> Mode {
+        self.active().mode(self.look.list)
+    }
+
     pub fn active_mut(&mut self) -> &mut Tab {
         let i = self.tab.min(self.tabs.len() - 1);
         &mut self.tabs[i]
@@ -106,6 +136,7 @@ impl Fence {
         for t in &mut self.tabs {
             t.title = clean(&t.title);
             t.kinds.dedup();
+            t.columns = t.columns.take().map(columns::sanitized);
         }
         self.tab = self.tab.min(self.tabs.len() - 1);
         self
@@ -129,5 +160,13 @@ mod tests {
         let g = Fence { id: 3, title: "Old\ttitle".into(), w: 5, h: 5, x: 99_999, ..Fence::default() }.sanitized();
         assert_eq!((g.tabs.len(), g.tabs[0].id, g.tabs[0].title.as_str(), g.title.as_str()), (1, 3, "Oldtitle", ""));
         assert_eq!((g.w, g.h, g.x), (Fence::MIN.0, Fence::MIN.1, 20_000));
+        let t = &g.tabs[0];
+        assert_eq!((t.mode(false), t.mode(true), t.columns()), (Mode::Icons, Mode::List, columns::defaults()));
+        let t = Tab { view: Some(Mode::Details), columns: Some(vec![]), ..Tab::default() };
+        assert_eq!((t.mode(true), t.columns()), (Mode::Details, vec![]));
+        let json = r#"{"id":1,"view":"Gallery","columns":[{"col":"Size","w":90},{"col":"Rating","w":50},{"col":"Size","w":3}]}"#;
+        let f: Fence = serde_json::from_str(&format!(r#"{{"id":1,"tabs":[{json}]}}"#)).unwrap();
+        let t = &f.sanitized().tabs[0];
+        assert_eq!((t.view, t.columns.clone()), (None, Some(vec![Column { col: columns::Col::Size, w: 90 }])));
     }
 }

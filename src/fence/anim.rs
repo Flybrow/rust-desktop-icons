@@ -1,10 +1,7 @@
-use super::{ANIM, layout, paint, read, view};
+use super::{layout, pacer, paint, read, view};
 use crate::app::View;
 use crate::{app::with, domain::anim, win::now_ms};
-use windows::Win32::{
-    Foundation::HWND,
-    UI::WindowsAndMessaging::{KillTimer, SetTimer},
-};
+use windows::Win32::Foundation::HWND;
 
 fn targets((rolled, chameleon): (bool, bool), v: &View) -> (f32, f32) {
     let unroll = if !rolled || (v.inside && !v.hold) { 1. } else { 0. };
@@ -12,6 +9,7 @@ fn targets((rolled, chameleon): (bool, bool), v: &View) -> (f32, f32) {
 }
 
 pub(super) fn start(h: HWND) {
+    crate::perf::mark("start", h.0 as isize, 0.);
     let side = layout::side(h);
     layout::orient(h);
     let still = with(|a| {
@@ -25,14 +23,12 @@ pub(super) fn start(h: HWND) {
     }
     let idle = view(h, |v| v.tick.replace(v.tick.unwrap_or_else(now_ms)).is_none());
     if idle == Some(true) {
-        unsafe { SetTimer(Some(h), ANIM, 10, None) };
+        pacer::join(h);
     }
 }
 
 pub(super) fn cached(h: HWND) -> bool {
-    let Some((rolled, chameleon)) = read(h, |f| (f.rolled, f.look.chameleon)) else { return false };
-    let busy = view(h, |v| v.inside || v.tick.is_some()).unwrap_or(false);
-    if rolled { busy } else { chameleon }
+    read(h, |f| f.rolled || f.look.chameleon) == Some(true)
 }
 
 pub(super) fn animating(h: HWND) -> bool {
@@ -40,6 +36,7 @@ pub(super) fn animating(h: HWND) -> bool {
 }
 
 pub(super) fn tick(h: HWND) {
+    pacer::ticked(h);
     let t = now_ms();
     let Some((f, done, alpha)) = with(|a| {
         let ms = a.cfg.roll_ms;
@@ -64,21 +61,26 @@ pub(super) fn tick(h: HWND) {
     .flatten() else {
         return;
     };
-    let (open, size) = (layout::open_size(h, &f), layout::size(h, &f));
+    let (open, size) = layout::sizes(h, &f);
     if done {
-        let _ = unsafe { KillTimer(Some(h), ANIM) };
+        pacer::leave(h);
         if f.rolled && view(h, |v| v.unroll == 0.) == Some(true) {
             super::browse::home(h);
         }
     }
     let cached = with(|a| a.view(h)?.frame.take()).flatten().filter(|fr| (fr.w, fr.h) == open);
+    crate::perf::mark(if cached.is_some() { "tick.cached" } else { "tick.miss" }, h.0 as isize, 0.);
     if done && size != open {
-        return layout::apply(h);
+        view(h, |v| v.stale = false);
+        return crate::perf::span("tick.apply", h.0 as isize, || layout::apply(h));
     }
-    let Some(frame) = cached.or_else(|| paint::draw(h, open, true).map(|(fr, _)| fr)) else {
+    let Some(frame) = cached.or_else(|| crate::perf::span("tick.draw", h.0 as isize, || paint::draw(h, open).map(|(fr, _)| fr))) else {
         return;
     };
     let (pos, src) = (layout::origin(h, &f, size), layout::crop(h, open, size));
-    layout::self_sized(h, || frame.present_part(h, pos, src, size, alpha));
+    crate::perf::span("tick.present", h.0 as isize, || layout::self_sized(h, || frame.present_part(h, pos, src, size, alpha)));
     paint::store(h, Some(frame));
+    if done && view(h, |v| std::mem::take(&mut v.stale)) == Some(true) {
+        paint::render(h);
+    }
 }

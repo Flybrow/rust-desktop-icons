@@ -1,6 +1,6 @@
 use super::{
-    actions, arrange, cursor, desks, edit, fence_of, filter, group, host, items, layout, native, peek, select, system, tabs, titlebar,
-    update,
+    actions, arrange, columns, cursor, desks, edit, fence_of, filter, group, host, items, layout, native, peek, select, system, tabs,
+    titlebar, update,
 };
 use crate::domain::inherit::Field;
 use crate::{
@@ -32,6 +32,9 @@ const CORNER_END: usize = CORNER + Corner::ALL.len() - 1;
 
 pub(super) fn context(h: HWND) {
     let p = cursor(h);
+    if columns::context(h, p) {
+        return;
+    }
     if let Some(i) = tabs::at(h, p) {
         tabs::select(h, i);
     }
@@ -59,7 +62,7 @@ pub(super) fn context(h: HWND) {
         }
         a.entry(m, 10, T::Rename, false, g::RENAME);
         a.entry(m, 212, T::FilterFence, false, g::SEARCH);
-        arrange::submenus(a, m, f.active());
+        arrange::submenus(a, m, (f.active(), f.look.list));
         a.sub(m, T::SystemIcons, sys, g::PC);
         let folders = menu();
         item(folders, 63, a.t(T::InFence), f.look.browse);
@@ -81,7 +84,6 @@ pub(super) fn context(h: HWND) {
         a.sub(look, T::Tint, tint, g::TINT);
         a.entry(look, 65, T::Labels, f.look.labels, g::LABEL);
         a.entry(look, 210, T::Thumbs, f.look.thumbs, g::IMAGE);
-        a.entry(look, 214, T::ListView, f.look.list, g::ALIGN);
         let (names, spacing, label_color) = (menu(), menu(), menu());
         for (k, s) in LabelSize::ALL.iter().enumerate() {
             item(names, NAMES + k, a.t(i18n::label_size(*s)), f.look.label_size == *s);
@@ -153,10 +155,6 @@ pub(super) fn context(h: HWND) {
         209 => update(h, |f| f.set(Field::Wallpaper, |l| l.wallpaper ^= true)),
         212 => filter::toggle(h),
         213 => update(h, |f| f.set(Field::Home, |l| l.home ^= true)),
-        214 => {
-            update(h, |f| f.set(Field::List, |l| l.list ^= true));
-            items::reload(h);
-        }
         210 => {
             update(h, |f| f.set(Field::Thumbs, |l| l.thumbs ^= true));
             items::reload(h);
@@ -181,7 +179,7 @@ pub(super) fn context(h: HWND) {
         62 => tabs::remove(h),
         k @ SYS..=SYS_END => system::toggle(h, Sys::ALL[k - SYS]),
         64 => {
-            update(h, |f| f.vertical ^= true);
+            crate::app::edit(|a| a.fence_of(h).map(|f| f.vertical ^= true));
             if let Some(f) = fence_of(h) {
                 layout::reorient(h, &f);
             }

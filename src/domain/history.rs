@@ -22,10 +22,10 @@ pub struct History {
 }
 
 impl History {
-    pub fn begin(&mut self, now: &Config) {
+    pub fn begin(&mut self, now: impl FnOnce() -> Config) {
         match &mut self.open {
             Some((_, depth)) => *depth += 1,
-            None => self.open = Some((Step { before: now.clone(), ops: vec![] }, 1)),
+            None => self.open = Some((Step { before: now(), ops: vec![] }, 1)),
         }
     }
 
@@ -35,11 +35,11 @@ impl History {
         }
     }
 
-    pub fn end(&mut self, now: &Config) {
+    pub fn end(&mut self, now: impl FnOnce() -> Config) {
         let Some((step, depth)) = self.open.take() else { return };
         if depth > 1 {
             self.open = Some((step, depth - 1));
-        } else if !step.ops.is_empty() || step.before != *now {
+        } else if !step.ops.is_empty() || step.before != now() {
             self.steps.push(step);
             let extra = self.steps.len().saturating_sub(CAP);
             self.steps.drain(..extra);
@@ -69,28 +69,28 @@ mod tests {
     fn steps_keep_what_changed_and_nest() {
         let (a, b) = (Config::default(), Config { auto_sort: false, ..Config::default() });
         let mut h = History::default();
-        h.begin(&a);
-        h.end(&a);
+        h.begin(|| a.clone());
+        h.end(|| a.clone());
         assert!(!h.any());
-        h.begin(&a);
-        h.begin(&a);
+        h.begin(|| a.clone());
+        h.begin(|| a.clone());
         h.note(Op::Moved("x".into(), "y".into()));
-        h.end(&a);
-        h.end(&b);
+        h.end(|| a.clone());
+        h.end(|| b.clone());
         let s = h.pop().unwrap();
         assert_eq!((s.before, s.ops), (a.clone(), vec![Op::Moved("x".into(), "y".into())]));
         h.note(Op::Created("z".into()));
         assert!(!h.any());
         for _ in 0..CAP + 5 {
-            h.begin(&a);
-            h.end(&b);
+            h.begin(|| a.clone());
+            h.end(|| b.clone());
         }
         assert_eq!(h.steps.len(), CAP);
         let mut h = History::default();
-        h.begin(&a);
+        h.begin(|| a.clone());
         h.note(Op::Created("z".into()));
         h.rebase(&b);
-        h.end(&b);
+        h.end(|| b.clone());
         assert!(!h.any());
     }
 
@@ -98,19 +98,19 @@ mod tests {
     fn oldest_steps_go_first_and_undo_is_last_in_first_out() {
         let cfg = |roll_ms| Config { roll_ms, ..Config::default() };
         let mut h = History::default();
-        h.end(&cfg(1));
+        h.end(|| cfg(1));
         h.rebase(&cfg(1));
         assert!(!h.any());
         for n in 0..CAP as u32 + 3 {
-            h.begin(&cfg(n));
-            h.end(&cfg(n + 1));
+            h.begin(|| cfg(n));
+            h.end(|| cfg(n + 1));
         }
         let befores: Vec<u32> = std::iter::from_fn(|| h.pop()).map(|s| s.before.roll_ms).collect();
         assert_eq!(befores, (3..CAP as u32 + 3).rev().collect::<Vec<_>>());
-        h.begin(&cfg(1));
+        h.begin(|| cfg(1));
         h.rebase(&cfg(5));
         h.note(Op::Created("a".into()));
-        h.end(&cfg(5));
+        h.end(|| cfg(5));
         assert_eq!(h.pop().map(|s| (s.before.roll_ms, s.ops.len())), Some((5, 1)));
     }
 
@@ -118,16 +118,16 @@ mod tests {
     fn nested_steps_close_with_the_outermost_one() {
         let (c, mut h) = (Config::default(), History::default());
         assert!(!h.any());
-        h.begin(&c);
-        h.begin(&c);
+        h.begin(|| c.clone());
+        h.begin(|| c.clone());
         h.note(Op::Created("a".into()));
-        h.end(&c);
+        h.end(|| c.clone());
         assert!(!h.any());
         h.note(Op::Created("b".into()));
-        h.end(&c);
+        h.end(|| c.clone());
         assert!(h.any());
         assert_eq!(h.pop().unwrap().ops.len(), 2);
-        h.end(&c);
+        h.end(|| c.clone());
         assert!(!h.any());
     }
 }

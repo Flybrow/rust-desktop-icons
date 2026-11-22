@@ -1,5 +1,6 @@
 use crate::domain::{
     Kind, Sort,
+    columns::{Col, Mode},
     grid::Align,
     icons::{LabelSize, Spacing},
     privacy::Reveal,
@@ -14,7 +15,7 @@ mod table;
 
 use table::S;
 
-const N: usize = 212;
+const N: usize = 221;
 
 pub const LANGS: [(&str, &str); 25] = [
     ("en", "English"),
@@ -98,6 +99,20 @@ pub fn reveal(r: Reveal) -> T {
     }
 }
 
+pub fn mode(m: Mode) -> T {
+    match m {
+        Mode::Icons => T::ModeIcons,
+        Mode::List => T::ModeList,
+        Mode::Details => T::ModeDetails,
+        Mode::Tiles => T::ModeTiles,
+        Mode::Content => T::ModeContent,
+    }
+}
+
+pub fn column(c: Col) -> T {
+    sort(c.sort())
+}
+
 pub fn sort(s: Sort) -> T {
     match s {
         Sort::Name => T::SortName,
@@ -105,6 +120,7 @@ pub fn sort(s: Sort) -> T {
         Sort::Date => T::SortDate,
         Sort::Size => T::SortSize,
         Sort::Custom => T::SortCustom,
+        Sort::Created => T::SortCreated,
     }
 }
 
@@ -131,7 +147,7 @@ mod tests {
     #[test]
     fn complete_tables() {
         assert!(S.iter().flatten().all(|s| !s.trim().is_empty()));
-        assert_eq!(T::DesktopPortalVerb as usize, N - 1);
+        assert_eq!(T::UpdateDownloadFailed as usize, N - 1);
     }
 
     #[test]
