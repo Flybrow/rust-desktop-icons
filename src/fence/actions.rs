@@ -40,10 +40,11 @@ pub(super) fn reset_look(h: HWND) {
 }
 
 pub(super) fn delete(h: HWND) {
-    let Some(f) = fence_of(h) else { return };
+    let Some(id) = super::read(h, |f| f.id) else { return };
     if !crate::report::confirm(h, T::ConfirmDelete) {
         return;
     }
+    let Some((h, f)) = super::window(id).and_then(|h| Some((h, fence_of(h)?))) else { return };
     view(h, |v| v.watches.clear());
     let errors: Vec<String> = f.tabs.iter().filter(|t| t.portal.is_none()).flat_map(|t| evacuate(&store::tab_dir(t))).collect();
     if !errors.is_empty() {

@@ -10,6 +10,7 @@ pub const PEEK: usize = 12;
 pub const AGE: usize = 13;
 pub const DESKS: usize = 14;
 pub const ICON: usize = 15;
+pub const ADOPT: usize = 16;
 
 pub fn set(id: usize, ms: Option<u32>) {
     let Some(t) = hwnd() else { return };

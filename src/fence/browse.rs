@@ -1,4 +1,4 @@
-use super::{WM_CHANGED, bind, layout, read, to_client, view};
+use super::{TABS, WM_CHANGED, bind, layout, read, to_client, view};
 use crate::{
     domain::{Tab, system::Sys},
     shell,
@@ -65,7 +65,7 @@ pub(super) fn back(h: HWND) -> bool {
 }
 
 pub(super) fn watch(h: HWND, active: usize) -> Option<shell::Watch> {
-    shell::Watch::new(h, &current(h)?, WM_CHANGED + active as u32)
+    shell::Watch::new(h, &current(h).filter(|_| active < TABS)?, WM_CHANGED + active as u32)
 }
 
 pub(super) fn bar_click(h: HWND, screen: (i32, i32)) -> bool {

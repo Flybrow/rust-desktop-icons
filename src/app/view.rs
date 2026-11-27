@@ -21,13 +21,18 @@ pub struct Filter {
     pub caret: bool,
 }
 
+pub enum Rename {
+    Title(u64),
+    Item(PathBuf),
+}
+
 pub struct View {
     pub hwnd: HWND,
     pub id: u64,
     pub items: Vec<Item>,
     pub shown: Option<(u64, Option<PathBuf>)>,
     pub scroll: i32,
-    pub edit: Option<(HWND, Option<PathBuf>)>,
+    pub edit: Option<(HWND, Rename)>,
     pub native: Option<IContextMenu>,
     pub hover: Option<usize>,
     pub inside: bool,
@@ -39,8 +44,10 @@ pub struct View {
     pub glow: f32,
     pub tick: Option<f64>,
     pub frame: Option<Frame>,
+    pub grow: Option<(i32, f32)>,
     pub labels: Option<crate::layered::Labels>,
     pub wall: Option<((i32, i32, i32, i32), u32)>,
+    pub frost: Option<crate::render::frost::Cached>,
     pub filter: Option<Filter>,
     pub cursor: Option<usize>,
     pub sizing: bool,
@@ -62,6 +69,10 @@ pub struct View {
 }
 
 impl View {
+    pub fn all(&self) -> &[Item] {
+        self.filter.as_ref().map_or(&self.items, |f| &f.all)
+    }
+
     pub(super) fn new(hwnd: HWND, f: &Fence) -> Self {
         let unroll = if f.rolled { 0. } else { 1. };
         let glow = if f.look.chameleon { 0. } else { 1. };
@@ -83,8 +94,10 @@ impl View {
             glow,
             tick: None,
             frame: None,
+            grow: None,
             labels: None,
             wall: None,
+            frost: None,
             filter: None,
             cursor: None,
             sizing: false,

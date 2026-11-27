@@ -30,6 +30,7 @@ pub enum Act {
     Thumbs,
     List,
     Wallpaper,
+    Glass,
     TitleAlign,
     TitleSize,
     BarColor,

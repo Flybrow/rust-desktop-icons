@@ -3,7 +3,7 @@ use std::{
     collections::HashSet,
     ffi::c_void,
     sync::{
-        OnceLock, RwLock,
+        Arc, OnceLock, RwLock,
         atomic::{AtomicU32, Ordering::SeqCst},
     },
 };
@@ -15,7 +15,7 @@ use windows::{
     core::*,
 };
 
-pub static LIST: RwLock<Option<HashSet<String>>> = RwLock::new(None);
+pub static LIST: RwLock<Option<Arc<HashSet<String>>>> = RwLock::new(None);
 pub static FILTERED: AtomicU32 = AtomicU32::new(0);
 
 type Qi = unsafe extern "system" fn(*mut c_void, *const GUID, *mut *mut c_void) -> HRESULT;
@@ -108,7 +108,8 @@ unsafe extern "system" fn message(this: *mut c_void, msg: u32, w: WPARAM, l: LPA
 
 fn hidden(psf: *mut c_void, item: *const ITEMIDLIST) -> bool {
     let name = || unsafe { IShellFolder::from_raw_borrowed(&psf) }.and_then(|f| display(f, item));
-    LIST.read().is_ok_and(|list| refused(alive(), list.as_ref(), name))
+    let list = LIST.read().ok().and_then(|l| l.clone());
+    refused(alive(), list.as_deref(), name)
 }
 
 unsafe extern "system" fn show(this: *mut c_void, psf: *mut c_void, folder: *const ITEMIDLIST, item: *const ITEMIDLIST) -> HRESULT {

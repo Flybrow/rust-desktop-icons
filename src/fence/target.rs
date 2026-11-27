@@ -1,6 +1,9 @@
 use super::{drop, items, peek, system, tabs, to_client};
 use crate::{app::with, domain::system::Sys, shell, store};
-use std::{cell::RefCell, path::PathBuf};
+use std::{
+    cell::{Cell, RefCell},
+    path::PathBuf,
+};
 use windows::{
     Win32::{
         Foundation::{HWND, POINT, POINTL},
@@ -21,6 +24,7 @@ struct Target {
     data: RefCell<Option<(IDataObject, Vec<PathBuf>, bool)>>,
     inner: RefCell<Option<(PathBuf, Option<IDropTarget>)>>,
     checked: RefCell<Option<(PathBuf, bool)>>,
+    usable: Cell<bool>,
 }
 
 impl Target {
@@ -35,8 +39,9 @@ impl Target {
         }
     }
 
-    fn effect(allowed: DROPEFFECT) -> DROPEFFECT {
-        [DROPEFFECT_MOVE, DROPEFFECT_COPY, DROPEFFECT_LINK].into_iter().find(|e| allowed.0 & e.0 != 0).unwrap_or(DROPEFFECT_NONE)
+    fn effect(&self, allowed: DROPEFFECT) -> DROPEFFECT {
+        let found = [DROPEFFECT_MOVE, DROPEFFECT_COPY, DROPEFFECT_LINK].into_iter().find(|e| allowed.0 & e.0 != 0);
+        found.filter(|_| self.usable.get()).unwrap_or(DROPEFFECT_NONE)
     }
 
     fn leave_inner(&self) {
@@ -108,14 +113,17 @@ impl Target {
 impl IDropTarget_Impl for Target_Impl {
     fn DragEnter(&self, data: Ref<IDataObject>, keys: MODIFIERKEYS_FLAGS, pt: &POINTL, effect: *mut DROPEFFECT) -> Result<()> {
         self.checked.borrow_mut().take();
+        self.usable.set(false);
         *self.data.borrow_mut() = data.as_ref().map(|d| {
             let files = shell::files(d);
             let ours = |p: &PathBuf| store::in_fences(p) || with(|a| a.cfg.is_pinned(p)) == Some(true);
             let internal = !files.is_empty() && files.iter().all(ours);
+            let sys = with(|a| !a.sys_drag.is_empty()) == Some(true) || !shell::system::in_data(d).is_empty();
+            self.usable.set(!files.is_empty() || sys);
             (d.clone(), files, internal)
         });
         if !self.aim(keys, pt, effect) {
-            unsafe { *effect = Target::effect(*effect) };
+            unsafe { *effect = self.effect(*effect) };
         }
         self.show(pt, unsafe { *effect }, data.as_ref());
         self.hover(pt);
@@ -124,7 +132,7 @@ impl IDropTarget_Impl for Target_Impl {
 
     fn DragOver(&self, keys: MODIFIERKEYS_FLAGS, pt: &POINTL, effect: *mut DROPEFFECT) -> Result<()> {
         if !self.aim(keys, pt, effect) {
-            unsafe { *effect = Target::effect(*effect) };
+            unsafe { *effect = self.effect(*effect) };
         }
         self.show(pt, unsafe { *effect }, None);
         self.hover(pt);
@@ -170,8 +178,15 @@ impl Target_Impl {
 
 pub(super) fn register(h: HWND) {
     let helper = unsafe { CoCreateInstance(&CLSID_DragDropHelper, None, CLSCTX_INPROC_SERVER) }.ok();
-    let target: IDropTarget =
-        Target { hwnd: h.0 as isize, helper, data: RefCell::new(None), inner: RefCell::new(None), checked: RefCell::new(None) }.into();
+    let target: IDropTarget = Target {
+        hwnd: h.0 as isize,
+        helper,
+        data: RefCell::new(None),
+        inner: RefCell::new(None),
+        checked: RefCell::new(None),
+        usable: Cell::new(false),
+    }
+    .into();
     if let Err(e) = unsafe { RegisterDragDrop(h, &target) } {
         crate::report::log(&format!("drag and drop unavailable on a fence: {e}"));
     }

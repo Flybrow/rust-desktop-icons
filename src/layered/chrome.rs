@@ -60,8 +60,8 @@ pub fn inside(r: &RECT, (x, y): (i32, i32)) -> bool {
     (r.left..r.right).contains(&x) && (r.top..r.bottom).contains(&y)
 }
 
-pub fn background(frame: &mut Frame, close_hot: bool, s: impl Fn(i32) -> i32) {
-    let (w, ht, top, close, p) = (frame.w, frame.h, s(TOP), close_rect(frame.w, &s), palette());
+pub fn background(frame: &mut Frame, (top, close_hot): (i32, bool), s: impl Fn(i32) -> i32) {
+    let (w, ht, top, close, p) = (frame.w, frame.h, s(top), close_rect(frame.w, &s), palette());
     let mut c = frame.canvas();
     c.rrect((0, 0, w, ht), s(12) as f32, (premul(p.bg, 252), premul(p.bg_end, 252)), (0, ht), false);
     c.rrect((0, top - 1, w, top), 0., flat(premul(p.ink, 26)), (0, ht), false);

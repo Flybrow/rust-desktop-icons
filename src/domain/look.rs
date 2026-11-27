@@ -12,10 +12,12 @@ pub enum Corner {
     Medium,
     #[default]
     Round,
+    Large,
+    Larger,
 }
 
 impl Corner {
-    pub const ALL: [Corner; 4] = [Corner::Square, Corner::Small, Corner::Medium, Corner::Round];
+    pub const ALL: [Corner; 6] = [Corner::Square, Corner::Small, Corner::Medium, Corner::Round, Corner::Large, Corner::Larger];
 
     pub fn px(self) -> i32 {
         match self {
@@ -23,6 +25,8 @@ impl Corner {
             Corner::Small => 4,
             Corner::Medium => 6,
             Corner::Round => 8,
+            Corner::Large => 12,
+            Corner::Larger => 16,
         }
     }
 
@@ -61,6 +65,7 @@ pub struct Look {
     pub corner: Corner,
     pub home: bool,
     pub list: bool,
+    pub glass: bool,
 }
 
 impl Default for Look {
@@ -87,6 +92,7 @@ impl Default for Look {
             corner: Corner::Round,
             home: false,
             list: false,
+            glass: false,
         }
     }
 }
@@ -137,7 +143,7 @@ mod tests {
 
     #[test]
     fn corners_default_to_the_old_radius_and_survive_unknown_values() {
-        assert_eq!(Corner::ALL.map(Corner::px), [0, 4, 6, 8]);
+        assert_eq!(Corner::ALL.map(Corner::px), [0, 4, 6, 8, 12, 16]);
         assert_eq!(Look::default().corner.px(), 8);
         assert_eq!((Corner::Square.label("Square"), Corner::Medium.label("Square")), ("Square".into(), "6 px".into()));
         let l: Look = serde_json::from_str(r#"{"corner": "Pill"}"#).unwrap();

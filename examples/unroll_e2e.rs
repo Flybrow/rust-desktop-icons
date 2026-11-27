@@ -64,9 +64,9 @@ fn main() {
     let data = root.join("RustDesktopIcons");
     let cases = [
         Case { name: "horizontal, room below", at: (w.left + 300, w.top + 100), vertical: false, far: false },
-        Case { name: "horizontal, screen bottom", at: (w.left + 300, w.bottom - 120), vertical: false, far: true },
+        Case { name: "horizontal, screen bottom", at: (w.left + 300, w.bottom - support::scale(120)), vertical: false, far: true },
         Case { name: "vertical, room on the right", at: (w.left + 60, w.top + 250), vertical: true, far: false },
-        Case { name: "vertical, screen right edge", at: (w.right - 60, w.top + 250), vertical: true, far: true },
+        Case { name: "vertical, screen right edge", at: (w.right - support::scale(60), w.top + 250), vertical: true, far: true },
     ];
     let mut cfg_fences = vec![];
     for (i, c) in cases.iter().enumerate() {
@@ -79,7 +79,7 @@ fn main() {
         let tabs = json!([{"id": id, "title": "Unroll"}, {"id": id + 100, "title": "Two"}]);
         fs::create_dir_all(data.join("fences").join((id + 100).to_string())).unwrap();
         cfg_fences
-            .push(json!({"id": id, "x": c.at.0, "y": c.at.1, "w": 360, "h": 240, "rolled": true, "vertical": c.vertical, "tabs": tabs}));
+            .push(json!({"id": id, "x": c.at.0, "y": c.at.1, "w": support::scale(360), "h": support::scale(240), "rolled": true, "vertical": c.vertical, "tabs": tabs}));
     }
     let cfg = json!({"auto_update": false, "auto_sort": false, "version": env!("CARGO_PKG_VERSION"), "fences": cfg_fences});
     fs::write(data.join("config.json"), serde_json::to_vec_pretty(&cfg).unwrap()).unwrap();

@@ -48,8 +48,14 @@ impl Ui {
 
     fn row_at(&self, heights: &[i32], i: usize, dy: i32) {
         let r = rect(self.h);
-        let y = TOP + heights[..i].iter().sum::<i32>() + dy;
-        click((r.left + self.s(SIDE + 150), r.top + self.s(y)));
+        let (x, view) = (r.left + self.s(SIDE + 150), r.bottom - r.top);
+        let y = self.s(TOP + heights[..i].iter().sum::<i32>() + dy);
+        let max = (self.s(TOP + 16 + heights.iter().sum::<i32>()) - view).max(0);
+        let scroll = if y + self.s(24) > view { max } else { 0 };
+        support::point((x, r.top + view / 2));
+        (0..12).for_each(|_| support::wheel(scroll == 0));
+        thread::sleep(Duration::from_millis(200));
+        click((x, r.top + y - scroll));
         thread::sleep(Duration::from_millis(400));
     }
 

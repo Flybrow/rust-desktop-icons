@@ -35,11 +35,19 @@ pub fn key(path: &str) -> String {
     path.to_lowercase()
 }
 
-pub fn encode<S: AsRef<str>>(paths: &[S]) -> Vec<u16> {
-    let text = paths.iter().map(|p| key(p.as_ref())).collect::<Vec<_>>().join("\n");
-    let mut out: Vec<u16> = text.encode_utf16().collect();
-    out.truncate(CHARS);
-    out
+pub fn encode<S: AsRef<str>>(paths: &[S]) -> (Vec<u16>, usize) {
+    let mut out: Vec<u16> = vec![];
+    for (n, p) in paths.iter().enumerate() {
+        let one: Vec<u16> = key(p.as_ref()).encode_utf16().collect();
+        if out.len() + usize::from(n > 0) + one.len() > CHARS {
+            return (out, n);
+        }
+        if n > 0 {
+            out.push(b'\n' as u16);
+        }
+        out.extend(one);
+    }
+    (out, paths.len())
 }
 
 pub fn decode(data: &[u16]) -> HashSet<String> {
@@ -48,7 +56,8 @@ pub fn decode(data: &[u16]) -> HashSet<String> {
 
 pub fn changes<'a>(hidden: &'a [String], list: &'a HashSet<String>) -> (Vec<&'a String>, Vec<&'a String>) {
     let show = hidden.iter().filter(|p| !list.contains(*p)).collect();
-    let mut hide: Vec<&String> = list.iter().filter(|p| !hidden.contains(p)).collect();
+    let was: HashSet<&String> = hidden.iter().collect();
+    let mut hide: Vec<&String> = list.iter().filter(|p| !was.contains(p)).collect();
     hide.sort();
     (show, hide)
 }
@@ -63,16 +72,21 @@ mod tests {
 
     #[test]
     fn round_trip_lowercases_and_skips_empty() {
-        let set = decode(&encode(&["C:\\Users\\A\\Desktop\\Été.txt", "c:\\x\\b.lnk"]));
-        assert_eq!(set.len(), 2);
+        let (data, n) = encode(&["C:\\Users\\A\\Desktop\\Été.txt", "c:\\x\\b.lnk"]);
+        let set = decode(&data);
+        assert_eq!((set.len(), n), (2, 2));
         assert!(set.contains("c:\\users\\a\\desktop\\été.txt") && set.contains("c:\\x\\b.lnk"));
-        assert!(decode(&encode::<&str>(&[])).is_empty());
+        assert_eq!(encode::<&str>(&[]), (vec![], 0));
     }
 
     #[test]
-    fn encode_is_capped() {
-        let long = "a".repeat(CHARS + 10);
-        assert_eq!(encode(&[long]).len(), CHARS);
+    fn encode_never_cuts_a_path() {
+        assert_eq!(encode(&["a".repeat(CHARS + 10)]), (vec![], 0));
+        let half = "b".repeat(CHARS / 2);
+        let (data, n) = encode(&[half.clone(), half.clone(), "c".into()]);
+        assert_eq!((n, data.len()), (1, CHARS / 2));
+        let (data, n) = encode(&["d".repeat(CHARS / 2 - 1), half, "e".into()]);
+        assert_eq!((n, data.len(), decode(&data).len()), (2, CHARS, 2));
     }
 
     fn set(items: &[&str]) -> HashSet<String> {

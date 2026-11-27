@@ -15,6 +15,9 @@ pub fn fit((w, h): (i32, i32), size: i32) -> (i32, i32) {
 }
 
 pub fn blit_fit(dst: &mut [u32], dw: i32, src: &[u32], (sw, sh): (i32, i32), (x, y): (i32, i32), size: i32) {
+    if sw <= 0 || sh <= 0 || size <= 0 || src.len() < (sw * sh) as usize {
+        return;
+    }
     let (fw, fh) = fit((sw, sh), size);
     let scaled: Vec<u32> = (0..fh).flat_map(|j| (0..fw).map(move |i| src[((j * sh / fh) * sw + i * sw / fw) as usize])).collect();
     blit(dst, dw, &scaled, fw, (x + (size - fw) / 2, y + (size - fh) / 2));
@@ -30,6 +33,17 @@ pub fn blit(dst: &mut [u32], dw: i32, src: &[u32], sw: i32, (dx, dy): (i32, i32)
         let s = ((y - dy) * sw + x0 - dx) as usize;
         let d = (y * dw + x0) as usize;
         dst[d..d + (x1 - x0) as usize].copy_from_slice(&src[s..s + (x1 - x0) as usize]);
+    }
+}
+
+pub fn blend(dst: &mut [u32], dw: i32, src: &[u32], sw: i32, (dx, dy): (i32, i32)) {
+    let (dh, sh) = (dst.len() as i32 / dw.max(1), src.len() as i32 / sw.max(1));
+    let (x0, x1) = (dx.max(0), (dx + sw).min(dw));
+    for y in dy.max(0)..(dy + sh).min(dh) {
+        for x in x0..x1 {
+            let d = (y * dw + x) as usize;
+            dst[d] = super::over(dst[d], src[((y - dy) * sw + x - dx) as usize]);
+        }
     }
 }
 
@@ -67,6 +81,16 @@ mod tests {
     }
 
     #[test]
+    fn blend_keeps_what_shows_through_and_clips() {
+        let mut dst = vec![0xFF_10_20_30; 4];
+        blend(&mut dst, 2, &[0, 0xFF_FF_FF_FF, 0x80_40_40_40, 0], 2, (0, 0));
+        assert_eq!(dst, vec![0xFF_10_20_30, 0xFF_FF_FF_FF, 0xFF_47_4F_57, 0xFF_10_20_30]);
+        let mut dst = vec![0u32; 4];
+        blend(&mut dst, 2, &[0xFF_00_00_01; 4], 2, (1, 1));
+        assert_eq!(dst, vec![0, 0, 0, 0xFF_00_00_01]);
+    }
+
+    #[test]
     fn thumbnails_are_centered_in_their_box() {
         let mut dst = vec![0u32; 8 * 8];
         blit_fit(&mut dst, 8, &[7, 8], (1, 2), (2, 2), 4);
@@ -75,6 +99,16 @@ mod tests {
         let mut dst = vec![0u32; 8 * 8];
         blit_fit(&mut dst, 8, &[7, 8], (2, 1), (2, 2), 4);
         assert_eq!((at(2, 3, &dst), at(5, 4, &dst), at(2, 2, &dst), at(2, 5, &dst)), (7, 8, 0, 0));
+    }
+
+    #[test]
+    fn empty_or_short_thumbnails_draw_nothing() {
+        let mut dst = vec![5u32; 16];
+        blit_fit(&mut dst, 4, &[], (0, 0), (0, 0), 4);
+        blit_fit(&mut dst, 4, &[], (3, 0), (0, 0), 4);
+        blit_fit(&mut dst, 4, &[1, 2], (2, 2), (0, 0), 4);
+        blit_fit(&mut dst, 4, &[1], (1, 1), (0, 0), 0);
+        assert_eq!(dst, vec![5u32; 16]);
     }
 
     #[test]

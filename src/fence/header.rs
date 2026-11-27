@@ -1,15 +1,16 @@
 use super::field::{self, Field};
+use super::glassbar;
 use crate::{
     domain::{Fence, color, grid::Align, side::Geo, vertical},
     layered::{Frame, measure},
-    render::{Canvas, blit, flat, premul, rotate_cw},
+    render::{Canvas, blend, blit, flat, premul, rotate_cw},
 };
 use windows::Win32::{
     Foundation::RECT,
-    Graphics::Gdi::{DT_CENTER, DT_END_ELLIPSIS, DT_LEFT, DT_RIGHT, DT_SINGLELINE, DT_VCENTER, HFONT},
+    Graphics::Gdi::{DRAW_TEXT_FORMAT, DT_CENTER, DT_END_ELLIPSIS, DT_LEFT, DT_RIGHT, DT_SINGLELINE, DT_VCENTER, HFONT},
 };
 
-fn segment(w: i32, n: usize, i: usize) -> (i32, i32) {
+pub(super) fn segment(w: i32, n: usize, i: usize) -> (i32, i32) {
     let n = n.max(1) as i32;
     (i as i32 * w / n, (i as i32 + 1) * w / n)
 }
@@ -18,12 +19,35 @@ pub(super) fn loupe_end(len: i32, f: &Fence, single: bool) -> i32 {
     if single || f.tabs.len() < 2 { len } else { segment(len, f.tabs.len(), f.tab.min(f.tabs.len() - 1)).1 }
 }
 
+pub(super) fn room(len: i32, t: i32, f: &Fence, loupe: Option<bool>) -> impl Fn(i32, i32) -> i32 {
+    let end = loupe.map(|single| loupe_end(len, f, single));
+    move |edge, r| if end == Some(edge) { r.min(edge - t) } else { r }
+}
+
 fn text_colors(f: &Fence) -> (u32, u32) {
     color::text_on(f.look.bar_color.unwrap_or(f.look.color))
 }
 
+fn layers(fr: &mut Frame, f: &Fence, s: &impl Fn(i32) -> i32, rows: (i32, i32)) {
+    if f.look.glass {
+        let (fg, shade) = color::glass_text(f.look.bar_color.unwrap_or(f.look.color));
+        return fr.text_layers_with(fg, shade, s(1), rows);
+    }
+    let (fg, shade) = text_colors(f);
+    fr.text_layers(fg, shade, s(2), rows)
+}
+
+pub(super) fn title_align(f: &Fence, hint: Option<&str>) -> DRAW_TEXT_FORMAT {
+    match f.look.title_align {
+        _ if hint.is_some_and(|h| h.starts_with('←')) => DT_LEFT,
+        Align::Left => DT_LEFT,
+        Align::Center => DT_CENTER,
+        Align::Right => DT_RIGHT,
+    }
+}
+
 fn text(frame: &Frame, font: HFONT, (f, hint): (&Fence, Option<&str>), t: i32, (pad, loupe): (i32, Option<bool>), upright: bool) {
-    let (w, n) = (frame.w, f.tabs.len());
+    let (w, n, room) = (frame.w, f.tabs.len(), room(frame.w, t, f, loupe));
     let skip = |title: &str| upright && vertical::has_ideographic(title);
     let flags = DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS;
     if n == 1 || hint.is_some() {
@@ -31,13 +55,7 @@ fn text(frame: &Frame, font: HFONT, (f, hint): (&Fence, Option<&str>), t: i32, (
         if skip(title) {
             return;
         }
-        let align = match f.look.title_align {
-            _ if hint.is_some_and(|h| h.starts_with('←')) => DT_LEFT,
-            Align::Left => DT_LEFT,
-            Align::Center => DT_CENTER,
-            Align::Right => DT_RIGHT,
-        };
-        return frame.text(font, title, RECT { left: t / 2, top: 0, right: w - t / 2, bottom: t }, flags | align);
+        return frame.text(font, title, RECT { left: t / 2, top: 0, right: room(w, w - t / 2), bottom: t }, flags | title_align(f, hint));
     }
     let flags = flags | DT_CENTER;
     for (i, tab) in f.tabs.iter().enumerate() {
@@ -45,17 +63,20 @@ fn text(frame: &Frame, font: HFONT, (f, hint): (&Fence, Option<&str>), t: i32, (
             continue;
         }
         let (x0, x1) = segment(w, n, i);
-        let x1 = if loupe == Some(false) && i == f.tab { x1 - t + pad } else { x1 };
-        frame.text(font, &tab.title, RECT { left: x0 + pad, top: 0, right: x1 - pad, bottom: t }, flags);
+        frame.text(font, &tab.title, RECT { left: x0 + pad, top: 0, right: room(x1, x1 - pad), bottom: t }, flags);
     }
 }
 
-fn shapes(c: &mut Canvas, f: &Fence, (active, tabs): (Option<usize>, bool), (flipped, rest): (bool, i32), s: impl Fn(i32) -> i32) {
+pub(super) fn strip((w, t): (i32, i32), (flipped, rest): (bool, i32), s: &impl Fn(i32) -> i32) -> (i32, i32, i32, i32) {
+    let ext = rest.clamp(0, s(16));
+    if flipped { (0, -ext, w, t) } else { (0, 0, w, t + ext) }
+}
+
+fn shapes(c: &mut Canvas, f: &Fence, (active, tabs): (Option<usize>, bool), edge: (bool, i32), s: &impl Fn(i32) -> i32) {
     let (w, t, n, body) = (c.w, c.h, f.tabs.len(), f.look.alpha);
     let base = f.look.bar_color.unwrap_or(f.look.color);
     let (tone, ink) = (|k, a: u8| premul(color::shade(base, k), a), color::ink(base));
-    let ext = rest.clamp(0, s(16));
-    let (shape, line) = if flipped { ((0, -ext, w, t), 0) } else { ((0, 0, w, t + ext), t - 1) };
+    let (shape, line) = (strip((w, t), edge, s), if edge.0 { 0 } else { t - 1 });
     let r = f.look.corner.px();
     c.rrect(shape, s(r) as f32, (tone(-20, body.saturating_add(50)), tone(-34, body.saturating_add(60))), (0, t), false);
     c.rrect((s(12), line, w - s(12), line + 1), 0., flat(premul(ink, 34)), (0, t), false);
@@ -71,30 +92,41 @@ fn shapes(c: &mut Canvas, f: &Fence, (active, tabs): (Option<usize>, bool), (fli
     }
 }
 
-fn columns(len: i32, t: i32, (f, hint): (&Fence, Option<&str>), pad: i32) -> Vec<(String, (i32, i32), Align)> {
-    let n = f.tabs.len();
+type Column = (String, (i32, i32), Align);
+
+fn columns(len: i32, (f, hint): (&Fence, Option<&str>), (pad, margin): (i32, i32), room: impl Fn(i32, i32) -> i32) -> Vec<Column> {
+    let (n, whole) = (f.tabs.len(), (margin, room(len, len - margin)));
     match hint {
         Some(h) if vertical::has_ideographic(h) => {
             let back = h.starts_with('←');
-            vec![(h.replace('←', "↑"), (t / 2, len - t / 2), if back { Align::Left } else { f.look.title_align })]
+            vec![(h.replace('←', "↑"), whole, if back { Align::Left } else { f.look.title_align })]
         }
         Some(_) => vec![],
         None if n == 1 => {
             let title = &f.tabs[0].title;
-            if vertical::has_ideographic(title) { vec![(title.clone(), (t / 2, len - t / 2), f.look.title_align)] } else { vec![] }
+            if vertical::has_ideographic(title) { vec![(title.clone(), whole, f.look.title_align)] } else { vec![] }
         }
         None => (f.tabs.iter().enumerate())
             .filter(|(_, tab)| vertical::has_ideographic(&tab.title))
             .map(|(i, tab)| {
                 let (y0, y1) = segment(len, n, i);
-                (tab.title.clone(), (y0 + pad, y1 - pad), Align::Center)
+                (tab.title.clone(), (y0 + pad, room(y1, y1 - pad)), Align::Center)
             })
             .collect(),
     }
 }
 
-fn upright(turned: &[u32], (t, len): (i32, i32), font: HFONT, (f, hint): (&Fence, Option<&str>), s: &impl Fn(i32) -> i32) -> Option<Frame> {
-    let columns = columns(len, t, (f, hint), s(8));
+fn upright(
+    turned: &[u32],
+    (t, len): (i32, i32),
+    font: HFONT,
+    (f, hint): (&Fence, Option<&str>),
+    loupe: Option<bool>,
+    s: &impl Fn(i32) -> i32,
+) -> Option<Frame> {
+    let glass = f.look.glass;
+    let gaps = if glass { (s(10), s(16)) } else { (s(8), t / 2) };
+    let columns = columns(len, (f, hint), gaps, room(len, t, f, loupe));
     if columns.is_empty() {
         return None;
     }
@@ -108,8 +140,7 @@ fn upright(turned: &[u32], (t, len): (i32, i32), font: HFONT, (f, hint): (&Fence
         }
     }
     col.flush();
-    let (fg, shade) = text_colors(f);
-    col.text_layers(fg, shade, s(2), (0, len));
+    layers(&mut col, f, s, (0, len));
     Some(col)
 }
 
@@ -122,13 +153,15 @@ pub(super) fn paint(
     field: Option<&Field>,
     s: impl Fn(i32) -> i32,
 ) {
-    let (fg, shade) = text_colors(f);
+    let fg = text_colors(f).0;
     let (len, t) = (g.length(), g.bar);
     let side_bar = g.side.vertical();
     let Some(mut bar) = Frame::new(len, t) else { return };
-    match field {
-        Some(fl) => field::text(&bar, (plain, glyphs), fl, t, &s),
-        None => text(&bar, font, (f, hint), t, (s(8), loupe), side_bar),
+    let glass = f.look.glass.then_some(font);
+    match (field, glass) {
+        (Some(fl), _) => field::text(&bar, (plain, glyphs), fl, t, &s),
+        (None, Some(font)) => glassbar::text(&bar, font, (f, hint), loupe, side_bar, &s),
+        (None, None) => text(&bar, font, (f, hint), t, (s(8), loupe), side_bar),
     }
     if let Some(single) = loupe.filter(|_| field.is_none()) {
         let end = loupe_end(len, f, single);
@@ -138,22 +171,28 @@ pub(super) fn paint(
     bar.flush();
     let (bx0, by0, bx1, by1) = g.body();
     let rest = if side_bar { bx1 - bx0 } else { by1 - by0 };
-    shapes(&mut bar.canvas(), f, (active, hint.is_none() && field.is_none()), (g.side.flipped(), rest), &s);
+    let plain_bar = hint.is_none() && field.is_none();
+    let edge = (g.side.flipped(), rest);
+    match glass {
+        Some(_) => glassbar::shapes(&mut bar.canvas(), f, (active, plain_bar), edge, &s),
+        None => shapes(&mut bar.canvas(), f, (active, plain_bar), edge, &s),
+    }
     if let Some(fl) = field {
         field::dim_hint(&mut bar, fl, t, &s);
         field::shapes(&mut bar, color::ink(f.look.bar_color.unwrap_or(f.look.color)), t, &s);
     }
-    bar.text_layers(fg, shade, s(2), (0, t));
+    layers(&mut bar, f, &s, (0, t));
     if let Some(fl) = field {
         field::caret(&mut bar, plain, fl, fg, t, &s);
     }
     let (x0, y0, _, _) = g.bar_rect();
+    let put = if glass.is_some() { blend } else { blit };
     if !side_bar {
         let c = main.canvas();
-        return blit(c.px, c.w, bar.canvas.px(), len, (x0, y0));
+        return put(c.px, c.w, bar.canvas.px(), len, (x0, y0));
     }
     let turned = rotate_cw(bar.canvas.px(), len, t);
-    let mut col = field.is_none().then(|| upright(&turned, (t, len), font, (f, hint), &s)).flatten();
+    let mut col = field.is_none().then(|| upright(&turned, (t, len), font, (f, hint), loupe, &s)).flatten();
     let c = main.canvas();
-    blit(c.px, c.w, col.as_mut().map_or(&turned[..], |col| &*col.canvas.px()), t, (x0, y0));
+    put(c.px, c.w, col.as_mut().map_or(&turned[..], |col| &*col.canvas.px()), t, (x0, y0));
 }

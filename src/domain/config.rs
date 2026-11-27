@@ -41,11 +41,11 @@ pub struct Config {
     pub settings_key: Option<Hotkey>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub name_rules: Vec<NameRule>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty", deserialize_with = "compat::known")]
     pub screens: Vec<Screen>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty", deserialize_with = "compat::known")]
     pub layouts: Vec<Layout>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty", deserialize_with = "compat::known")]
     pub snapshots: Vec<Snapshot>,
 }
 
@@ -81,11 +81,11 @@ impl Default for Config {
     }
 }
 
-impl Config {
-    pub fn next_id(&self) -> u64 {
-        self.fences.iter().flat_map(|f| f.tabs.iter().map(|t| t.id).chain([f.id])).max().map_or(1, |m| m + 1)
-    }
+pub(super) fn unbom(bytes: &[u8]) -> &[u8] {
+    bytes.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(bytes)
+}
 
+impl Config {
     pub fn fence(&self, id: u64) -> Option<&Fence> {
         self.fences.iter().find(|f| f.id == id)
     }
@@ -121,7 +121,7 @@ impl Config {
     }
 
     pub fn parse(bytes: &[u8]) -> serde_json::Result<Self> {
-        let json = bytes.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(bytes);
+        let json = unbom(bytes);
         if json.trim_ascii_start().first() != Some(&b'{') {
             return Err(serde::de::Error::custom("not a JSON object"));
         }
@@ -130,25 +130,10 @@ impl Config {
 
     pub fn sanitized(mut self) -> Self {
         self.sanitize_keys();
-        self.sanitize_rules();
         let mut seen = HashSet::new();
         self.fences = self.fences.into_iter().filter(|f| f.id > 0 && seen.insert(f.id)).map(Fence::sanitized).collect();
-        let mut tabs = HashSet::new();
-        let mut fresh = self.next_id();
-        for f in &mut self.fences {
-            f.tabs.retain(|t| t.id > 0 && tabs.insert(t.id));
-            if f.tabs.is_empty() {
-                let id = if tabs.insert(f.id) {
-                    f.id
-                } else {
-                    fresh += 1;
-                    fresh - 1
-                };
-                tabs.insert(id);
-                f.tabs.push(Tab { id, ..Tab::default() });
-            }
-            f.tab = f.tab.min(f.tabs.len() - 1);
-        }
+        self.sanitize_ids();
+        self.sanitize_places();
         let mut seen = HashSet::new();
         for t in self.fences.iter_mut().flat_map(|f| f.tabs.iter_mut()) {
             if std::mem::take(&mut t.recycle) {
@@ -156,6 +141,7 @@ impl Config {
             }
             t.system.retain(|s| seen.insert(*s));
         }
+        self.sanitize_rules();
         self.look = self.look.sanitized();
         self.inherit();
         self.roll_ms = *anim::SPEEDS.iter().min_by_key(|s| s.abs_diff(self.roll_ms)).unwrap_or(&anim::DEFAULT_MS);

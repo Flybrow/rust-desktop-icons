@@ -1,4 +1,4 @@
-use super::super::{bar_font, cell, columns, detail, header, label_font, layout, metrics, title_font};
+use super::super::{bar_font, cell, columns, detail, header, label_font, layout, metrics, title_font, wallpaper::Glass};
 use super::{Sizes, marks};
 use crate::{
     app::with,
@@ -22,7 +22,7 @@ fn labels_key(cells: &[(usize, i32, i32)], v: &crate::app::View, frame: Shape, e
     k.finish()
 }
 
-pub(super) fn compose(h: HWND, f: &domain::Fence, ((w, ht), opened): Sizes, open: bool) -> Option<(Frame, u8)> {
+pub(super) fn compose(h: HWND, f: &domain::Fence, ((w, ht), opened): Sizes, open: bool, frost: Option<&Glass>) -> Option<(Frame, u8)> {
     let s = |v| scale(h, v);
     let (cell, icon) = metrics(h);
     let (mut frame, mut icons) = (Frame::new(w, ht)?, Dib::new(w, ht)?);
@@ -104,11 +104,22 @@ pub(super) fn compose(h: HWND, f: &domain::Fence, ((w, ht), opened): Sizes, open
         let (full, rad, all) = (if bar { (0, 0, w, ht) } else { (bx0, by0, bx1, by1) }, s(f.look.corner.px()) as f32, (0, ht));
         let tone = |k, a: u8| premul(color::shade(f.look.color, k), a);
         let mut c = frame.canvas();
-        c.rrect(full, rad, (tone(10, body), tone(-14, body.saturating_add(20))), all, false);
+        if f.look.glass {
+            match frost {
+                Some((fr, (ox, oy))) => c.rrect_with(full, rad, all, false, |x, y| fr.at(x + ox, y + oy)),
+                None => c.rrect(full, rad, (tone(16, body), tone(0, (body as u32 * 3 / 5) as u8)), all, false),
+            }
+            if ink != 0 {
+                c.rrect(full, rad, flat(premul(0xFF_FFFF, 14)), all, false);
+            }
+        } else {
+            c.rrect(full, rad, (tone(10, body), tone(-14, body.saturating_add(20))), all, false);
+        }
         if g.head > 0 && !rolled {
             columns::shapes(&mut c, head, &spans, ink, s);
         }
-        let k = marks::Ctx { shape, icon, ink, rad, rows: (ry0, ry1), s: &s };
+        let glass = f.look.glass.then_some(ink == 0);
+        let k = marks::Ctx { shape, icon, ink, rad, glass, rows: (ry0, ry1), s: &s };
         marks::highlights(&mut c, &cells, v, (fi, f.look.labels), &k);
         marks::masks(&mut c, &cells, mask, named, &k);
         marks::band(&mut c, &g, v, &k);
@@ -116,7 +127,13 @@ pub(super) fn compose(h: HWND, f: &domain::Fence, ((w, ht), opened): Sizes, open
         marks::scrollbar(&mut c, &g, (v.scroll, max, gw), &k);
         let labels = cached.or_else(|| key.map(|k| frame.labels(k, s(2))));
         if let Some(l) = &labels {
-            frame.layers(l, f.look.label_color.unwrap_or(fg), shade, all);
+            match f.look.glass {
+                true => {
+                    let (gfg, gshade) = color::glass_text(under);
+                    frame.layers_with(l, f.look.label_color.unwrap_or(gfg), gshade, all)
+                }
+                false => frame.layers(l, f.look.label_color.unwrap_or(fg), shade, all),
+            }
         }
         v.labels = labels.filter(|_| v.inside);
         let field = super::super::filter::field(h, v, empty);
@@ -130,9 +147,20 @@ pub(super) fn compose(h: HWND, f: &domain::Fence, ((w, ht), opened): Sizes, open
                 m
             });
             let (hf, hint) = (hidden.as_ref().unwrap_or(f), hint.filter(|_| !mask.titles));
-            header::paint(&mut frame, &g, (ft, fq, glyphs, loupe), (hf, hint.as_deref()), (!rolled).then_some(f.tab), field.as_ref(), s);
+            let tabs = (!rolled).then_some(f.tab);
+            header::paint(&mut frame, &g, (ft, fq, glyphs, loupe), (hf, hint.as_deref()), tabs, field.as_ref(), s);
         }
-        frame.canvas().rrect(full, rad, flat(premul(ink, 48)), all, true);
+        let mut c = frame.canvas();
+        if f.look.glass {
+            let light = ink == 0;
+            if light {
+                c.rrect(full, rad, flat(premul(0, 14)), all, true);
+            }
+            let top = (full.0 + rad as i32, full.1 + 1, full.2 - rad as i32, full.1 + 2);
+            c.rrect(top, 0., flat(premul(0xFF_FFFF, if light { 150 } else { 18 })), all, false);
+        } else {
+            c.rrect(full, rad, flat(premul(ink, 48)), all, true);
+        }
         #[cfg(debug_assertions)]
         if !open {
             frame.dump(&f.id.to_string());

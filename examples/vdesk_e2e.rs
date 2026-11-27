@@ -5,21 +5,34 @@ use std::{env, fs, thread, time::Duration};
 use support::{app, chord, fence_cfg, menu, quit, rect, right_click, wait, windows, work};
 use windows::{
     Win32::{
-        System::Registry::{HKEY_CURRENT_USER, RRF_RT_REG_BINARY, RegGetValueW},
+        System::{
+            Registry::{HKEY_CURRENT_USER, RRF_RT_REG_BINARY, RegGetValueW},
+            RemoteDesktop::ProcessIdToSessionId,
+            Threading::GetCurrentProcessId,
+        },
         UI::Input::KeyboardAndMouse::{VK_CONTROL, VK_D, VK_F4, VK_LEFT, VK_LWIN, VK_RIGHT},
     },
-    core::w,
+    core::{HSTRING, PCWSTR, w},
 };
 
-fn bytes(name: windows::core::PCWSTR) -> Vec<u8> {
-    let key = w!(r"Software\Microsoft\Windows\CurrentVersion\Explorer\VirtualDesktops");
+fn read(key: &HSTRING, name: PCWSTR) -> Option<Vec<u8>> {
     let mut size = 0u32;
-    if unsafe { RegGetValueW(HKEY_CURRENT_USER, key, name, RRF_RT_REG_BINARY, None, None, Some(&mut size)) }.is_err() {
-        return vec![];
-    }
+    unsafe { RegGetValueW(HKEY_CURRENT_USER, key, name, RRF_RT_REG_BINARY, None, None, Some(&mut size)) }.ok().ok()?;
     let mut b = vec![0u8; size as usize];
-    let _ = unsafe { RegGetValueW(HKEY_CURRENT_USER, key, name, RRF_RT_REG_BINARY, None, Some(b.as_mut_ptr().cast()), Some(&mut size)) };
-    b
+    unsafe { RegGetValueW(HKEY_CURRENT_USER, key, name, RRF_RT_REG_BINARY, None, Some(b.as_mut_ptr().cast()), Some(&mut size)) }
+        .ok()
+        .ok()?;
+    Some(b)
+}
+
+fn bytes(name: PCWSTR) -> Vec<u8> {
+    let explorer = r"Software\Microsoft\Windows\CurrentVersion\Explorer";
+    let mut session = 0;
+    let _ = unsafe { ProcessIdToSessionId(GetCurrentProcessId(), &mut session) };
+    [format!(r"{explorer}\VirtualDesktops"), format!(r"{explorer}\SessionInfo\{session}\VirtualDesktops")]
+        .iter()
+        .find_map(|k| read(&HSTRING::from(k.as_str()), name))
+        .unwrap_or_default()
 }
 
 fn guid(b: &[u8]) -> String {

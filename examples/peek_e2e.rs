@@ -3,7 +3,7 @@ mod support;
 use serde_json::json;
 use std::{env, fs, path::PathBuf, thread, time::Duration};
 use support::{app, capture, chord, desk, double_click, fences, quit, type_text, wait, windows, work};
-use windows::Win32::Foundation::RECT;
+use windows::Win32::Foundation::{HWND, POINT, RECT};
 use windows::Win32::System::Com::{COINIT_APARTMENTTHREADED, CoInitializeEx};
 use windows::Win32::UI::Input::KeyboardAndMouse::{VK_CONTROL, VK_ESCAPE, VK_F11, VK_F12, VK_MENU, VK_SHIFT};
 
@@ -14,6 +14,17 @@ use windows::Win32::UI::WindowsAndMessaging::*;
 fn topmost(pid: u32) -> bool {
     let f = support::windows(pid, "RustDesktopIcons.Fence");
     !f.is_empty() && f.iter().all(|h| unsafe { GetWindowLongPtrW(*h, GWL_EXSTYLE) } as u32 & WS_EX_TOPMOST.0 != 0)
+}
+
+fn above_desktop(pid: u32) -> bool {
+    let f = support::windows(pid, "RustDesktopIcons.Fence");
+    let owned = |h: HWND| unsafe { GetWindow(h, GW_OWNER) }.is_ok_and(|o| matches!(support::class(o).as_str(), "Progman" | "WorkerW"));
+    let seen = |h: HWND| {
+        let r = support::rect(h);
+        let hit = unsafe { GetAncestor(WindowFromPoint(POINT { x: (r.left + r.right) / 2, y: r.top + 12 }), GA_ROOT) };
+        hit == h
+    };
+    !f.is_empty() && f.iter().all(|h| owned(*h) && seen(*h))
 }
 
 fn main() {
@@ -42,6 +53,10 @@ fn main() {
     };
     check(wait(10, || fences(pid).len() == 2), "two fences shown");
     thread::sleep(Duration::from_millis(800));
+
+    support::show_desktop();
+    check(wait(3, || above_desktop(pid)), "Win+D (Show desktop) leaves the fences visible on the desktop");
+    support::show_desktop();
 
     chord(&PEEK);
     check(wait(3, || topmost(pid)), "the peek shortcut brings the fences above the windows");

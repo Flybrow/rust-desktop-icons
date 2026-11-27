@@ -1,11 +1,11 @@
 use crate::{
     domain::{
-        pins::{Wall, clear_spot, covered, same},
+        pins::{Wall, clear_spot, covered, key, keys},
         stack::{self, Icon},
     },
     win::work_area,
 };
-use std::path::{Path, PathBuf};
+use std::{collections::HashSet, path::PathBuf};
 use windows::{
     Win32::{
         Foundation::{HWND, POINT, RECT},
@@ -45,21 +45,13 @@ fn away(p: POINT) -> bool {
     stack::away((p.x, p.y))
 }
 
-fn listed(paths: &[PathBuf], p: &Path) -> bool {
-    paths.iter().any(|q| same(q, p))
+fn listed(keys: &HashSet<String>, e: &Entry) -> bool {
+    keys.contains(&key(&e.path))
 }
 
 pub fn listview() -> Option<HWND> {
-    unsafe {
-        let progman = crate::win::progman()?;
-        let mut view = FindWindowExW(Some(progman), None, w!("SHELLDLL_DefView"), None).ok();
-        let mut worker = None;
-        while view.is_none() {
-            worker = Some(FindWindowExW(None, worker, w!("WorkerW"), None).ok()?);
-            view = FindWindowExW(worker, None, w!("SHELLDLL_DefView"), None).ok();
-        }
-        FindWindowExW(view, None, w!("SysListView32"), None).ok()
-    }
+    let (_, view) = crate::win::desk_view()?;
+    unsafe { FindWindowExW(Some(view), None, w!("SysListView32"), None) }.ok()
 }
 
 pub struct Desk(IFolderView2);
@@ -127,7 +119,8 @@ impl Desk {
         let mut at = POINT { x, y };
         let _ = unsafe { ScreenToClient(lv, &mut at) };
         let entries = self.entries();
-        let todo: Vec<&Entry> = entries.iter().filter(|e| listed(paths, &e.path)).collect();
+        let wanted = keys(paths);
+        let todo: Vec<&Entry> = entries.iter().filter(|e| listed(&wanted, e)).collect();
         let cell = self.spacing();
         let pts: Vec<POINT> = stack::row((at.x, at.y), (cell.x, cell.y), todo.len()).into_iter().map(|(x, y)| POINT { x, y }).collect();
         self.place(&todo, &pts);
@@ -164,7 +157,8 @@ impl Desk {
         let (entries, cell) = (self.entries(), self.spacing());
         let size = (cell.x, cell.y);
         let mut taken: Vec<(i32, i32)> = entries.iter().filter(|e| !away(e.pos)).map(|e| (e.pos.x, e.pos.y)).collect();
-        for e in entries.iter().filter(|e| listed(paths, &e.path) && !away(e.pos) && covered(&walls, (e.pos.x, e.pos.y), size)) {
+        let wanted = keys(paths);
+        for e in entries.iter().filter(|e| listed(&wanted, e) && !away(e.pos) && covered(&walls, (e.pos.x, e.pos.y), size)) {
             let (sx, sy) = (e.pos.x + o.x, e.pos.y + o.y);
             let a = work_area(&RECT { left: sx, top: sy, right: sx + 1, bottom: sy + 1 });
             let area = (a.left - o.x, a.top - o.y, a.right - a.left, a.bottom - a.top);
@@ -178,7 +172,8 @@ impl Desk {
     pub fn sync(&self, keep: &[PathBuf], prev: Option<(i32, i32)>, fences: &[RECT]) -> Option<((i32, i32), RECT)> {
         let entries = self.entries();
         let cell = self.spacing();
-        let icons: Vec<Icon> = entries.iter().map(|e| Icon { pos: (e.pos.x, e.pos.y), kept: listed(keep, &e.path) }).collect();
+        let kept = keys(keep);
+        let icons: Vec<Icon> = entries.iter().map(|e| Icon { pos: (e.pos.x, e.pos.y), kept: listed(&kept, e) }).collect();
         let walls = Self::walls(fences).map(|(_, w)| w).unwrap_or_default();
         let plan = stack::plan(&icons, prev, (cell.x, cell.y), self.area(), &walls);
         let at = POINT { x: plan.stack.0, y: plan.stack.1 };

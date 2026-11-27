@@ -1,6 +1,7 @@
 pub mod chrome;
 mod dib;
 pub mod glyph;
+pub mod logo;
 pub mod popup;
 
 use crate::render::{Canvas, blur, gray, premul};
@@ -148,14 +149,24 @@ impl Frame {
     }
 
     pub fn layers(&mut self, l: &Labels, fg: u32, shadow: u32, rows: (i32, i32)) {
+        self.layers_with(l, fg, (shadow, 190), rows);
+    }
+
+    pub fn layers_with(&mut self, l: &Labels, fg: u32, (shadow, strength): (u32, u8), rows: (i32, i32)) {
         let mut c = self.canvas();
-        c.layer(&l.soft, (0, 1), Some(premul(shadow, 190)), rows);
+        if strength > 0 {
+            c.layer(&l.soft, (0, 1), Some(premul(shadow, strength)), rows);
+        }
         c.layer(&l.mask, (0, 0), Some(premul(fg, 255)), rows);
     }
 
     pub fn text_layers(&mut self, fg: u32, shadow: u32, r: i32, rows: (i32, i32)) {
+        self.text_layers_with(fg, (shadow, 190), r, rows);
+    }
+
+    pub fn text_layers_with(&mut self, fg: u32, shadow: (u32, u8), r: i32, rows: (i32, i32)) {
         let l = self.labels(0, r);
-        self.layers(&l, fg, shadow, rows);
+        self.layers_with(&l, fg, shadow, rows);
     }
 
     #[cfg(debug_assertions)]

@@ -40,7 +40,6 @@ pub fn normalize(s: &str) -> String {
 }
 
 fn score(query: &str, name: &str) -> Option<u8> {
-    let name = normalize(name);
     let at = name.find(query)?;
     let word = at == 0 || name[..at].ends_with(|c: char| !c.is_alphanumeric());
     Some(if at == 0 {
@@ -57,9 +56,16 @@ pub fn rank(query: &str, names: &[String]) -> Vec<usize> {
     if q.is_empty() {
         return vec![];
     }
-    let mut hits: Vec<(u8, usize)> = names.iter().enumerate().filter_map(|(i, n)| score(&q, n).map(|s| (s, i))).collect();
-    hits.sort_by_key(|&(s, i)| (s, names[i].chars().count(), normalize(&names[i])));
-    hits.into_iter().map(|(_, i)| i).take(LIMIT).collect()
+    let mut hits: Vec<(u8, usize, String, usize)> = names
+        .iter()
+        .enumerate()
+        .filter_map(|(i, n)| {
+            let folded = normalize(n);
+            score(&q, &folded).map(|s| (s, n.chars().count(), folded, i))
+        })
+        .collect();
+    hits.sort_unstable();
+    hits.into_iter().map(|(.., i)| i).take(LIMIT).collect()
 }
 
 pub fn keep(query: &str, names: &[String]) -> Vec<usize> {

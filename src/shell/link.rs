@@ -1,5 +1,8 @@
-use crate::win::wide_path;
-use std::path::{Path, PathBuf};
+use crate::{store, win::wide_path};
+use std::{
+    ffi::OsStr,
+    path::{Path, PathBuf},
+};
 use windows::{
     Win32::{
         System::Com::{CLSCTX_INPROC_SERVER, CoCreateInstance, IPersistFile, STGM_READ},
@@ -39,21 +42,27 @@ fn shortcut(p: &Path) -> Option<(String, String)> {
     }
 }
 
+fn existing(dir: &Path, name: &OsStr, same: impl Fn(&Path) -> bool) -> Option<PathBuf> {
+    store::candidates(dir, name).take_while(|p| p.exists()).find(|p| same(p))
+}
+
 pub fn link_into(target: &Path, dir: &Path) -> Result<PathBuf> {
     let ext = target.extension().map(|e| e.to_ascii_lowercase());
     if ext.as_ref().is_some_and(|e| e == "lnk" || e == "url") {
-        let dst = dir.join(target.file_name().unwrap_or_default());
-        if !dst.exists() {
-            std::fs::copy(target, &dst)?;
-            crate::undo::created(&dst);
+        let name = target.file_name().unwrap_or_default();
+        let wanted = link_target(target);
+        if let Some(dst) = existing(dir, name, |p| wanted.is_some() && link_target(p) == wanted) {
+            return Ok(dst);
         }
+        let dst = store::put_new(dir, name, |d| store::copy_new(target, d))?;
+        crate::undo::created(&dst);
         return Ok(dst);
     }
     let name = format!("{}.lnk", target.file_name().unwrap_or_default().to_string_lossy());
-    let dst = dir.join(name);
-    if dst.exists() {
+    if let Some(dst) = existing(dir, name.as_ref(), |p| shortcut(p).is_some_and(|(t, _)| super::same_path(Path::new(&t), target))) {
         return Ok(dst);
     }
+    let dst = store::unique(dir, name.as_ref());
     unsafe {
         let link: IShellLinkW = CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER)?;
         link.SetPath(PCWSTR(wide_path(target).as_ptr()))?;
@@ -88,6 +97,23 @@ mod tests {
         assert!(fs::metadata(&lnk).unwrap().len() > 0);
         assert_eq!(link_into(&target, &out).unwrap(), lnk);
         assert_eq!(fs::read_dir(&out).unwrap().count(), 1);
+        fs::create_dir_all(d.join("other")).unwrap();
+        let twin = d.join("other").join("app.txt");
+        fs::write(&twin, "y").unwrap();
+        let second = link_into(&twin, &out).unwrap();
+        assert_eq!(
+            (second.clone(), link_into(&twin, &out).unwrap(), link_into(&target, &out).unwrap()),
+            (out.join("app.txt (2).lnk"), second.clone(), lnk.clone())
+        );
+        let copies = d.join("copies");
+        fs::create_dir_all(&copies).unwrap();
+        let copied = link_into(&lnk, &copies).unwrap();
+        assert_eq!((copied.clone(), link_into(&lnk, &copies).unwrap()), (copies.join("app.txt.lnk"), copies.join("app.txt.lnk")));
+        let alt = d.join("alt").join("app.txt.lnk");
+        fs::create_dir_all(d.join("alt")).unwrap();
+        fs::copy(&second, &alt).unwrap();
+        assert_eq!(link_into(&alt, &copies).unwrap(), copies.join("app.txt (2).lnk"));
+        assert_eq!((fs::read_dir(&out).unwrap().count(), fs::read_dir(&copies).unwrap().count()), (2, 2));
         assert!(same_path(&out, Path::new(&out.to_string_lossy().to_uppercase())));
         assert!(target.exists());
         assert_eq!(folder_target(&lnk), None);

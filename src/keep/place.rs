@@ -1,5 +1,5 @@
 use super::{live, pin_of, soon};
-use crate::{app::change, domain::pins::Pin, rules, shell, shell::hide::Desk, store};
+use crate::{app::change, domain::pins::Pin, rules, shell, store};
 use std::path::PathBuf;
 use windows::Win32::Foundation::HWND;
 
@@ -42,8 +42,7 @@ pub fn release(paths: &[PathBuf], at: (i32, i32)) -> Vec<String> {
     out.iter().cloned().for_each(rules::ignore);
     change(|c| c.unpin(&out));
     if live() {
-        super::apply();
-        let _ = Desk::open().map(|d| d.show_at(&out, at));
+        super::keeper::reveal(out, at);
     }
     errors
 }

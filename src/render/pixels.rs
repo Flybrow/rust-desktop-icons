@@ -29,6 +29,15 @@ pub fn straight(px: &mut [u32]) {
     }
 }
 
+pub fn premultiplied(px: &mut [u32]) {
+    let opaque = px.iter().all(|p| *p >> 24 == 0);
+    for p in px.iter_mut() {
+        let a = if opaque { 255 } else { *p >> 24 };
+        let k = |v: u32| v * a / 255;
+        *p = a << 24 | k(*p >> 16 & 0xFF) << 16 | k(*p >> 8 & 0xFF) << 8 | k(*p & 0xFF);
+    }
+}
+
 pub fn tint(px: &mut [u32], color: u32) {
     let t = premul(color, 255) & 0xFF_FFFF;
     for p in px.iter_mut().filter(|p| **p >> 24 != 0) {
@@ -77,5 +86,15 @@ mod tests {
         let mut px = [0x80_10_20_30];
         straight(&mut px);
         assert_eq!(px, [0x80_1F_3F_5F]);
+    }
+
+    #[test]
+    fn icons_get_premultiplied_and_alpha_less_ones_turn_opaque() {
+        let mut px = [0x80_FF_40_00, 0x00_FF_FF_FF];
+        premultiplied(&mut px);
+        assert_eq!(px, [0x80_80_20_00, 0]);
+        let mut px = [0x00_FF_40_00];
+        premultiplied(&mut px);
+        assert_eq!(px, [0xFF_FF_40_00]);
     }
 }

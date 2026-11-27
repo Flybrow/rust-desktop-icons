@@ -1,5 +1,5 @@
 use super::{
-    actions, arrange, columns, cursor, desks, edit, fence_of, filter, group, host, items, layout, native, peek, select, system, tabs,
+    TABS, actions, arrange, columns, cursor, desks, edit, fence_of, filter, group, host, items, layout, native, peek, select, system, tabs,
     titlebar, update,
 };
 use crate::domain::inherit::Field;
@@ -72,6 +72,10 @@ pub(super) fn context(h: HWND) {
         a.sub(m, T::OpenFolders, folders, g::FOLDER);
         a.entry(m, 13, T::OpenFolder, false, g::FOLDER);
         separator(m);
+        let styles = menu();
+        item(styles, 214, a.t(T::StyleDefault), !f.look.glass);
+        item(styles, 215, a.t(T::StyleGlass), f.look.glass);
+        a.sub(look, T::Style, styles, g::TINT);
         a.entry(look, 11, T::Color, false, g::COLOR);
         a.entry(look, 209, T::Wallpaper, f.look.wallpaper, g::PICTURE);
         a.sub(look, T::Opacity, o, g::OPACITY);
@@ -116,8 +120,10 @@ pub(super) fn context(h: HWND) {
         group::submenu(a, behave, f.id);
         desks::submenu(a, behave, f.desktop.as_deref());
         a.sub(m, T::Behavior, behave, g::SETTINGS);
-        a.entry(tabs, 60, T::NewTab, false, g::TAB);
-        a.entry(tabs, 61, T::NewPortal, false, g::PORTAL);
+        if f.tabs.len() < TABS {
+            a.entry(tabs, 60, T::NewTab, false, g::TAB);
+            a.entry(tabs, 61, T::NewPortal, false, g::PORTAL);
+        }
         a.entry(tabs, 58, T::FilterFiles, !f.active().filter.is_empty(), g::FILTER);
         if f.tabs.len() > 1 {
             a.entry(tabs, 62, T::DeleteTab, false, g::CLOSE);
@@ -153,6 +159,7 @@ pub(super) fn context(h: HWND) {
         18 => update(h, |f| f.set(Field::AutoHeight, |l| l.auto_height ^= true)),
         65 => update(h, |f| f.set(Field::Labels, |l| l.labels ^= true)),
         209 => update(h, |f| f.set(Field::Wallpaper, |l| l.wallpaper ^= true)),
+        k @ 214..=215 => update(h, |f| f.set(Field::Glass, |l| l.glass = k == 215)),
         212 => filter::toggle(h),
         213 => update(h, |f| f.set(Field::Home, |l| l.home ^= true)),
         210 => {

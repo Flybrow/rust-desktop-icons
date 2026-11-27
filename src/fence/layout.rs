@@ -1,4 +1,4 @@
-use super::{BORDER, TITLE, cell, fence_of, flagged, label_font, metrics, read, render, update, view, xy};
+use super::{BORDER, cell, fence_of, flagged, label_font, metrics, read, render, update, view, xy};
 use crate::{
     app::{App, with},
     domain::{
@@ -21,7 +21,7 @@ fn progress(h: HWND, f: &Fence) -> (f32, bool) {
 }
 
 pub(super) fn bar(h: HWND) -> i32 {
-    scale(h, TITLE)
+    scale(h, if super::read(h, |f| f.look.glass) == Some(true) { super::GLASS_TITLE } else { super::TITLE })
 }
 
 pub(super) fn side(h: HWND) -> Side {
@@ -44,7 +44,7 @@ pub(super) fn flow(a: &mut App, h: HWND, w: i32, c: cell::Cell) -> Option<Flow> 
 }
 
 pub(super) fn chrome(h: HWND, vertical: bool) -> i32 {
-    scale(h, TITLE + GAP + if vertical { 4 } else { EDGE })
+    bar(h) + scale(h, GAP + if vertical { 4 } else { EDGE })
 }
 
 pub(super) fn tail(a: &mut App, h: HWND, w: i32, (cell, icon): (i32, i32)) -> i32 {
@@ -124,6 +124,9 @@ pub(super) fn size(h: HWND, f: &Fence) -> (i32, i32) {
 
 pub(super) fn sizes(h: HWND, f: &Fence) -> ((i32, i32), (i32, i32)) {
     let ((p, opening), full) = (progress(h, f), full(h, f));
+    if let Some((from, q)) = view(h, |v| v.grow).flatten() {
+        return (shape(f, full.max(from)), shape(f, anim::between(from, full, q)));
+    }
     (shape(f, full), shape(f, anim::height(bar(h), full, p, opening)))
 }
 
@@ -136,10 +139,14 @@ pub(super) fn origin(h: HWND, f: &Fence, (w, ht): (i32, i32)) -> (i32, i32) {
     }
 }
 
+pub(super) fn area(h: HWND, f: &Fence, (w, ht): (i32, i32)) -> (i32, i32, i32, i32) {
+    let (x, y) = origin(h, f, (w, ht));
+    (x, y, w, ht)
+}
+
 pub(super) fn footprint(h: HWND) -> Option<RECT> {
     let f = fence_of(h)?;
-    let (w, ht) = open_size(h, &f);
-    let (x, y) = origin(h, &f, (w, ht));
+    let (x, y, w, ht) = area(h, &f, open_size(h, &f));
     Some(RECT { left: x, top: y, right: x + w, bottom: y + ht })
 }
 
@@ -165,6 +172,15 @@ pub(super) fn resize(h: HWND, f: &Fence) {
 
 pub(super) fn apply(h: HWND) {
     let Some(f) = fence_of(h) else { return };
+    if side(h).far() && !super::anim::animating(h) {
+        let size = size(h, &f);
+        let pos = origin(h, &f, size);
+        let mut shown = false;
+        self_sized(h, || shown = super::paint::render_at(h, pos, size));
+        if shown {
+            return;
+        }
+    }
     resize(h, &f);
     render(h);
 }

@@ -45,6 +45,9 @@ pub const CORNER: char = '\u{E739}';
 pub const VIEW: char = '\u{E8A9}';
 pub const UP: char = '\u{E70E}';
 pub const DOWN: char = '\u{E70D}';
+pub const STAR: char = '\u{E735}';
+pub const BOLT: char = '\u{E945}';
+pub const REPAIR: char = '\u{E90F}';
 
 pub fn bitmap(font: HFONT, ch: char, px: i32, color: u32) -> Option<HBITMAP> {
     let mut f = Frame::new(px, px)?;

@@ -39,10 +39,7 @@ enum Msg {
 }
 
 fn post(h: isize, m: Msg) {
-    let raw = Box::into_raw(Box::new(m));
-    if unsafe { PostMessageW(Some(HWND(h as _)), WM_UPDATE, WPARAM(0), LPARAM(raw as isize)) }.is_err() {
-        drop(unsafe { Box::from_raw(raw) });
-    }
+    crate::mail::post(HWND(h as _), WM_UPDATE, m);
 }
 
 pub fn enable(on: bool) {
@@ -99,7 +96,15 @@ fn ok() -> Vec<Button> {
 }
 
 fn notice(body: String) {
-    dialog::show(Spec { title: "Rust Desktop Icons".into(), body, buttons: ok(), progress: None, dismiss: dialog::close, notes: vec![] });
+    dialog::show(Spec {
+        title: "Rust Desktop Icons".into(),
+        body,
+        buttons: ok(),
+        progress: None,
+        dismiss: dialog::close,
+        notes: vec![],
+        badge: None,
+    });
 }
 
 fn later() {
@@ -140,14 +145,16 @@ fn install() {
 
 fn offer(rel: Release) {
     let body = t(T::UpdateVersion).replace("{new}", &rel.label()).replace("{cur}", &update::current());
-    let notes = rel.notes.blocks.clone();
+    let lang = with(|a| crate::i18n::LANGS[a.lang()].0).unwrap_or("en");
+    let (notes, badge) = (rel.notes_in(lang).blocks.clone(), Some(rel.label()));
     PENDING.with(|p| *p.borrow_mut() = Some(rel));
     let buttons = vec![Button { label: t(T::Install), act: install }, Button { label: t(T::Later), act: later }];
-    dialog::show(Spec { title: t(T::UpdateAvailable), body, buttons, progress: None, dismiss: later, notes });
+    dialog::show(Spec { title: t(T::UpdateAvailable), body, buttons, progress: None, dismiss: later, notes, badge });
 }
 
 pub fn received(lp: LPARAM) {
-    match *unsafe { Box::from_raw(lp.0 as *mut Msg) } {
+    let Some(m) = crate::mail::take::<Msg>(lp) else { return };
+    match m {
         Msg::Current => notice(t(T::UpToDate)),
         Msg::Failed => notice(t(T::UpdateFailed)),
         Msg::DownloadFailed => notice(t(T::UpdateDownloadFailed)),

@@ -7,6 +7,7 @@ use super::{
     matching::Expire,
     order::Sort,
     pins::Pin,
+    screens::Rect,
     system::Sys,
 };
 use serde::{Deserialize, Serialize};
@@ -20,6 +21,7 @@ pub(super) fn clean(s: &str) -> String {
 #[serde(default)]
 pub struct Tab {
     pub id: u64,
+    #[serde(deserialize_with = "compat::text")]
     pub title: String,
     pub portal: Option<PathBuf>,
     #[serde(deserialize_with = "compat::known")]
@@ -59,11 +61,15 @@ impl Tab {
 #[serde(default)]
 pub struct Fence {
     pub id: u64,
-    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(skip_serializing_if = "String::is_empty", deserialize_with = "compat::text")]
     pub title: String,
+    #[serde(deserialize_with = "compat::int")]
     pub x: i32,
+    #[serde(deserialize_with = "compat::int")]
     pub y: i32,
+    #[serde(deserialize_with = "compat::int")]
     pub w: i32,
+    #[serde(deserialize_with = "compat::int")]
     pub h: i32,
     pub rolled: bool,
     pub locked: bool,
@@ -71,8 +77,9 @@ pub struct Fence {
     #[serde(flatten)]
     pub look: Look,
     pub tabs: Vec<Tab>,
+    #[serde(deserialize_with = "compat::index")]
     pub tab: usize,
-    #[serde(default, deserialize_with = "super::compat::some_known")]
+    #[serde(default, deserialize_with = "compat::some_known")]
     pub custom: Option<Vec<Field>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub group: Option<u64>,
@@ -102,8 +109,23 @@ impl Default for Fence {
     }
 }
 
+pub const TABS: usize = 64;
+
 impl Fence {
     pub const MIN: (i32, i32) = (120, 80);
+
+    pub fn bounded([x, y, w, h]: Rect) -> Rect {
+        [x.clamp(-20_000, 20_000), y.clamp(-20_000, 20_000), w.clamp(Self::MIN.0, 10_000), h.clamp(Self::MIN.1, 10_000)]
+    }
+
+    pub fn add_tab(&mut self, tab: Tab) -> bool {
+        if self.tabs.len() >= TABS {
+            return false;
+        }
+        self.tabs.push(tab);
+        self.tab = self.tabs.len() - 1;
+        true
+    }
 
     pub fn new(id: u64, title: &str, (x, y, w, h): (i32, i32, i32, i32), look: Look) -> Self {
         let tabs = vec![Tab { id, title: title.into(), ..Tab::default() }];
@@ -124,10 +146,7 @@ impl Fence {
     }
 
     pub(super) fn sanitized(mut self) -> Self {
-        self.w = self.w.clamp(Self::MIN.0, 10_000);
-        self.h = self.h.clamp(Self::MIN.1, 10_000);
-        self.x = self.x.clamp(-20_000, 20_000);
-        self.y = self.y.clamp(-20_000, 20_000);
+        [self.x, self.y, self.w, self.h] = Self::bounded([self.x, self.y, self.w, self.h]);
         self.look = self.look.sanitized();
         if self.tabs.is_empty() {
             self.tabs.push(Tab { id: self.id, title: std::mem::take(&mut self.title), ..Tab::default() });
@@ -168,5 +187,28 @@ mod tests {
         let f: Fence = serde_json::from_str(&format!(r#"{{"id":1,"tabs":[{json}]}}"#)).unwrap();
         let t = &f.sanitized().tabs[0];
         assert_eq!((t.view, t.columns.clone()), (None, Some(vec![Column { col: columns::Col::Size, w: 90 }])));
+    }
+
+    #[test]
+    fn tabs_stop_at_the_limit() {
+        let mut f = Fence::new(1, "A", (0, 0, 300, 200), Look::default());
+        for id in 2..=TABS as u64 {
+            assert!(f.add_tab(Tab { id, ..Tab::default() }));
+        }
+        assert_eq!((f.tabs.len(), f.tab, f.active().id), (TABS, TABS - 1, TABS as u64));
+        assert!(!f.add_tab(Tab { id: 999, ..Tab::default() }));
+        assert_eq!((f.tabs.len(), f.tab), (TABS, TABS - 1));
+    }
+
+    #[test]
+    fn odd_numbers_and_null_titles_do_not_reject_the_fence() {
+        let json = r#"{"id":1,"x":3000000000,"y":-3000000000,"w":300.5,"h":"tall","tab":-2,"title":null,"tabs":[{"id":1,"title":null},{"id":2,"title":5}]}"#;
+        let f: Fence = serde_json::from_str(json).unwrap();
+        assert_eq!((f.x, f.y, f.w, f.h, f.tab, f.title.as_str()), (i32::MAX, i32::MIN, 301, 0, 0, ""));
+        assert_eq!((f.tabs[0].title.as_str(), f.tabs[1].title.as_str()), ("", ""));
+        let f = f.sanitized();
+        assert_eq!((f.x, f.y, f.w, f.h), (20_000, -20_000, 301, Fence::MIN.1));
+        let f: Fence = serde_json::from_str(r#"{"id":1,"tabs":[{"id":1}]}"#).unwrap();
+        assert_eq!((f.x, f.y, f.w, f.h), (100, 100, 360, 240));
     }
 }

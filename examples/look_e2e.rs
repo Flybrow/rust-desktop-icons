@@ -9,7 +9,7 @@ use std::{
     thread,
     time::Duration,
 };
-use support::dump::{Dump, alpha, bands, bar, colors, dump, keep};
+use support::dump::{Dump, alpha, bands, bar, dump, edges, keep};
 use support::{app, chord, click, close, fences, grab, point, poll, quit, rect, tray, wait, windows, work};
 use windows::Win32::{
     Foundation::HWND,
@@ -129,7 +129,7 @@ fn main() {
     };
     let k = unsafe { GetDpiForWindow(h) }.max(96) as i32;
     let sc = |v: i32| v * k / 96;
-    let t = sc(34);
+    let t = sc(support::bar_h());
     let body = |d: &Dump| (sc(8), t + sc(4), d.0 - sc(20), d.1 - sc(8));
 
     let sq = read(SQUARE);
@@ -145,14 +145,14 @@ fn main() {
     );
     let lines = |d: &Dump| {
         let (x0, y0, x1, y1) = body(d);
-        bands(d, (x0, x1), (y0, y1), d.0 - sc(10))
+        bands(d, (x0, x1), (y0, y1))
     };
     let (list, icons) = (lines(&read(LIST)), lines(&sq));
     keep(&shots, LIST, "look-list");
     check(list == 3 && icons <= 2, &format!("Show as a list puts one item per row ({list} rows, {icons} in icon view)"));
     check(lines(&read(ODD)) >= 1, "an icon at a size Windows does not provide (40 px) is drawn");
     let photo = read(PHOTO);
-    let plain = colors(&photo, body(&photo));
+    let plain = edges(&photo, body(&photo));
 
     let before = bar(&rd, t, (0, rd.0));
     let r = rect(h);
@@ -180,19 +180,19 @@ fn main() {
     quit(&mut s.child);
 
     let mut s = start(&root, &shots, &config("Light", json!({"on": true, "names": true, "icons": true, "reveal": "Hover"})));
-    let masked = colors(&read(PHOTO), body(&photo));
+    let masked = edges(&read(PHOTO), body(&photo));
     keep(&shots, PHOTO, "look-private");
     check(
         pic.is_none() || (plain > 60 && masked * 3 < plain),
-        &format!("Privacy mode masks icons and names ({masked} colors, {plain} without it)"),
+        &format!("Privacy mode masks icons and names ({masked} edges, {plain} without it)"),
     );
     if let Some(p) = hwnd(s.pid, PHOTO) {
         let r = rect(p);
         point((r.right - sc(20), r.bottom - sc(20)));
-        let shown = wait(3, || colors(&read(PHOTO), body(&photo)) * 3 > plain * 2);
+        let shown = wait(3, || edges(&read(PHOTO), body(&photo)) * 3 > plain * 2);
         check(pic.is_none() || shown, "Reveal on hover: the mouse over the fence shows them");
         away();
-        check(wait(3, || colors(&read(PHOTO), body(&photo)) * 3 < plain), "they are masked again when the mouse leaves");
+        check(wait(3, || edges(&read(PHOTO), body(&photo)) * 3 < plain), "they are masked again when the mouse leaves");
     }
     let light = settings(s.pid);
     check(light.is_some_and(|l| l > 170), &format!("Light theme: the settings window is light ({light:?})"));
@@ -203,7 +203,7 @@ fn main() {
         let r = rect(p);
         point((r.right - sc(20), r.bottom - sc(20)));
         thread::sleep(Duration::from_millis(1200));
-        check(pic.is_none() || colors(&read(PHOTO), body(&photo)) * 3 < plain, "Reveal never: hovering keeps them masked");
+        check(pic.is_none() || edges(&read(PHOTO), body(&photo)) * 3 < plain, "Reveal never: hovering keeps them masked");
         away();
     }
     quit(&mut s.child);

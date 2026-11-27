@@ -4,6 +4,7 @@ use crate::{
     app::with,
     domain::Config,
     domain::kind::{candidates, ignored},
+    domain::pins::key,
     fence,
     i18n::T,
     keep, report, shell,
@@ -95,7 +96,8 @@ fn sort(tray: bool, all: bool) {
     let Some(desk) = shell::desktop() else { return };
     let Some((cfg, seen)) = with(|a| (a.cfg.clone(), a.seen.clone())) else { return };
     let (mut moved, mut errors, mut pending) = (0, vec![], HashSet::new());
-    let loose: Vec<PathBuf> = entries(&desk).into_iter().filter(|p| movable(p) && !cfg.is_pinned(p)).collect();
+    let pinned = cfg.pin_keys();
+    let loose: Vec<PathBuf> = entries(&desk).into_iter().filter(|p| movable(p) && !pinned.contains(&key(p))).collect();
     let fresh: Vec<PathBuf> = loose.iter().filter(|p| !seen.contains(*p)).cloned().collect();
     if all || cfg.auto_sort {
         let keep = cfg.keep_on_desktop && keep::live();

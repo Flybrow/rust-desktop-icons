@@ -1,0 +1,320 @@
+{
+  "lang": "fr",
+  "auto_update": true,
+  "autostart": true,
+  "auto_sort": true,
+  "roll_ms": 350,
+  "look": {
+    "color": 3156000,
+    "alpha": 217,
+    "icon": 48,
+    "tint": null,
+    "chameleon": false,
+    "auto_height": true,
+    "labels": true,
+    "align": "Left",
+    "label_size": "Normal",
+    "label_color": null,
+    "spacing": "Normal",
+    "browse": true,
+    "title_align": "Center",
+    "title_size": "Normal",
+    "bar_color": null,
+    "bar_hover": false,
+    "wallpaper": false,
+    "thumbs": true,
+    "corner": "Larger",
+    "home": false,
+    "list": false,
+    "glass": true
+  },
+  "fences": [
+    {
+      "id": 1,
+      "x": 40,
+      "y": 60,
+      "w": 640,
+      "h": 320,
+      "rolled": false,
+      "locked": false,
+      "vertical": false,
+      "color": 3156000,
+      "alpha": 217,
+      "icon": 48,
+      "tint": null,
+      "chameleon": false,
+      "auto_height": true,
+      "labels": true,
+      "align": "Left",
+      "label_size": "Normal",
+      "label_color": null,
+      "spacing": "Normal",
+      "browse": true,
+      "title_align": "Center",
+      "title_size": "Normal",
+      "bar_color": null,
+      "bar_hover": false,
+      "wallpaper": false,
+      "thumbs": true,
+      "corner": "Square",
+      "home": false,
+      "list": false,
+      "glass": false,
+      "tabs": [
+        {
+          "id": 1,
+          "title": "Projets",
+          "portal": null,
+          "kinds": [
+            "Documents"
+          ],
+          "sort": "Date",
+          "order": [],
+          "expire": {
+            "days": 30,
+            "fence": 3,
+            "tab": 4
+          },
+          "desc": true,
+          "view": "Details",
+          "columns": [
+            {
+              "col": "Modified",
+              "w": 140
+            },
+            {
+              "col": "Size",
+              "w": 90
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "Images",
+          "portal": null,
+          "kinds": [
+            "Images"
+          ],
+          "sort": "Name",
+          "order": [],
+          "filter": "*.png;*.jpg",
+          "view": "Tiles"
+        },
+        {
+          "id": 5,
+          "title": "Téléchargements",
+          "portal": "C:\\Users\\me\\Downloads",
+          "kinds": [],
+          "sort": "Created",
+          "order": [],
+          "view": "Content"
+        }
+      ],
+      "tab": 0,
+      "custom": [
+        "Corner",
+        "Glass"
+      ],
+      "group": 1
+    },
+    {
+      "id": 3,
+      "x": 700,
+      "y": 60,
+      "w": 360,
+      "h": 240,
+      "rolled": false,
+      "locked": false,
+      "vertical": false,
+      "color": 3156000,
+      "alpha": 217,
+      "icon": 48,
+      "tint": null,
+      "chameleon": false,
+      "auto_height": true,
+      "labels": true,
+      "align": "Left",
+      "label_size": "Normal",
+      "label_color": null,
+      "spacing": "Normal",
+      "browse": true,
+      "title_align": "Center",
+      "title_size": "Normal",
+      "bar_color": null,
+      "bar_hover": false,
+      "wallpaper": false,
+      "thumbs": true,
+      "corner": "Larger",
+      "home": false,
+      "list": false,
+      "glass": true,
+      "tabs": [
+        {
+          "id": 3,
+          "title": "Jeux",
+          "portal": null,
+          "kinds": [
+            "Games"
+          ],
+          "sort": "Custom",
+          "order": [
+            "b.lnk",
+            "a.lnk"
+          ],
+          "system": [
+            "RecycleBin"
+          ],
+          "view": "List"
+        },
+        {
+          "id": 4,
+          "title": "Archives",
+          "portal": null,
+          "kinds": [],
+          "sort": "Name",
+          "order": []
+        }
+      ],
+      "tab": 0,
+      "custom": [],
+      "group": 1
+    }
+  ],
+  "version": "1.2.0",
+  "keep_on_desktop": false,
+  "desk_flags": null,
+  "desk_icons": [
+    [
+      "RecycleBin",
+      0
+    ]
+  ],
+  "screen_adapt": "Remember",
+  "dblclick_hide": false,
+  "hide_desktop": true,
+  "theme": "Auto",
+  "privacy": {
+    "on": false,
+    "names": true,
+    "icons": true,
+    "titles": false,
+    "reveal": "Never"
+  },
+  "peek_key": {
+    "mods": 3,
+    "vk": 32
+  },
+  "search_key": {
+    "mods": 3,
+    "vk": 70
+  },
+  "hide_key": null,
+  "new_key": null,
+  "settings_key": null,
+  "name_rules": [
+    {
+      "pattern": "facture*.pdf",
+      "fence": 1,
+      "tab": 1
+    }
+  ],
+  "screens": [
+    {
+      "full": [
+        0,
+        0,
+        2560,
+        1440
+      ],
+      "work": [
+        0,
+        0,
+        2560,
+        1392
+      ]
+    }
+  ],
+  "layouts": [
+    {
+      "screens": [
+        {
+          "full": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "work": [
+            0,
+            0,
+            1920,
+            1040
+          ]
+        }
+      ],
+      "fences": [
+        [
+          1,
+          [
+            30,
+            45,
+            480,
+            240
+          ]
+        ],
+        [
+          3,
+          [
+            525,
+            45,
+            270,
+            180
+          ]
+        ]
+      ]
+    }
+  ],
+  "snapshots": [
+    {
+      "name": "Bureau",
+      "layout": {
+        "screens": [
+          {
+            "full": [
+              0,
+              0,
+              2560,
+              1440
+            ],
+            "work": [
+              0,
+              0,
+              2560,
+              1392
+            ]
+          }
+        ],
+        "fences": [
+          [
+            1,
+            [
+              40,
+              60,
+              640,
+              320
+            ]
+          ],
+          [
+            3,
+            [
+              700,
+              60,
+              360,
+              240
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

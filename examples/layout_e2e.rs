@@ -14,7 +14,6 @@ use windows::Win32::System::Com::{COINIT_APARTMENTTHREADED, CoInitializeEx};
 use windows::Win32::UI::Shell::FWF_AUTOARRANGE;
 use windows::Win32::UI::{HiDpi::GetDpiForSystem, WindowsAndMessaging::*};
 
-const TITLE: i32 = 34;
 const GAP: i32 = 4;
 
 fn s(v: i32) -> i32 {
@@ -62,7 +61,7 @@ fn base(fences: Vec<Value>) -> Value {
 fn first_item(r: &RECT) -> (i32, i32) {
     let (w, c) = (r.right - r.left, cell());
     let cols = (w / c).max(1);
-    (r.left + (w - cols * c) / 2 + c / 2, r.top + s(TITLE + GAP) + c / 2)
+    (r.left + (w - cols * c) / 2 + c / 2, r.top + s(support::bar_h() + GAP) + c / 2)
 }
 
 fn main() {

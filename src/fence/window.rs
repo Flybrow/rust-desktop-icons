@@ -1,4 +1,4 @@
-use super::{CLASS, items, layout, target};
+use super::{CLASS, items, layout, owner::owner, target};
 use crate::{domain::Fence, win::*};
 use windows::{
     Win32::{
@@ -15,10 +15,6 @@ pub fn footprints() -> Vec<RECT> {
 
 pub(super) fn top() -> bool {
     cfg!(debug_assertions) && std::env::var_os("RDI_TOP").is_some()
-}
-
-fn owner(raised: bool) -> Option<HWND> {
-    if top() || raised { None } else { progman() }
 }
 
 pub fn raise(h: HWND, up: bool) {

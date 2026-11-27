@@ -27,15 +27,24 @@ pub(super) fn reg_delete(key: &str, name: &str) -> bool {
     unsafe { RegDeleteKeyValueW(HKEY_CURRENT_USER, PCWSTR(k.as_ptr()), PCWSTR(n.as_ptr())) }.is_ok()
 }
 
-pub(super) fn reg_bytes(key: &str, name: &str, flags: REG_ROUTINE_FLAGS) -> Option<Vec<u8>> {
+fn reg_bytes_in(root: HKEY, key: &str, name: &str, flags: REG_ROUTINE_FLAGS) -> Option<Vec<u8>> {
     let (k, n) = (wide(key), wide(name));
     let (k, n) = (PCWSTR(k.as_ptr()), PCWSTR(n.as_ptr()));
     let mut size = 0u32;
-    unsafe { RegGetValueW(HKEY_CURRENT_USER, k, n, flags, None, None, Some(&mut size)) }.ok().ok()?;
+    unsafe { RegGetValueW(root, k, n, flags, None, None, Some(&mut size)) }.ok().ok()?;
     let mut buf = vec![0u8; size as usize];
-    unsafe { RegGetValueW(HKEY_CURRENT_USER, k, n, flags, None, Some(buf.as_mut_ptr().cast()), Some(&mut size)) }.ok().ok()?;
+    unsafe { RegGetValueW(root, k, n, flags, None, Some(buf.as_mut_ptr().cast()), Some(&mut size)) }.ok().ok()?;
     buf.truncate(size as usize);
     Some(buf)
+}
+
+pub(super) fn reg_bytes(key: &str, name: &str, flags: REG_ROUTINE_FLAGS) -> Option<Vec<u8>> {
+    reg_bytes_in(HKEY_CURRENT_USER, key, name, flags)
+}
+
+pub fn machine() -> Option<String> {
+    let b = reg_bytes_in(HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Cryptography", "MachineGuid", RRF_RT_REG_SZ | RRF_SUBKEY_WOW6464KEY)?;
+    crate::domain::groups::utf16z(&b).map(|g| crate::domain::backup::machine_id(&g))
 }
 
 pub(super) fn reg_dword(key: &str, name: &str) -> Option<u32> {

@@ -23,11 +23,13 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
 - Build: `cargo build --release`
 - MSI (local): needs WiX 5.0.2 (`dotnet tool install wix --version 5.0.2`) + `wix extension add -g WixToolset.UI.wixext/5.0.2 WixToolset.Util.wixext/5.0.2`:
   `wix build installer/main.wxs -d Version=0.1.0 -arch x64 -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext -o target/rdi.msi`
-- Release: bump `version` in Cargo.toml, write the changelog in English in `.github/release-notes.md` and in French in `.github/release-notes.fr.md` (release body + both embedded in the exe, shown once after an update by `whatsnew.rs`, whose test requires the version in the title), commit, push tag `vX.Y.Z` → `.github/workflows/release.yml` builds and publishes MSI + `.sha256`.
+- Release: bump `version` in Cargo.toml, write the changelog in English in `.github/release-notes.md` and in French in `.github/release-notes.fr.md` (release body + both embedded in the exe, shown once after an update by `whatsnew.rs`, whose test requires the version in the title), commit, push tag `vX.Y.Z` → `.github/workflows/release.yml` builds and publishes MSI + `.sha256` + `release-notes.fr.md` (the update popup shows the asset `release-notes.<lang>.md` matching the app language, else the English release body: `Release::notes_in`).
+  Then winget: `installer/winget/make.ps1 -Version X.Y.Z` writes and validates the manifests (`Flybrow.RustDesktopIcons`, checksum read from the
+  published `.sha256`) into `target/winget/X.Y.Z`, to submit to `microsoft/winget-pkgs` (`wingetcreate submit`).
 
 ## Layout
 - `src/domain/` pure logic, all unit-tested: `model.rs` (Fence/Tab), `look.rs` (Look: colors, icons, names, title bar, wallpaper, thumbnails,
-  `Corner` radius 0/4/6/8 px), `theme.rs` (`Theme` Dark/Light/Auto, `Config::retheme` swaps only the default fence color),
+  `Corner` radius 0/4/6/8/12/16 px, `glass`: Glass theme), `theme.rs` (`Theme` Dark/Light/Auto, `Config::retheme` swaps only the default fence color),
   `history.rs` (undo steps: config before + file ops, nesting, cap 20, `rebase` so an undo is never recorded), `config.rs` (Config, recycle placement), `kind.rs` (file types + game
   shortcut detection for rules; `Kind::Other` = "Everything else", the inbox rule `Config::rule_for` falls back to),
   `order.rs` (per-tab sort + custom order, `Tab.desc` reverses any sort but Custom),
@@ -42,7 +44,9 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   `layouts.rs` (`Layout`, named `Snapshot`s from the tray menu, `Config::restore` scales them to the current screens,
   `Config::duplicate` + `beside`: copy of a fence next to it (else the nearest free spot, never over another fence), new ids, no files/pins/system icons/group),
   `compat.rs` (`known`/`or_default` deserializers: unknown enum values written by a newer version are dropped or
-  defaulted instead of rejecting the whole config; use them on every config enum field),
+  defaulted instead of rejecting the whole config; use them on every config enum field; `int`/`index`/`text` clamp odd numbers and
+  null titles), `ids.rs` (id generator that never wraps to 0, `sanitize_ids`: unique tab ids across fences, at most `TABS` = 64 tabs
+  per fence (`Fence::add_tab` refuses more: per-tab messages must stay below `WM_LOADED`)),
   `stack.rs` (pure plan for "keep files on the desktop": hidden stack cell, icons to hide/show and where, `row` for drops),
   `inherit.rs` (look inheritance: `Fence.custom` lists the `Field`s changed on that fence; `Config::inherit` copies every
   other field from `Config.look`, run on load (legacy configs: fields that differ from the default become custom) and after
@@ -52,7 +56,9 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   all configurable, never equal; `Config::key`/`set_key`/`sanitize_keys`),
   `matching.rs` (`glob` name patterns, `NameRule` (checked before kind rules), per-tab `Expire` age rule, `Config::targets`/`place_name`),
   `groups.rs` (`Fence.group` + `mates`/`group_with`/`ungroup`; virtual desktops: registry GUID parsing, `Fence::shown_on`),
-  `backup.rs` (`Config::import` keeps this PC's fields and prefs, `rewind` (undo) restores prefs too; both list orphan tabs to empty and system icons to restore),
+  `backup.rs` (`Config::import` keeps this PC's fields and prefs, `rewind` (undo) restores prefs too; both list orphan tabs to empty and system icons to restore;
+  exports carry `machine` (SHA-256 of MachineGuid, never the raw GUID): an export from another PC gets fresh fence/tab ids, this PC's
+  orphan folders are not emptied and `app::recover` brings them back),
   `search.rs` (accent-folding ranking, `keep` for the live filter, result place label, double-click test),
   `privacy.rs` (`Privacy`: privacy mode, what to mask and when to reveal (hover / desktop in use / never) -> `Mask`; the fence render
   draws gray bars for names, plain squares for icons and dots for titles; `visibility/privacy.rs` follows the foreground window for
@@ -62,7 +68,9 @@ the exe must never import `VCRUNTIME140.dll` (a clean Windows does not have it; 
   released shape (`fixtures/v*.json`, add one when the config format changes), `props.rs` proptest invariants (grid,
   bar sides, screen scaling, `beside`, snapping, globs, search, random/damaged JSON configs: unique fence/tab ids,
   `sanitized` idempotent).
-- `store/` persistence (`mod.rs`, tests in `tests.rs`; `Config::parse` accepts a UTF-8 BOM; `tab_dir`: portal path or `fences/<tab id>`); `i18n/` (`mod.rs` logic, `keys.rs` the `T` enum, `table.rs` 25 languages);
+- `store/` persistence (`mod.rs`, `files.rs` moves: never overwrite (`rename_new`/`put_new`), cross-volume copy never follows
+  reparse points and deletes a source only if unchanged; `tab_dirs`/`evacuate` report read errors, uninstall deletes only known
+  app files (`remove_app_files`); tests in `tests.rs`; `Config::parse` accepts a UTF-8 BOM; `tab_dir`: portal path or `fences/<tab id>`); `i18n/` (`mod.rs` logic, `keys.rs` the `T` enum, `table.rs` 25 languages);
   `backup.rs` export/import of the config JSON (file dialogs in `shell/pick.rs`; import confirms; `adopt` empties orphan tab folders to the desktop and rebuilds, shared with undo);
   `undo.rs` (`step(|| action)` around every user action entry point: fence/tray menus, drop, keys, moves, settings acts, prompts, rules;
   `store::move_into`, `link_into` and item renames note file ops; `undo()` moves files back in reverse (`revert`, unit-tested: never overwrites, skips what is gone, reports locked files) then `adopt(rewind)`; Ctrl+Z via `undo::shortcut`);
@@ -72,8 +80,11 @@ ust-desktop-icons-*.msi` at startup: a successful install kills the app before i
   `tray/updates.rs` drives it: auto (6 h) and manual checks open the themed popup (notes, Install / Later), download progress is
   coalesced (`LATEST` + `QUEUED`, never one message per chunk); a manual check asked during an automatic one gets its answer (`ASKED`), download/checksum failures say so (`UpdateDownloadFailed`). Debug `RDI_FAKE_VERSION=0.0.1` pretends to be old (E2E: `update_e2e`).
 - `dialog/` themed popup (what's new, update available/progress, notices): `layout.rs` pure + tested, `paint.rs`, `mod.rs` window;
-  notes are shown through `update::summary` (section titles + "Title — first sentence" per bullet, full notes behind "Read everything");
-  the body height is a whole number of lines with a scrollbar, and the dialog and the settings window re-fit their screen on
+  a 72 px header (`HEAD`: app icon from the exe resource through `layered/logo.rs`, title, "Rust Desktop Icons" under it, `Spec.badge` version pill);
+  notes go through `update::notes::parse` (sections with a glyph by order (new, improvements, fixes) and their item count, one card per bullet:
+  "Title" + its whole first sentence, never cut, so a note's first sentence must say what it brings, not a menu path; full notes behind "Read everything";
+  `dialog/notes.rs` places lines and cards, a fade covers the bottom of the body while more is below);
+  the body height is a whole number of lines with a scrollbar (thumb geometry: `domain/scroll.rs`, shared with fences and the settings window), and the dialog and the settings window re-fit their screen on
   WM_EXITSIZEMOVE/WM_DISPLAYCHANGE (a window moved to another screen of the same DPI gets no WM_DPICHANGED);
   shares the settings look through `layered/chrome.rs` (background, close button, outline, and the dark/light `Palette` chosen by
   `app/theme.rs`: Auto reads `AppsUseLightTheme`, the tray re-applies it on WM_SETTINGCHANGE "ImmersiveColorSet"). Fence lines/hover use
@@ -88,7 +99,7 @@ ust-desktop-icons-*.msi` at startup: a successful install kills the app before i
   `migrate.rs` runs the migration (`sync`) on a thread and applies it on the tray thread (`WM_KEEP` -> `finish`),
   `place.rs` drop/paste/rules place files on the Desktop and pin them to a tab, `keeper.rs` hides pinned icons (3 s timer) and restores desktop flags.
   Preferred hiding (like Fences): `inject.rs` loads `hook/` (crate `rdi-hook`, cdylib built by `build.rs` with a nested `cargo build --release`,
-  embedded in the exe and extracted to `<data>/hook/rdi_hook-<sha>.dll`, older copies deleted) into explorer.exe with `SetWindowsHookExW(WH_GETMESSAGE)` on the
+  embedded in the exe and extracted by `keep/dll.rs` to `<data>/hook/rdi_hook-<sha>.dll`, SHA-256 checked before every load, older copies deleted or deleted at reboot) into explorer.exe with `SetWindowsHookExW(WH_GETMESSAGE)` on the
   desktop thread only. Commands are messages posted to `SHELLDLL_DefView` (wParam = our pid; never do the work inside a sent message: COM refuses
   outgoing calls there); the pinned paths travel through a shared-memory section `Local\RustDesktopIcons.Hide.<pid>` (`hook/src/map.rs`, seqlock,
   stats + `STAGE`, `DONE` = success). In explorer, `view.rs` gets the desktop IShellView (WM_GETISHELLBROWSER, else IShellWindows), `filter.rs` wraps
@@ -98,23 +109,29 @@ ust-desktop-icons-*.msi` at startup: a successful install kills the app before i
   keeper when it dies): when RDI dies, the filter lets everything through and the view is refreshed. The hook code
   must never panic (it would take explorer down). The tray never waits for a pass: `inject::push` posts it and returns `Pending`; the DLL posts
   `rdi_hook::reply()` to the tray (`TRAY` slot) when done, which runs `keep::apply` again. `domain/flight.rs` (pure, tested) decides send / wait /
-  done / failed (no answer in 2 s or a pass that stopped early: stack fallback, retried after 60 s). No desktop view yet (Explorer restarting):
+  done / failed (no answer in `wait_ms` (2 s + 0.5 ms per path, max 30 s) or a pass that stopped early: stack fallback, retried after 60 s). No desktop view yet (Explorer restarting):
   retried every 100 ms. If the hook cannot load, `keeper` falls back to the stack below.
   Fallback: hidden icons are stacked in one free cell at the bottom-right of the primary work area (`corner_slot`) under `cover.rs`, a small window painting the wallpaper (`PaintDesktop`).
   When the stack moves to another cell, the cover spans both cells for 250 ms (Explorer moves the icons after the cover).
   Never park icons off-screen: Explorer pulls every item that is not fully on a monitor back on screen at each drop (visible flash). Hidden icons that get selected are deselected at once.
-  `domain/pins.rs` (pure, tested) holds `Pin` + reconcile + free slots + the hidden stack cell; `shell/hide.rs` is the IFolderView2 wrapper. Debug builds only touch the real desktop with `RDI_REAL_DESKTOP=1`.
+  `domain/pins/` (pure, tested): `Pin` + `pin_keys` (lowercase HashSet), `follow.rs` reconcile (a missing pin moves or goes only when still missing
+  `GRACE_MS` later, never onto a `~*.tmp` name; `keep::reconcile` does nothing when a desktop listing fails), `slots.rs` free slots (inside the area) + the hidden stack cell; `shell/hide.rs` is the IFolderView2 wrapper. Debug builds only touch the real desktop with `RDI_REAL_DESKTOP=1`.
   End-to-end test: `cargo build && cargo run --example keep_e2e [-- --restart-explorer]` (real Desktop, isolated `LOCALAPPDATA`, test files `*.rdie2e`).
 - `src/app/` global state: `mod.rs` App + `with` + startup, `view.rs` per-window state, `res.rs` fonts/glyphs/menu
   entries with icons, `fences.rs` create/rebuild fences, `screens.rs` monitor list (adapted at startup and 1.5 s after the
   tray gets `WM_DISPLAYCHANGE`, then `rebuild`); `src/tray/` tray icon/menu (`updates.rs` update scheduling).
-- `src/render/` pure pixel ops: `mod.rs` blending + `Canvas`, `pixels.rs` gray/tint/straight alpha, `blur.rs`.
+- `src/render/` pure pixel ops: `mod.rs` blending + `Canvas`, `pixels.rs` gray/tint/straight alpha, `blur.rs`, `turn.rs` (rotate, blit, `blend`),
+  `frost.rs` (Glass theme: the `PaintDesktop` capture behind the open footprint shrunk by `SCALE`, blurred, made vivid, tinted with the fence color (`strength`: opacity
+  maps 30 % to the bare wallpaper, 85 % to the default tint, 100 % to an almost solid color) and clamped by `legible` so names stay readable; cached per footprint). Glass fences draw no frame; their bar is `fence/glassbar.rs` (tabs spread over the
+  width, active tab in a pill, semibold title following `title_align`/`title_size`, `bar_color` as a tinted strip, corners and tiles follow `corner`, no item count, `layout::bar` = `GLASS_TITLE`), blended over the body.
+  Every look setting must show on Glass: `glass_e2e` draws one glass fence per setting and compares each `RDI_DUMP` canvas with a base one;
+  debug `RDI_GLASS=1` forces Glass on every fence at load, so any E2E suite runs on Glass (`support::bar_h` gives the bar height to the examples).
   A simulated Mica and a Fluent style were tried and removed: DWM Mica never shows on layered, never-active windows, and
   `PaintDesktop` only paints the primary monitor (use screen coordinates, not virtual-screen offsets, as `fence/wallpaper.rs` does).
 - `src/layered/` shared per-pixel window painting (`Frame`: text mask, compositing, present; `Dib`; `glyph.rs`
   Segoe MDL2 icon glyphs, also rendered to menu bitmaps via `App::entry`/`App::sub`).
 - `src/shell/` Win32 shell wrappers: `mod.rs` paths/icons/open, `details.rs` (`Info`: local dates, type name, sizes; loaded only for rich modes), `reg.rs` registry (`reg_bytes`), `thumb.rs` (IShellItemImageFactory thumbnails, made in the loader thread for `kind::thumbable` files at the scaled icon size,
-  stored at most at that size (`render::shrink`) in `Item.thumb`, blitted with `render::blit_fit`), `vdesk.rs` virtual desktops
+  stored at most at that size (`render::shrink`) in `Item.thumb`, for the active tab only and at most 48 MB per load (`loader::THUMB_BUDGET`; cached tabs drop them, a cache hit reloads them), blitted with `render::blit_fit`), `vdesk.rs` virtual desktops
   (current + ids from HKCU VirtualDesktops, Win10 SessionInfo fallback, names), `pick.rs` folder/JSON file dialogs,
   `menu.rs` (item context menu: `Pick::Shell`/`Own`, our ids from `OWN`, `prepend` adds "Move to"), `link.rs` (`link_target`, `folder_target`, `link_into`), `watch.rs` (+ `notify_moved` after every move), `dnd.rs`,
   `system.rs` (system icons: Recycle Bin, This PC, User's Files, Network, Control Panel as `::{CLSID}` items,
@@ -133,17 +150,17 @@ ust-desktop-icons-*.msi` at startup: a successful install kills the app before i
   Ctrl+click, rubber band, drag out), `arrange.rs` (per-tab sort and rules submenus), `browse.rs` (folders and folder shortcuts (`.lnk` to a folder without arguments, `shell::folder_target`) opened inside
   the fence: `View.browse` stack, `browse::tab` swaps the active tab for a portal-like view used by loader/drop/paste, back via
   a click on the left third of the bar ("← folder" is always left-aligned there) or Backspace; an open rolled fence never shrinks (`View.floor`, so a smaller folder never leaves the mouse outside), goes `home` once
-  it has rolled up, and with `look.home` focus moving to another app or another fence does too (`browse::left`; our menus and popups never do); hovering the bar switches tabs only when the mouse enters another tab's part of it (`View.bar_tab`) and
-  never while browsing (the tabs are hidden); a double click on the back arrow goes back instead of rolling the fence (`View.backed`);
+  it has rolled up, and with `look.home` focus moving to another app or another fence does too (`browse::left`; our menus and popups never do); hovering the bar switches tabs only when the mouse enters another tab's part of it (`View.bar_tab`) at once (a 150 ms pause to
+  avoid switching when leaving across the bar was tried and removed at the user's request), and never while browsing (the tabs are hidden); a double click on the back arrow goes back instead of rolling the fence (`View.backed`);
   leaving the tab (click, Ctrl+Tab, add, remove) drops the folder without caching its items as the tab's own; the fence menu's "Open folders ▸ In the fence / In File Explorer" sets `look.browse`, a folder's own
   right-click menu starts with "Open in the fence"), `moveto.rs` ("Move to" submenu of an item's menu), `group.rs` (group submenu; mates follow
   WM_MOVING via `grab`/`follow`/`release` and are left out of snapping), `desks.rs` ("Show on" virtual desktop submenu), `titlebar.rs` (title bar submenu),
   `filter.rs` (live filter: Ctrl+F, the fence menu or, on portals and while filtering, the magnifier at the end of the active tab (`header::loupe_end`; the whole bar while filtering); typing narrows
   `View.items` through `search::keep` (accent-folding, order kept); the bar then shows `field.rs`, a search field (faint rounded fill, magnifier, grayed hint, ✕, caret blinking at `GetCaretBlinkTime` through the `CARET` timer while focused) while `View.filter.all` keeps the full list that the loader and
   tab switches go through (`filter::show`/`clear`); Backspace/Escape edit or close it, Enter opens the first match, focus loss closes an empty one;
-  E2E `filter_e2e`), `wallpaper.rs` (fence color from the wallpaper behind it: `PaintDesktop` into a DIB, cached per rect in `View.wall`, reset on
-  WM_SETTINGCHANGE/SPI_SETDESKWALLPAPER), `nav.rs` (arrow/Home/End/Page keys through `grid::step`, Ctrl+Tab), `system.rs` (system icons placement:
-  menu, drag, drop), `window.rs` (create, owner/z-order: `raise` for peek), `host.rs` (hidden topmost window that owns
+  E2E `filter_e2e`), `wallpaper.rs` (fence color from the wallpaper behind it: `PaintDesktop` into a DIB over the fence's stored size (`spot`: `f.w` x `f.h`, so every tab gets the same color), cached per rect in `View.wall`, reset on
+  WM_SETTINGCHANGE/SPI_SETDESKWALLPAPER; also the glass capture `frost`), `nav.rs` (arrow/Home/End/Page keys through `grid::step`, Ctrl+Tab), `system.rs` (system icons placement:
+  menu, drag, drop), `window.rs` (create, z-order: `raise` for peek), `owner.rs` (owner = desktop host; a fence created before Progman exists starts the tray `ADOPT` timer, `adopt` re-owns strays), `host.rs` (hidden topmost window that owns
   every fence popup menu, so submenus stay above topmost windows; it forwards owner-draw menu messages to `native`), `snap.rs` (move/size snapping, Alt = free) + `guides.rs` (alignment lines: thin popups owned by the
   dragged fence). The drag anchor is taken on WM_NCLBUTTONDOWN: WM_ENTERSIZEMOVE only arrives after the first mouse move.
 - System icons: `domain/system.rs` (`Sys`, pure) lives in `Tab.system` (legacy `recycle: true` migrates in `Config::sanitized`);
@@ -156,16 +173,18 @@ ust-desktop-icons-*.msi` at startup: a successful install kills the app before i
   `hotkeys.rs` (RegisterHotKey on the tray, capture from the settings rows), `desks.rs` (virtual desktops, only while a fence
   is bound to a desktop: `shell::vwatch` waits on RegNotifyChangeKeyValue in a thread and posts `WM_DESKS`; 400 ms polling is
   the fallback if the watch cannot start; shows/hides fences; `show_all` and peek respect it). The double-click hook runs on its own thread
-  (a blocked UI thread would make Windows drop a low-level hook). Startup re-shows the desktop icon list if a previous run died hidden. Typing in a fence while peeking opens `src/search/`
+  (a blocked UI thread would make Windows drop a low-level hook). Startup re-shows the desktop icon list only if a previous run died after hiding it (`icons.hidden` marker in the data folder). Typing in a fence while peeking opens `src/search/`
   (`hits.rs` collects items from every view and tab cache, `paint.rs`, topmost layered window, closes on deactivate).
+- Elevated runs: `win::allow` lets Explorer's messages through UIPI (`WM_ASK` from the desktop verbs, `WM_TRAY`, `TaskbarCreated`).
 - `src/prompt.rs`: one-line text prompt (`ask(initial, done)`), owned by the tray window (EN_KILLFOCUS commits), used to rename layouts.
 - `src/settings/` settings window (custom drawn, sidebar of `pages::PAGES` (9 pages); each row can carry a `desc` explanation
   (2 lines max: row heights are fixed) and a `reset` link drawn on its own line, `layout::on_reset` hit test): `rows.rs` `Row`/`Act`/`Ctl`
   + row builders, `pages.rs` content per page (`build(a, page)`, window height = tallest page), `rules.rs` name/age rule editing
-  (prompt + menus), `layout.rs` pure row geometry, `paint.rs`, `act.rs`, `mod.rs` window.
+  (prompt + menus), `layout.rs` pure row geometry, `paint.rs`, `act.rs`, `mod.rs` window. The Appearance page starts with Theme
+  (Default / Glass, `Act::Glass`) then Mode (`T::Theme`, Dark/Light/Auto); the fence menu Appearance ▸ Theme sets `Field::Glass` per fence.
 - Layout E2E: `cargo build && cargo run --example layout_e2e [-- --shots <dir>] [--desktop]` (startup scaling, snapping +
   guides, grid resize, drop onto a folder; `--desktop` also checks a new file under a fence on the real Desktop).
-  Shared example helpers: `examples/support` (`app` launches the debug exe isolated, `wait`/`waited`/`poll`, windows,
+  Shared example helpers: `examples/support` (`app` launches the debug exe isolated; examples are per-monitor DPI aware (`aware`, called by `app`/`work`) and size fences with `scale`, `wait`/`waited`/`poll`, windows,
   capture), `desk.rs` (desktop view), `input.rs` (SendInput mouse/keyboard). Peek/search/quick hide E2E:
   `cargo run --example peek_e2e [-- --shots <dir>]` (presses keys; uses Win+D when no desktop spot is visible).
   Menus: `cargo run --example menu_e2e [-- --shots <dir>]` (fence menu, submenu and an item's Windows menu stay above a
@@ -184,7 +203,7 @@ ust-desktop-icons-*.msi` at startup: a successful install kills the app before i
   `soak_e2e` (`SOAK_MIN` minutes of everyday actions; GDI/USER/handles/private bytes must stay flat: `support::usage`),
   `load_e2e` (41 fences, 3,800 files: time to draw, memory, idle CPU), `perf_e2e` (animation smoothness, release build), `hook_probe` (manual diagnostic of the Explorer hook DLL: loads it and prints the filter state; not part of the suites). `look_e2e` checks what is drawn through the `RDI_DUMP` canvases (`support::dump`): corners, a rolled fence's
   corners, list rows, a 40 px icon, the search field and its blinking caret, the settings window brightness per theme (`support::grab`),
-  privacy masking (Hover and Never). `peek_e2e` also runs quick hide with `hide_desktop` off, `browse_e2e` the `home` option.
+  privacy masking (Hover and Never). Pixel helpers (`dump::bands`, `dump::edges`) look for sharp steps between neighbor pixels, so they work on Glass's blurred background too. `peek_e2e` also runs quick hide with `hide_desktop` off, `browse_e2e` the `home` option.
   `support::tray` posts tray icon messages. Debug builds tag every layered window with the
   `RDI_DRAWN` prop (last present had visible pixels); `support::fences` only lists drawn fences, so every E2E fails on a fence
   that never paints. Installer: `rdi-sandbox/bundle/msi.ps1` (Sandbox: MSI 0.9.4 -> current while running -> uninstall).
@@ -212,7 +231,8 @@ ust-desktop-icons-*.msi` at startup: a successful install kills the app before i
   DPI) is drawn from the next bigger list and shrunk with `render::shrink` (area average), cached per list/index/size up to 6 MB and
   copied with SetDIBitsToDevice, no GDI object kept). Folder reads + icon lookups run on a thread (`fence/loader.rs`, per-tab generations, one load at a
   time per fence: requests made meanwhile are queued in `View.queued`, a panicking load still posts an empty batch in debug builds only: release uses `panic = "abort"`, so nothing in the loader may panic);
-  each tab has its own change message (`WM_CHANGED + tab index`, `WM_LOADED` sits after that range).
+  each tab has its own change message (`WM_CHANGED + tab index`, `WM_LOADED` sits after that range). Messages never carry a
+  pointer in lParam: payloads go through `mail.rs` (process-wide mailbox, key in lParam, unknown keys ignored).
 - Present layered windows outside `app::with` (UpdateLayeredWindow re-enters the window proc).
 - Bar side: `domain/side.rs` (pure, tested) maps between window and canonical grid coordinates for the 4 bar sides
   (`Geo`: bar/body rects, `head` = Details header strip between the bar and the rows (`head_rect`, `rows` = clip of the items; content y < 0 is the header), `to_content`/`to_window`, hit zones, `far` rule). `Fence.vertical` puts the bar on the side;
@@ -227,7 +247,12 @@ ust-desktop-icons-*.msi` at startup: a successful install kills the app before i
   from `fence/pacer.rs` (one thread, high-resolution waitable timer + timeBeginPeriod(1) only while something animates, absolute schedule at the
   screen refresh, 60 Hz minimum, posts `WM_FRAME` once per pending tick: USER timers ignore timeBeginPeriod and tick at 15.6/31 ms), WM_SIZE skips render
   while animating (`View.sizing` marks self-caused resizes); a render asked during an animation only sets `View.stale` (drawn once at the end,
-  never drops the frame). The open frame is cached (canvas only, `Frame::compact`) for every rolled fence and chameleon fence (`anim::cached`),
+  never drops the frame). A tick counts at most `anim::STEP_MS` (34 ms) of elapsed time, so a late frame (a miss that has to draw) slows the animation instead of
+  skipping it; the frame is kept in `View.frame` for the whole animation even on fences that do not cache it. Rolled fences roll up as soon as the mouse leaves
+  (WM_MOUSELEAVE/WM_NCMOUSELEAVE -> `peek::check`; the 200 ms `PEEK` timer is only the fallback). A tab switch of a fully open fence glides its extent
+  (`View.grow` = from + progress, `anim::extent` taken before the switch, `anim::grow` after: it draws and presents the new tab at once at the old extent, then ticks glide it and a normal render ends it; `layout::sizes` returns the eased extent and a frame of the
+  larger of both sizes, so the usual tick path crops it); the content changes at once (a slide and a crossfade were tried in 1.3.0 and rejected by the user);
+  rolling up cancels it. The open frame is cached (canvas only, `Frame::compact`) for every rolled fence and chameleon fence (`anim::cached`),
   so an unroll never starts with a full render (about 1 MB per rolled fence); `PREPARE` rebuilds it 150 ms after invalidation. `RDI_PERF=1` (release too) logs render/tick
   timings to `<data>/perf.log` (`perf.rs`); `perf_e2e` (run the release exe from the Sandbox) prints intervals and costs per scenario. `anim::start` does nothing when the fence is already at its targets
   (a plain fence no longer re-renders on mouse enter/leave), a reload whose items did not change skips `layout::apply`, drag-over
@@ -249,9 +274,14 @@ ust-desktop-icons-*.msi` at startup: a successful install kills the app before i
 - Auto height: the last row counts its real content (`cell::content`: icon + measured names), plus a bottom gap equal to the
   top one (`layout::tail`); `grid::extent`/`max_scroll` use the same tail so there is no leftover scroll. Hover/selection tiles hug their item
   (`cell::tile`, names measured only for highlighted items) so they never run past a short last row.
+- Switching tabs resets `View.scroll` and `View.floor`, so a rolled fence takes the new tab's height (a folder opened inside keeps the floor).
+  Bottom/right-bar fences that change size are drawn and moved in one `UpdateLayeredWindow` (`paint::render_at` from `layout::apply`): no jump.
 - The active tab is saved with the next config save (at the latest on exit), not on every switch.
 - Fences are `UpdateLayeredWindow` windows: no WM_PAINT, call `fence::render`; child controls don't show (rename edit is a popup).
-- Fence windows are owned by `Progman` and forced to `HWND_BOTTOM`; Explorer restart → `TaskbarCreated` → tray icon re-added (`tray::add_icon` retries every 2 s while Shell_NotifyIcon fails, also at logon), desktop watch re-bound (`rules::bind`), `rebuild()`.
+- Fence windows are owned by the desktop host (`win::desk_host`: the window holding `SHELLDLL_DefView`, Progman or a visible WorkerW) and forced to `HWND_BOTTOM`.
+  On Windows 10, "Show desktop" moves the view into a full-screen WorkerW raised above every window: `fence/owner.rs` re-owns the fences
+  (`adopt`) on every foreground change and on Explorer's WorkerW/Progman show/hide events (`bind`, hooks rebound when Explorer's pid changes). Windows 10 is tested
+  in a Hyper-V VM (see `docs/manual-tests.md`); Explorer restart → `TaskbarCreated` → tray icon re-added (`tray::add_icon` retries every 2 s while Shell_NotifyIcon fails, also at logon), desktop watch re-bound (`rules::bind`), `rebuild()`.
 - The updater only accepts URLs under this repo's releases; the MSI asset must have a matching `<name>.msi.sha256`.
 - MSI `UpgradeCode` and component GUIDs must never change.
 - The MSI closes the running app first (`util:CloseApplication` → WM_CLOSE; Restart Manager → WM_QUERYENDSESSION/WM_ENDSESSION,

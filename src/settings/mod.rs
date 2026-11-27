@@ -31,6 +31,7 @@ pub struct Panel {
     pub close_hot: bool,
     pub scroll: i32,
     pub capture: Option<Slot>,
+    pub pressed: bool,
 }
 
 pub fn register_class() {
@@ -62,7 +63,10 @@ pub fn open() {
         return refresh();
     }
     let Some(h) = popup::open(CLASS, WS_EX_LAYERED | WS_EX_APPWINDOW, rows::WIDTH, |a| a.top + sys_scale(60)) else { return };
-    with(|a| a.panel = Some(Panel { hwnd: h, hover: None, page_hover: None, page: 0, close_hot: false, scroll: 0, capture: None }));
+    with(|a| {
+        a.panel =
+            Some(Panel { hwnd: h, hover: None, page_hover: None, page: 0, close_hot: false, scroll: 0, capture: None, pressed: false })
+    });
     refresh();
     popup::show(h);
 }
@@ -145,13 +149,14 @@ fn select(h: HWND, page: usize) {
 
 unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {
     match m {
-        WM_NCHITTEST => return popup::hit(h, lp),
+        WM_NCHITTEST => return popup::hit(h, lp, crate::layered::chrome::TOP),
         WM_MOUSEMOVE => track(h, xy(lp)),
         WM_MOUSELEAVE => {
             with(|a| a.panel.as_mut().map(|p| (p.hover, p.page_hover, p.close_hot) = (None, None, false)));
             paint::render(h);
         }
-        WM_LBUTTONUP => {
+        WM_LBUTTONDOWN | WM_LBUTTONDBLCLK => _ = with(|a| a.panel.as_mut().map(|p| p.pressed = m == WM_LBUTTONDOWN)),
+        WM_LBUTTONUP if with(|a| a.panel.as_mut().map(|p| std::mem::take(&mut p.pressed))).flatten() == Some(true) => {
             let p = xy(lp);
             if inside(&popup::close_rect(h), p) {
                 close();

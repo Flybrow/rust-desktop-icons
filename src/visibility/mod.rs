@@ -4,8 +4,11 @@ pub mod hotkeys;
 mod overlay;
 pub mod privacy;
 
-use crate::{app::with, fence, keep, search, shell::hide::listview, tray, win::typed};
-use std::cell::Cell;
+use crate::{app::with, fence, keep, search, shell::hide::listview, store, tray, win::typed};
+use std::{
+    cell::Cell,
+    sync::atomic::{AtomicBool, Ordering::SeqCst},
+};
 use windows::Win32::{
     Foundation::{HWND, LPARAM, WPARAM},
     System::Threading::GetCurrentProcessId,
@@ -17,10 +20,11 @@ pub use overlay::register_class;
 
 const PEEK_TIMER: usize = tray::timers::PEEK;
 
+static HIDDEN: AtomicBool = AtomicBool::new(false);
+static DESK: AtomicBool = AtomicBool::new(false);
+
 thread_local! {
-    static HIDDEN: Cell<bool> = const { Cell::new(false) };
     static PEEKING: Cell<bool> = const { Cell::new(false) };
-    static DESK: Cell<bool> = const { Cell::new(false) };
 }
 
 pub fn peeking() -> bool {
@@ -32,22 +36,40 @@ fn show_all(show: bool) {
     for h in fence::hwnds().into_iter().filter(|h| !show || desks::shown(*h)) {
         let _ = unsafe { ShowWindow(h, cmd) };
     }
-    let desk = if show { DESK.replace(false) } else { with(|a| a.cfg.hide_desktop).unwrap_or(true) };
-    if let Some(lv) = listview().filter(|_| desk && keep::live()) {
-        DESK.set(!show);
-        let _ = unsafe { ShowWindow(lv, if show { SW_SHOWNA } else { SW_HIDE }) };
+    if show {
+        return show_list();
+    }
+    let visible = |lv: &HWND| unsafe { IsWindowVisible(*lv) }.as_bool();
+    if let Some(lv) = listview().filter(|lv| with(|a| a.cfg.hide_desktop).unwrap_or(true) && keep::live() && visible(lv)) {
+        DESK.store(true, SeqCst);
+        let _ = std::fs::write(marker(), b"");
+        let _ = unsafe { ShowWindow(lv, SW_HIDE) };
     }
 }
 
+fn marker() -> std::path::PathBuf {
+    store::root().join("icons.hidden")
+}
+
+fn show_list() {
+    if !DESK.swap(false, SeqCst) {
+        return;
+    }
+    if let Some(lv) = listview().filter(|_| keep::live()) {
+        let _ = unsafe { ShowWindow(lv, SW_SHOWNA) };
+    }
+    let _ = std::fs::remove_file(marker());
+}
+
 pub fn reveal() {
-    if HIDDEN.replace(false) {
+    if HIDDEN.swap(false, SeqCst) {
         show_all(true);
     }
 }
 
 fn hide() {
     end_peek();
-    HIDDEN.set(true);
+    HIDDEN.store(true, SeqCst);
     show_all(false);
 }
 
@@ -110,35 +132,28 @@ pub fn message(m: u32, wp: WPARAM, lp: LPARAM) -> bool {
         dblclick::WM_DESKDBL => dblclick::received(lp),
         WM_TIMER if wp.0 == dblclick::TIMER => dblclick::check(),
         WM_TIMER if wp.0 == desks::TIMER => desks::poll(),
-        desks::WM_DESKS => desks::poll(),
+        desks::WM_DESKS => desks::woke(wp),
         _ => return false,
     }
     true
 }
 
 pub fn toggle_hidden() {
-    if HIDDEN.get() { reveal() } else { hide() }
+    if hidden() { reveal() } else { hide() }
 }
 
 pub fn hidden() -> bool {
-    HIDDEN.get()
-}
-
-fn show_icons() {
-    if let Some(lv) = listview().filter(|lv| keep::live() && !unsafe { IsWindowVisible(*lv) }.as_bool()) {
-        let _ = unsafe { ShowWindow(lv, SW_SHOWNA) };
-    }
+    HIDDEN.load(SeqCst)
 }
 
 pub fn rescue() {
-    if HIDDEN.get() {
-        show_icons();
-    }
+    show_list();
 }
 
 pub fn recover() {
-    if !HIDDEN.get() {
-        show_icons();
+    if !hidden() && marker().exists() {
+        DESK.store(true, SeqCst);
+        show_list();
     }
 }
 

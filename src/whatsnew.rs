@@ -31,10 +31,11 @@ pub fn show(existed: bool) {
         c.version = Some(VERSION.into());
     });
     if shown {
-        let Notes { title, blocks } = notes(with(|a| LANGS[a.lang()].0).unwrap_or("en"));
+        let blocks = notes(with(|a| LANGS[a.lang()].0).unwrap_or("en")).blocks;
         let label = |k| with(|a| a.t(k).to_string()).unwrap_or_default();
         let buttons = vec![Button { label: label(T::GotIt), act: dialog::close }, Button { label: label(T::ReadAll), act: read_all }];
-        dialog::show(Spec { title, body: String::new(), buttons, progress: None, dismiss: dialog::close, notes: blocks });
+        let (title, badge) = (label(T::WhatsNew), Some(VERSION.to_string()));
+        dialog::show(Spec { title, body: String::new(), buttons, progress: None, dismiss: dialog::close, notes: blocks, badge });
     }
 }
 

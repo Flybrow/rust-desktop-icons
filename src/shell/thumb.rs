@@ -26,7 +26,11 @@ pub fn thumbnail(p: &Path, size: i32) -> Option<Thumb> {
         let mut info = BITMAP::default();
         let got = GetObjectW(bmp.into(), size_of::<BITMAP>() as i32, Some(&mut info as *mut _ as _));
         let (w, h) = (info.bmWidth, info.bmHeight.abs());
-        let mut px = vec![0u32; (w.max(0) * h) as usize];
+        if got <= 0 || w <= 0 || h <= 0 {
+            let _ = DeleteObject(bmp.into());
+            return None;
+        }
+        let mut px = vec![0u32; (w * h) as usize];
         let mut bi = BITMAPINFO {
             bmiHeader: BITMAPINFOHEADER {
                 biSize: size_of::<BITMAPINFOHEADER>() as u32,
@@ -40,11 +44,7 @@ pub fn thumbnail(p: &Path, size: i32) -> Option<Thumb> {
             ..Default::default()
         };
         let dc = GetDC(None);
-        let lines = if got > 0 && w > 0 && h > 0 {
-            GetDIBits(dc, bmp, 0, h as u32, Some(px.as_mut_ptr().cast()), &mut bi, DIB_RGB_COLORS)
-        } else {
-            0
-        };
+        let lines = GetDIBits(dc, bmp, 0, h as u32, Some(px.as_mut_ptr().cast()), &mut bi, DIB_RGB_COLORS);
         ReleaseDC(None, dc);
         let _ = DeleteObject(bmp.into());
         if px.iter().all(|p| p >> 24 == 0) {

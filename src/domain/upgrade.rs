@@ -1,13 +1,14 @@
 use super::{Config, Fence, Kind, Sort, inherit::Field, system::Sys};
 use std::path::Path;
 
-pub(super) const FIXTURES: [(&str, &str); 6] = [
+pub(super) const FIXTURES: [(&str, &str); 7] = [
     ("0.1.0", include_str!("fixtures/v0.1.0.json")),
     ("0.7.0", include_str!("fixtures/v0.7.0.json")),
     ("0.7.14", include_str!("fixtures/v0.7.14.json")),
     ("0.8.1", include_str!("fixtures/v0.8.1.json")),
     ("0.9.4", include_str!("fixtures/v0.9.4.json")),
     ("1.1.0", include_str!("fixtures/v1.1.0.json")),
+    ("1.2.0", include_str!("fixtures/v1.2.0.json")),
 ];
 
 fn load(v: &str) -> Config {
@@ -95,4 +96,26 @@ fn v1_1_list_fences_keep_their_view_and_gain_columns() {
     assert_eq!((a.look.list, a.look.corner, a.look.home, custom(a)), (false, Corner::Square, true, vec![Field::Corner, Field::Home]));
     assert!(a.tabs.iter().all(|t| t.view == Some(Mode::List) && t.columns() == columns::defaults() && !t.desc));
     assert_eq!((a.tabs[1].sort, b.active().mode(b.look.list)), (Sort::Date, Mode::Icons));
+}
+
+#[test]
+fn v1_2_views_columns_glass_and_layouts_survive() {
+    use super::{
+        Corner,
+        columns::{Col, Column, Mode},
+        theme::Theme,
+    };
+    let c = load("1.2.0");
+    assert_eq!((c.look.glass, c.look.corner, c.theme, c.version.as_deref()), (true, Corner::Larger, Theme::Auto, Some("1.2.0")));
+    let (a, b) = (fence(&c, 1), fence(&c, 3));
+    assert_eq!((a.look.glass, a.look.corner, custom(a)), (false, Corner::Square, vec![Field::Corner, Field::Glass]));
+    assert_eq!((b.look.glass, b.look.corner, a.group, b.group), (true, Corner::Larger, Some(1), Some(1)));
+    let t = &a.tabs[0];
+    assert_eq!((t.view, t.desc, t.sort, t.expire.map(|e| (e.fence, e.tab))), (Some(Mode::Details), true, Sort::Date, Some((3, 4))));
+    assert_eq!(t.columns(), vec![Column { col: Col::Modified, w: 140 }, Column { col: Col::Size, w: 90 }]);
+    assert_eq!((a.tabs[1].view, a.tabs[1].filter.as_str(), a.tabs[2].view), (Some(Mode::Tiles), "*.png;*.jpg", Some(Mode::Content)));
+    assert_eq!(a.tabs[2].portal.as_deref(), Some(Path::new("C:\\Users\\me\\Downloads")));
+    assert_eq!((b.tabs[0].view, b.tabs[0].system.clone(), b.tabs[1].view), (Some(Mode::List), vec![Sys::RecycleBin], None));
+    assert_eq!((c.name_rules.len(), c.layouts.len(), c.snapshots[0].name.as_str(), c.screens.len()), (1, 1, "Bureau", 1));
+    assert_eq!(c.desk_icons, vec![(Sys::RecycleBin, Some(0))]);
 }

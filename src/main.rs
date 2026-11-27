@@ -8,6 +8,7 @@ mod fence;
 mod i18n;
 mod keep;
 mod layered;
+mod mail;
 mod perf;
 mod prefs;
 mod prompt;

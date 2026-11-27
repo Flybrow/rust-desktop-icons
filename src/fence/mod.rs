@@ -11,6 +11,7 @@ mod edit;
 mod field;
 mod filter;
 mod ghost;
+mod glassbar;
 mod group;
 mod guides;
 mod header;
@@ -24,6 +25,7 @@ mod modes;
 mod moveto;
 mod native;
 mod nav;
+mod owner;
 mod pacer;
 mod paint;
 mod peek;
@@ -38,7 +40,7 @@ mod window;
 
 use crate::{
     app::{App, View, with},
-    domain::{Fence, icons},
+    domain::{Fence, TABS, icons},
     win::*,
 };
 use modes::{metrics, shape};
@@ -54,6 +56,7 @@ use windows::{
 pub use actions::evacuate;
 pub use edit::key;
 pub use items::{reload, reload_all, windows as hwnds};
+pub use owner::{ADOPT, adopt, bind as bind_owner};
 pub use paint::render;
 pub use tabs::bind;
 pub use wallpaper::changed as wallpaper_changed;
@@ -63,9 +66,9 @@ pub use window::{create, footprints, raise};
 pub const CLASS: PCWSTR = w!("RustDesktopIcons.Fence");
 pub const WM_CHANGED: u32 = WM_APP + 10;
 const TITLE: i32 = 34;
+const GLASS_TITLE: i32 = 40;
 const BORDER: i32 = 6;
 const MK_CONTROL: usize = 0x0008;
-const TABS: usize = 64;
 const RELOAD: usize = 1;
 const PEEK: usize = 2;
 const PREPARE: usize = 5;
@@ -118,6 +121,18 @@ fn update(h: HWND, f: impl FnOnce(&mut Fence)) {
     layout::apply(h);
 }
 
+fn update_tab(h: HWND, tab: u64, f: impl FnOnce(&mut crate::domain::Tab)) {
+    update(h, |x| {
+        if let Some(t) = x.tabs.iter_mut().find(|t| t.id == tab) {
+            f(t)
+        }
+    });
+}
+
+fn window(fence: u64) -> Option<HWND> {
+    with(|a| a.views.iter().find(|v| v.id == fence).map(|v| v.hwnd)).flatten()
+}
+
 fn restyle(h: HWND) {
     layout::apply(h);
     anim::start(h);
@@ -148,7 +163,7 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
         WM_WINDOWPOSCHANGING if !top() && !crate::visibility::peeking() => keep_bottom(lp),
         WM_GETMINMAXINFO => {
             let i = unsafe { &mut *(lp.0 as *mut MINMAXINFO) };
-            let (len, bar) = (scale(h, Fence::MIN.0), scale(h, TITLE));
+            let (len, bar) = (scale(h, Fence::MIN.0), layout::bar(h));
             i.ptMinTrackSize = if read(h, |f| f.vertical) == Some(true) { POINT { x: bar, y: len } } else { POINT { x: len, y: bar } };
         }
         WM_ENTERSIZEMOVE => snap::begin(h),
@@ -175,6 +190,7 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
         WM_NCLBUTTONDOWN => return snap::press(h, xy(lp), || unsafe { DefWindowProcW(h, m, wp, lp) }),
         WM_NCLBUTTONDBLCLK if wp.0 as u32 == HTCAPTION && !browse::bar_double(h, xy(lp)) => peek::toggle(h),
         WM_NCMOUSEMOVE => {
+            track_nc_leave(h);
             peek::enter(h);
             tabs::hover(h, xy(lp));
         }
@@ -197,7 +213,11 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
                 items::hover(h, items::index_at(h, xy(lp)));
             }
         }
-        WM_MOUSELEAVE => items::hover(h, None),
+        WM_MOUSELEAVE => {
+            items::hover(h, None);
+            peek::check(h);
+        }
+        WM_NCMOUSELEAVE => peek::check(h),
         WM_MOUSEWHEEL if wp.0 & MK_CONTROL != 0 => {
             if let Some(f) = fence_of(h) {
                 crate::undo::step(|| items::set_icon(h, icons::step(f.look.icon, wheel(wp) > 0)));
@@ -208,6 +228,8 @@ pub unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> L
             view(h, |v| v.scroll -= step);
             render(h);
         }
+        WM_CLOSE => {}
+        WM_SYSCOMMAND if wp.0 & 0xFFF0 == SC_CLOSE as usize => {}
         WM_DESTROY => {
             pacer::leave(h);
             target::revoke(h);

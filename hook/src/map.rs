@@ -65,13 +65,14 @@ impl Map {
         self.head()[i].fetch_add(n, SeqCst);
     }
 
-    pub fn write<S: AsRef<str>>(&self, paths: &[S]) {
-        let data = encode(paths);
+    pub fn write<S: AsRef<str>>(&self, paths: &[S]) -> usize {
+        let (data, n) = encode(paths);
         let h = self.head();
         h[SEQ].fetch_add(1, SeqCst);
         unsafe { std::ptr::copy_nonoverlapping(data.as_ptr(), self.data(), data.len()) };
         h[LEN].store(data.len() as u32, SeqCst);
         h[SEQ].fetch_add(1, SeqCst);
+        n
     }
 
     pub fn read(&self) -> Option<HashSet<String>> {
@@ -95,7 +96,7 @@ mod tests {
     fn both_sides_see_the_same_list_and_counters() {
         let a = Map::create(u32::MAX - 2).unwrap();
         let b = Map::open(u32::MAX - 2).unwrap();
-        a.write(&["C:/D/One.txt", "c:/d/two.lnk"]);
+        assert_eq!(a.write(&["C:/D/One.txt", "c:/d/two.lnk"]), 2);
         let list = b.read().unwrap();
         assert_eq!(list.len(), 2);
         assert!(list.contains("c:/d/one.txt") && list.contains("c:/d/two.lnk"));

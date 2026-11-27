@@ -34,14 +34,17 @@ pub(super) fn submenus(a: &mut App, m: HMENU, (t, list): (&Tab, bool)) {
     }
 }
 
-fn names(h: HWND) -> Vec<String> {
-    view(h, |v| v.items.iter().map(|i| store::name(&i.path)).collect()).unwrap_or_default()
+fn names(h: HWND) -> Option<Vec<String>> {
+    view(h, |v| v.browse.is_empty().then(|| v.all().iter().map(|i| store::name(&i.path)).collect())).flatten()
 }
 
-fn set_order(h: HWND, sort: Sort, order: Vec<String>) {
+fn set_order(h: HWND, sort: Sort, order: Option<Vec<String>>) {
     update(h, |f| {
         let t = f.active_mut();
-        (t.sort, t.order, t.desc) = (sort, order, false);
+        (t.sort, t.desc) = (sort, false);
+        if let Some(order) = order {
+            t.order = order;
+        }
     });
     reload(h);
 }
@@ -65,7 +68,8 @@ pub(super) fn handle(h: HWND, id: usize) -> bool {
 }
 
 pub(super) fn move_within(h: HWND, moved: &[PathBuf], before: Option<PathBuf>) {
+    let Some(all) = names(h) else { return };
     let moved: Vec<String> = moved.iter().map(|p| store::name(p)).collect();
     let before = before.as_deref().map(store::name);
-    set_order(h, Sort::Custom, order::reorder(&names(h), &moved, before.as_deref()));
+    set_order(h, Sort::Custom, Some(order::reorder(&all, &moved, before.as_deref())));
 }

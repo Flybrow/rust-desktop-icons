@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::cmp::Reverse;
+use std::{cmp::Reverse, collections::HashMap};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Sort {
@@ -37,14 +37,20 @@ impl Meta {
 
 pub fn arrange(items: &[Meta], (sort, desc): (Sort, bool), custom: &[String]) -> Vec<usize> {
     let mut idx: Vec<usize> = (0..items.len()).collect();
-    idx.sort_by_key(|&i| items[i].key());
+    idx.sort_by_cached_key(|&i| items[i].key());
     match sort {
         Sort::Name => {}
-        Sort::Type => idx.sort_by_key(|&i| (!items[i].dir, items[i].ext())),
+        Sort::Type => idx.sort_by_cached_key(|&i| (!items[i].dir, items[i].ext())),
         Sort::Date => idx.sort_by_key(|&i| Reverse(items[i].modified)),
         Sort::Created => idx.sort_by_key(|&i| Reverse(items[i].created)),
         Sort::Size => idx.sort_by_key(|&i| (items[i].dir, Reverse(items[i].size))),
-        Sort::Custom => idx.sort_by_key(|&i| custom.iter().position(|n| n.eq_ignore_ascii_case(&items[i].name)).unwrap_or(usize::MAX)),
+        Sort::Custom => {
+            let mut at = HashMap::with_capacity(custom.len());
+            for (i, n) in custom.iter().enumerate() {
+                at.entry(n.to_ascii_lowercase()).or_insert(i);
+            }
+            idx.sort_by_cached_key(|&i| at.get(&items[i].name.to_ascii_lowercase()).copied().unwrap_or(usize::MAX))
+        }
     }
     if desc && sort != Sort::Custom {
         idx.reverse();
@@ -80,6 +86,8 @@ mod tests {
         let custom = ["c.png".to_string(), "zeta".into()];
         assert_eq!(arrange(&items, (Sort::Custom, false), &custom), vec![3, 2, 1, 0]);
         assert_eq!(arrange(&items, (Sort::Custom, true), &custom), vec![3, 2, 1, 0]);
+        let dup = ["ZETA".to_string(), "b.TXT".into(), "zeta".into()];
+        assert_eq!(arrange(&items, (Sort::Custom, false), &dup), vec![2, 0, 1, 3]);
     }
 
     #[test]
@@ -91,5 +99,17 @@ mod tests {
         assert_eq!(mv(&["b"], None), ["a", "c", "d", "b"]);
         assert_eq!(mv(&["b"], Some("b")), ["a", "c", "d", "b"]);
         assert_eq!(mv(&["x"], Some("a")), ["x", "a", "b", "c", "d"]);
+    }
+
+    #[test]
+    fn reordering_a_filtered_view_keeps_hidden_names() {
+        let all: Vec<String> = ["a", "h1", "b", "h2", "c"].map(String::from).to_vec();
+        let shown = |order: &[String]| order.iter().filter(|n| !n.starts_with('h')).cloned().collect::<Vec<_>>();
+        let out = reorder(&all, &["c".into()], Some("b"));
+        assert_eq!(out, ["a", "h1", "c", "b", "h2"]);
+        assert_eq!(shown(&out), ["a", "c", "b"]);
+        let out = reorder(&all, &["a".into()], None);
+        assert_eq!(out.len(), all.len());
+        assert_eq!(shown(&out), ["b", "c", "a"]);
     }
 }

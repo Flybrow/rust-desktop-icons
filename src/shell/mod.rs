@@ -21,7 +21,7 @@ pub use dnd::{DragImage, drag_out, drop_target};
 pub use icons::draw_icon;
 pub use link::{folder_target, link_into, link_target};
 pub use ops::{delete, transfer, transfer_to};
-pub use reg::{NEW_ARG, PORTAL_ARG, RELAUNCH_ARG, UNINSTALL_ARG, light_theme, set_autostart, set_desktop_verbs};
+pub use reg::{NEW_ARG, PORTAL_ARG, RELAUNCH_ARG, UNINSTALL_ARG, light_theme, machine, set_autostart, set_desktop_verbs};
 use std::path::{Path, PathBuf};
 pub use watch::{Watch, notify_moved};
 use windows::{

@@ -117,6 +117,11 @@ fn perform(h: HWND, act: rows::Act) {
             crate::fence::reload_all();
         }
         Wallpaper => restyle(|l| l.wallpaper ^= true),
+        Glass => {
+            if let Some(on) = pick(h, &[false, true], l.glass, |g| with(|a| a.t(i18n::style(g)).to_string()).unwrap_or_default()) {
+                restyle(|l| l.glass = on);
+            }
+        }
         BarHover => restyle(|l| l.bar_hover ^= true),
         TitleAlign => {
             if let Some(m) = pick(h, &grid::Align::ALL, l.title_align, |m| with(|a| a.t(i18n::align(m)).to_string()).unwrap_or_default()) {

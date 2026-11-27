@@ -4,7 +4,11 @@ use crate::{
     map::Map,
     shared::*,
 };
-use std::{collections::HashSet, path::Path, sync::atomic::Ordering::SeqCst};
+use std::{
+    collections::HashSet,
+    path::Path,
+    sync::{Arc, atomic::Ordering::SeqCst},
+};
 use windows::{
     Win32::{
         Foundation::HWND,
@@ -111,18 +115,23 @@ fn child(folder: &IShellFolder, full: &str) -> Option<Pidl> {
     [full, name].into_iter().filter_map(|n| parse(folder, n)).find(|p| path(folder, p.0).as_deref() == Some(full))
 }
 
-fn sweep(fv: &IFolderView, sfv: &IShellFolderView, folder: &IShellFolder, todo: &HashSet<&String>, map: &Map) {
+fn remove(sfv: &IShellFolderView, pidl: &Pidl, map: &Map) -> bool {
+    let ok = unsafe { sfv.RemoveObject(Some(pidl.0)) }.is_ok();
+    if ok {
+        map.bump(REMOVED, 1);
+    }
+    ok
+}
+
+fn sweep(fv: &IFolderView, sfv: &IShellFolderView, folder: &IShellFolder, todo: &HashSet<&String>, map: &Map) -> bool {
     let all = items(fv);
     map.set(ITEMS, all.len() as u32);
-    for pidl in all.iter().filter(|p| path(folder, p.0).is_some_and(|p| todo.contains(&p))) {
-        if unsafe { sfv.RemoveObject(Some(pidl.0)) }.is_ok() {
-            map.bump(REMOVED, 1);
-        }
-    }
+    let found = all.iter().filter(|p| path(folder, p.0).is_some_and(|p| todo.contains(&p)));
+    found.filter(|pidl| !remove(sfv, pidl, map)).count() == 0
 }
 
 pub fn pass(defview: HWND, map: &Map, hidden: &mut Vec<String>) -> Option<()> {
-    let list = map.read()?;
+    let list = Arc::new(map.read()?);
     if let Ok(mut l) = LIST.write() {
         *l = Some(list.clone());
     }
@@ -145,11 +154,7 @@ pub fn pass(defview: HWND, map: &Map, hidden: &mut Vec<String>) -> Option<()> {
     let mut lost = HashSet::new();
     for p in hide.into_iter().filter(|p| Path::new(p).exists()) {
         match child(&folder, p) {
-            Some(pidl) => {
-                if unsafe { sfv.RemoveObject(Some(pidl.0)) }.is_ok() {
-                    map.bump(REMOVED, 1);
-                }
-            }
+            Some(pidl) => refresh |= !remove(&sfv, &pidl, map),
             None => {
                 lost.insert(p);
             }
@@ -157,7 +162,7 @@ pub fn pass(defview: HWND, map: &Map, hidden: &mut Vec<String>) -> Option<()> {
     }
     if !lost.is_empty() {
         map.bump(SWEEPS, 1);
-        sweep(&fv, &sfv, &folder, &lost, map);
+        refresh |= !sweep(&fv, &sfv, &folder, &lost, map);
     }
     *hidden = list.iter().cloned().collect();
     map.set(HIDDEN, hidden.len() as u32);

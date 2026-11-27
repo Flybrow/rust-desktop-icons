@@ -41,28 +41,43 @@ pub fn icons(u: &mut Ui) {
 }
 
 pub fn look(u: &mut Ui) {
-    let look = [HEADER, NOTE, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
+    let look = [HEADER, NOTE, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED, DESCRIBED];
     u.page(0);
+    u.row(&look, 2);
+    u.pick(&["Glass"]);
+    let glass = u.until(|c| c["look"]["glass"] == true && f(c, 1, "glass") == true);
+    u.row(&look, 2);
+    u.pick(&["Default"]);
+    u.check(glass && u.until(|c| c["look"]["glass"] == false), "Default appearance → Theme switches to Glass and back");
     u.row(&look, 3);
+    u.pick(&["Light"]);
+    let light = u.until(|c| c["theme"] == "Light" && c["look"]["color"] == 0xF3_F3F3);
+    u.row(&look, 3);
+    u.pick(&["Dark"]);
+    u.check(
+        light && u.until(|c| c["theme"] == "Dark" && c["look"]["color"] == 0x30_2820),
+        "Default appearance → Mode switches the default fence color",
+    );
+    u.row(&look, 5);
     u.check(
         u.until(|c| c["look"]["wallpaper"] == true && f(c, 1, "wallpaper") == true),
         "Default appearance → Color from the wallpaper turns on",
     );
-    u.row(&look, 3);
-    u.until(|c| c["look"]["wallpaper"] == false);
     u.row(&look, 5);
+    u.until(|c| c["look"]["wallpaper"] == false);
+    u.row(&look, 7);
     u.pick(&["Square"]);
     u.check(
         u.until(|c| c["look"]["corner"] == "Square" && f(c, 1, "corner") == "Square"),
         "Default appearance → Corners apply to the fences",
     );
-    u.row(&look, 4);
+    u.row(&look, 6);
     u.pick(&["70%"]);
     u.check(u.until(|c| c["look"]["alpha"].as_u64().is_some_and(|a| a.abs_diff(178) <= 2)), "Default appearance → Opacity is saved");
-    u.row(&look, 6);
+    u.row(&look, 8);
     u.pick(&["None"]);
     u.check(u.until(|c| c["look"]["tint"].is_null()), "Default appearance → Icon tint None");
-    u.row(&look, 7);
+    u.row(&look, 9);
     let asked = support::answer(u.pid, &[VK_RETURN]);
     u.check(
         asked && u.until(|c| f(c, 0, "custom") == json!([]) && f(c, 0, "spacing") == "Wide"),

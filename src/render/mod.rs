@@ -1,12 +1,13 @@
 mod blur;
+pub mod frost;
 mod pixels;
 mod shrink;
 mod turn;
 
 pub use blur::blur;
-pub use pixels::{gray, opaque_if_flat, straight, tint};
+pub use pixels::{gray, opaque_if_flat, premultiplied, straight, tint};
 pub use shrink::shrink;
-pub use turn::{blit, blit_fit, rotate_cw};
+pub use turn::{blend, blit, blit_fit, rotate_cw};
 
 pub fn premul(c: u32, a: u8) -> u32 {
     let k = |v: u32| v * a as u32 / 255;
@@ -44,11 +45,15 @@ pub struct Canvas<'a> {
 
 impl Canvas<'_> {
     pub fn rrect(&mut self, rect: (i32, i32, i32, i32), r: f32, (top, bottom): (u32, u32), rows: (i32, i32), stroke: bool) {
+        let span = (rect.3 - rect.1).max(1);
+        self.rrect_with(rect, r, rows, stroke, |_, y| lerp(top, bottom, ((y - rect.1) * 255 / span) as u32));
+    }
+
+    pub fn rrect_with(&mut self, rect: (i32, i32, i32, i32), r: f32, rows: (i32, i32), stroke: bool, paint: impl Fn(i32, i32) -> u32) {
         let f = (rect.0 as f32, rect.1 as f32, rect.2 as f32, rect.3 as f32);
         let inner = (f.0 + 1., f.1 + 1., f.2 - 1., f.3 - 1.);
         let (x0, x1) = (rect.0.max(0), rect.2.min(self.w));
         for y in rows.0.max(rect.1).max(0)..rows.1.min(rect.3).min(self.h) {
-            let color = lerp(top, bottom, ((y - rect.1) * 255 / (rect.3 - rect.1).max(1)) as u32);
             let cy = y as f32 + 0.5;
             let straight = cy >= f.1 + r + 1. && cy <= f.3 - r - 1.;
             let a = (rect.0 + 2).clamp(x0, x1.max(x0));
@@ -60,13 +65,13 @@ impl Canvas<'_> {
                 let c = coverage(p, f, r) - if stroke { coverage(p, inner, (r - 1.).max(0.)) } else { 0. };
                 if c > 0. {
                     let i = row + x as usize;
-                    self.px[i] = over(self.px[i], fade(color, (c * 255.) as u32));
+                    self.px[i] = over(self.px[i], fade(paint(x, y), (c * 255.) as u32));
                 }
             }
             if straight && !stroke {
                 for x in a..b {
                     let i = row + x as usize;
-                    self.px[i] = over(self.px[i], color);
+                    self.px[i] = over(self.px[i], paint(x, y));
                 }
             }
         }

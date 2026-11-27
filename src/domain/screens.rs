@@ -1,11 +1,13 @@
 use super::{
     Config,
-    layouts::{Layout, place},
+    layouts::{Layout, last, place},
 };
 use serde::{Deserialize, Serialize};
 
 pub type Rect = [i32; 4];
-const KEPT: usize = 8;
+pub(super) const KEPT: usize = 8;
+const MONITORS: usize = 16;
+const EDGE: i32 = 50_000;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Adapt {
@@ -23,6 +25,21 @@ impl Adapt {
 pub struct Screen {
     pub full: Rect,
     pub work: Rect,
+}
+
+impl Screen {
+    fn sanitized(self) -> Self {
+        let edges = |[l, t, r, b]: Rect| {
+            let (l, t) = (l.clamp(-EDGE, EDGE), t.clamp(-EDGE, EDGE));
+            [l, t, r.clamp(l, EDGE), b.clamp(t, EDGE)]
+        };
+        Screen { full: edges(self.full), work: edges(self.work) }
+    }
+}
+
+pub(super) fn sanitized(mut screens: Vec<Screen>) -> Vec<Screen> {
+    screens.truncate(MONITORS);
+    screens.into_iter().map(Screen::sanitized).collect()
 }
 
 pub fn same(a: &[Screen], b: &[Screen]) -> bool {
@@ -84,8 +101,7 @@ impl Config {
         if self.screen_adapt == Adapt::Remember {
             self.layouts.retain(|l| !same(&l.screens, &old));
             self.layouts.push(Layout { screens: old.clone(), ..self.layout() });
-            let extra = self.layouts.len().saturating_sub(KEPT);
-            self.layouts.drain(..extra);
+            last(&mut self.layouts, KEPT);
         }
         for f in &mut self.fences {
             let r = saved.as_ref().and_then(|l| l.rect(f.id)).unwrap_or_else(|| scale([f.x, f.y, f.w, f.h], &old, now));
@@ -196,6 +212,15 @@ mod tests {
         c.adapt(&b);
         c.adapt(&d);
         assert_eq!(c.layouts.iter().map(|l| l.screens.clone()).collect::<Vec<_>>(), vec![a, b]);
+    }
+
+    #[test]
+    fn damaged_screens_are_bounded() {
+        let wild = Screen { full: [-2_000_000_000, 0, 2_000_000_000, -5], work: [9, 9, 1, 1] };
+        let s = sanitized(vec![wild; 40]);
+        assert_eq!((s.len(), s[0].full, s[0].work), (MONITORS, [-EDGE, 0, EDGE, 0], [9, 9, 9, 9]));
+        let r = scale([20_000, 20_000, 10_000, 10_000], &s, &[screen([0, 0, 1920, 1080], 0)]);
+        assert!(r[0] >= 0 && r[0] + r[2] <= 1920 && r[1] + r[3] <= 1080, "{r:?}");
     }
 
     #[test]

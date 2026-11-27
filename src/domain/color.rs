@@ -19,6 +19,10 @@ pub fn contrast(c: u32) -> u32 {
     if light(c) { 0x20_2020 } else { 0xF5_F5F5 }
 }
 
+pub fn glass_text(base: u32) -> (u32, (u32, u8)) {
+    if light(base) { (0x2A_2422, (0, 0)) } else { (0xF2_F2F2, (0, 60)) }
+}
+
 pub fn text_on(base: u32) -> (u32, u32) {
     let fg = contrast(base);
     (fg, if fg > 0x80_8080 { 0 } else { 0xFF_FFFF })

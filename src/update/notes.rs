@@ -1,5 +1,3 @@
-const LEAD: usize = 110;
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum Block {
     Section(String),
@@ -14,12 +12,7 @@ pub struct Notes {
 
 fn sentence(text: &str) -> String {
     let end = [". ", "; "].iter().filter_map(|p| text.find(p)).min().unwrap_or(text.len());
-    let first = text[..end].trim().trim_end_matches([';', '.']);
-    if first.chars().count() <= LEAD {
-        return first.to_string();
-    }
-    let cut: String = first.chars().take(LEAD).collect();
-    format!("{}…", cut.rsplit_once(' ').map_or(cut.as_str(), |(head, _)| head))
+    text[..end].trim().trim_end_matches([';', '.']).to_string()
 }
 
 fn capital(s: &str) -> String {
@@ -72,9 +65,9 @@ mod tests {
                 Block::Item("Rules".into(), "Match *.pdf files".into()),
             ]
         );
-        let long = format!("- **T:** {} end.", "word ".repeat(40));
+        let long = format!("- **T:** {}end. More", "word ".repeat(40));
         let Block::Item(_, d) = &parse(&long).blocks[0] else { panic!() };
-        assert!(d.ends_with("word…") && d.chars().count() <= LEAD + 1);
+        assert!(d.ends_with("word end") && !d.contains('…'));
         assert_eq!(parse("").title, "");
     }
 }

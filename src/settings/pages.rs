@@ -70,6 +70,8 @@ pub fn build(a: &App, page: usize) -> Vec<Row> {
     rows.extend(match page {
         0 => vec![
             note(a.t(T::LookNote)),
+            row(a.t(T::Style), Ctl::Value(a.t(i18n::style(l.glass)).into()), Act::Glass, g::TINT).about(a.t(T::DStyle)),
+            row(a.t(T::Theme), Ctl::Value(a.t(i18n::theme(c.theme)).into()), Act::Theme, g::COLOR).about(a.t(T::DTheme)),
             row(a.t(T::Color), Ctl::Swatch(Some(l.color)), Act::Color, g::COLOR).about(a.t(T::DColor)),
             row(a.t(T::Wallpaper), Ctl::Toggle(l.wallpaper), Act::Wallpaper, g::PICTURE).about(a.t(T::DWallpaper)),
             row(a.t(T::Opacity), Ctl::Value(Look::label(l.percent())), Act::Opacity, g::OPACITY).about(a.t(T::DOpacity)),
@@ -127,7 +129,6 @@ pub fn build(a: &App, page: usize) -> Vec<Row> {
         }
         _ => vec![
             row(a.t(T::Language), Ctl::Value(prefs::lang_name(a).into()), Act::Lang, g::GLOBE).about(a.t(T::DLanguage)),
-            row(a.t(T::Theme), Ctl::Value(a.t(i18n::theme(c.theme)).into()), Act::Theme, g::COLOR).about(a.t(T::DTheme)),
             row(a.t(T::Autostart), Ctl::Toggle(c.autostart), Act::Autostart, g::POWER).about(a.t(T::DAutostart)),
             row(a.t(T::AutoUpdate), Ctl::Toggle(c.auto_update), Act::AutoUpdate, g::DOWNLOAD).about(a.t(T::DAutoUpdate)),
             row(a.t(T::CheckUpdates), Ctl::Value(format!("v{}", env!("CARGO_PKG_VERSION"))), Act::Check, g::REFRESH).about(a.t(T::DCheck)),
@@ -180,6 +181,7 @@ mod tests {
             Act::Thumbs,
             Act::List,
             Act::Wallpaper,
+            Act::Glass,
             Act::TitleAlign,
             Act::TitleSize,
             Act::BarColor,

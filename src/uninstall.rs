@@ -24,10 +24,12 @@ pub fn run() {
         }
     }
     let Some(desk) = shell::desktop() else { return };
-    let errors: Vec<String> = store::tab_dirs().iter().flat_map(|d| store::evacuate(d, &desk).1).collect();
-    if errors.is_empty() && store::tab_dirs().is_empty() {
-        let _ = std::fs::remove_dir_all(store::root());
-        return;
+    let errors: Vec<String> = match store::tab_dirs() {
+        Ok(dirs) => dirs.iter().flat_map(|d| store::evacuate(d, &desk).1).collect(),
+        Err(e) => vec![format!("{} ({e})", store::root().join("fences").display())],
+    };
+    if errors.is_empty() && store::tab_dirs().is_ok_and(|d| d.is_empty()) {
+        return store::remove_app_files();
     }
     let lang = i18n::resolve(cfg.lang.as_deref(), shell::locale());
     let text = i18n::get(lang, T::ErrDelete).replace("{}", &errors.iter().take(10).cloned().collect::<Vec<_>>().join("\n"));

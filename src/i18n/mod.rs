@@ -15,7 +15,7 @@ mod table;
 
 use table::S;
 
-const N: usize = 221;
+const N: usize = 226;
 
 pub const LANGS: [(&str, &str); 25] = [
     ("en", "English"),
@@ -83,6 +83,10 @@ pub fn spacing(s: Spacing) -> T {
     }
 }
 
+pub fn style(glass: bool) -> T {
+    if glass { T::StyleGlass } else { T::StyleDefault }
+}
+
 pub fn theme(t: Theme) -> T {
     match t {
         Theme::Dark => T::ThemeDark,
@@ -147,7 +151,7 @@ mod tests {
     #[test]
     fn complete_tables() {
         assert!(S.iter().flatten().all(|s| !s.trim().is_empty()));
-        assert_eq!(T::UpdateDownloadFailed as usize, N - 1);
+        assert_eq!(T::WhatsNew as usize, N - 1);
     }
 
     #[test]

@@ -12,6 +12,7 @@ pub(super) struct Ctx<'a> {
     pub icon: i32,
     pub ink: u32,
     pub rad: f32,
+    pub glass: Option<bool>,
     pub rows: (i32, i32),
     pub s: &'a dyn Fn(i32) -> i32,
 }
@@ -27,9 +28,17 @@ pub(super) fn highlights(c: &mut Canvas, cells: &Cells, v: &View, (font, labels)
         }
         let label = if labels { measure(font, &v.items[i].name, cell::label_width(k.shape, s), k.shape.flags()) } else { 0 };
         let r = cell::tile((x, y), k.shape, k.icon, label, s);
-        let (fill, line) = if sel { (premul(ACCENT, 90), premul(ACCENT, 200)) } else { (premul(k.ink, 40), premul(k.ink, 60)) };
+        let (fill, line) = match (k.glass, sel) {
+            (Some(_), true) => (premul(ACCENT, 46), 0),
+            (Some(true), false) => (premul(0xFF_FFFF, 110), 0),
+            (Some(false), false) => (premul(0xFF_FFFF, 20), 0),
+            (None, true) => (premul(ACCENT, 90), premul(ACCENT, 200)),
+            (None, false) => (premul(k.ink, 40), premul(k.ink, 60)),
+        };
         c.rrect(r, k.rad, flat(fill), k.rows, false);
-        c.rrect(r, k.rad, flat(line), k.rows, true);
+        if line != 0 {
+            c.rrect(r, k.rad, flat(line), k.rows, true);
+        }
     }
 }
 
@@ -57,13 +66,9 @@ pub(super) fn band(c: &mut Canvas, g: &Geo, v: &View, k: &Ctx) {
 }
 
 pub(super) fn scrollbar(c: &mut Canvas, g: &Geo, (scroll, max, gw): (i32, i32, i32), k: &Ctx) {
-    if max <= 0 {
-        return;
-    }
     let s = k.s;
     let avail = g.view_h();
-    let th = (avail * avail / (avail + max)).max(s(24));
-    let ty = scroll * (avail - th) / max;
+    let Some((ty, th)) = crate::domain::scroll::thumb(avail, avail + max, scroll, s(24)) else { return };
     let r = g.rect((gw - s(7), ty + s(3), gw - s(3), ty + th - s(3)));
     c.rrect(r, s(2) as f32, flat(premul(k.ink, 110)), k.rows, false);
 }

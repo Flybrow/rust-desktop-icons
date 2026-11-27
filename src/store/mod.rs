@@ -1,8 +1,11 @@
+mod files;
+
 use crate::domain::{Config, Tab};
+pub use files::{candidates, copy_new, evacuate, move_into, put_new, rename_new, unique, unique_by};
+#[cfg(test)]
+use files::{inside, relocate};
 use std::{
-    env,
-    ffi::OsStr,
-    fs, io,
+    env, fs, io,
     path::{Path, PathBuf},
     sync::Mutex,
     thread,
@@ -16,6 +19,7 @@ pub enum Damage {
 }
 
 static HELD: Mutex<Option<PathBuf>> = Mutex::new(None);
+static GOOD: Mutex<Vec<PathBuf>> = Mutex::new(Vec::new());
 
 pub fn root() -> PathBuf {
     env::var_os("LOCALAPPDATA").map_or_else(env::temp_dir, PathBuf::from).join("RustDesktopIcons")
@@ -30,7 +34,12 @@ pub fn tab_dir(t: &Tab) -> PathBuf {
 }
 
 pub fn load() -> (Config, Option<Damage>) {
-    load_from(&root())
+    let (mut c, damage) = load_from(&root());
+    if cfg!(debug_assertions) && std::env::var_os("RDI_GLASS").is_some() {
+        c.look.glass = true;
+        c.fences.iter_mut().for_each(|f| f.look.glass = true);
+    }
+    (c, damage)
 }
 
 pub fn save(c: &Config) -> io::Result<()> {
@@ -53,6 +62,15 @@ fn read(p: &Path) -> io::Result<Vec<u8>> {
     last
 }
 
+fn good(main: &Path, ok: Option<bool>) -> bool {
+    let mut g = GOOD.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(ok) = ok {
+        g.retain(|p| p != main);
+        g.extend(ok.then(|| main.to_path_buf()));
+    }
+    g.iter().any(|p| p == main)
+}
+
 fn hold(main: PathBuf) -> Option<Damage> {
     *HELD.lock().unwrap_or_else(|e| e.into_inner()) = Some(main.clone());
     Some(Damage::Held(main))
@@ -61,12 +79,14 @@ fn hold(main: PathBuf) -> Option<Damage> {
 fn load_from(dir: &Path) -> (Config, Option<Damage>) {
     let (main, bak) = (dir.join("config.json"), dir.join("config.json.bak"));
     let fallback = || parse(&bak).unwrap_or_default().sanitized();
+    good(&main, Some(false));
     let bytes = match read(&main) {
         Err(e) if e.kind() == io::ErrorKind::NotFound => return (fallback(), None),
         Err(_) => return (fallback(), hold(main)),
         Ok(b) => b,
     };
     if let Ok(c) = Config::parse(&bytes) {
+        good(&main, Some(true));
         return (c.sanitized(), None);
     }
     let secs = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs());
@@ -87,81 +107,12 @@ fn save_to(dir: &Path, c: &Config) -> io::Result<()> {
     io::Write::write_all(&mut f, &serde_json::to_vec_pretty(c)?)?;
     f.sync_all()?;
     drop(f);
-    if parse(&main).is_some() {
+    if good(&main, None) {
         fs::copy(&main, dir.join("config.json.bak"))?;
     }
-    fs::rename(tmp, main)
-}
-
-pub fn unique(dir: &Path, name: &OsStr) -> PathBuf {
-    unique_by(dir, name, |p| p.exists())
-}
-
-pub fn unique_by(dir: &Path, name: &OsStr, taken: impl Fn(&Path) -> bool) -> PathBuf {
-    let first = dir.join(name);
-    if !taken(&first) {
-        return first;
-    }
-    let p = Path::new(name);
-    let stem = p.file_stem().unwrap_or(name).to_string_lossy();
-    let ext = p.extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
-    (2..).map(|n| dir.join(format!("{stem} ({n}){ext}"))).find(|p| !taken(p)).unwrap_or(first)
-}
-
-fn copy_all(src: &Path, dst: &Path) -> io::Result<()> {
-    if !src.is_dir() {
-        return fs::copy(src, dst).map(|_| ());
-    }
-    fs::create_dir_all(dst)?;
-    for e in fs::read_dir(src)? {
-        let e = e?;
-        copy_all(&e.path(), &dst.join(e.file_name()))?;
-    }
+    fs::rename(tmp, &main)?;
+    good(&main, Some(true));
     Ok(())
-}
-
-fn remove_all(p: &Path) -> io::Result<()> {
-    if p.is_dir() { fs::remove_dir_all(p) } else { fs::remove_file(p) }
-}
-
-fn relocate(src: &Path, dst: &Path) -> io::Result<()> {
-    if let Err(e) = copy_all(src, dst) {
-        let _ = remove_all(dst);
-        return Err(e);
-    }
-    remove_all(src)
-}
-
-fn inside(dir: &Path, src: &Path) -> bool {
-    let canon = |p: &Path| fs::canonicalize(p).unwrap_or_else(|_| p.to_path_buf());
-    canon(dir).starts_with(canon(src))
-}
-
-pub fn move_into(src: &Path, dir: &Path) -> io::Result<PathBuf> {
-    let name = src.file_name().ok_or(io::ErrorKind::InvalidInput)?;
-    if src.is_dir() && inside(dir, src) {
-        return Err(io::ErrorKind::InvalidInput.into());
-    }
-    fs::create_dir_all(dir)?;
-    let dst = unique(dir, name);
-    fs::rename(src, &dst).or_else(|e| if e.kind() == io::ErrorKind::CrossesDevices { relocate(src, &dst) } else { Err(e) })?;
-    crate::shell::notify_moved(src, &dst);
-    crate::undo::moved(src, &dst);
-    Ok(dst)
-}
-
-pub fn evacuate(dir: &Path, to: &Path) -> (Vec<PathBuf>, Vec<String>) {
-    let (mut moved, mut errors) = (vec![], vec![]);
-    for e in fs::read_dir(dir).into_iter().flatten().flatten() {
-        match move_into(&e.path(), to) {
-            Ok(p) => moved.push(p),
-            Err(err) => errors.push(format!("{} ({err})", name(&e.path()))),
-        }
-    }
-    if errors.is_empty() {
-        let _ = fs::remove_dir(dir);
-    }
-    (moved, errors)
 }
 
 pub fn in_fences(p: &Path) -> bool {
@@ -172,20 +123,54 @@ pub fn ensure(dirs: &[PathBuf]) -> Vec<String> {
     dirs.iter().filter_map(|d| fs::create_dir_all(d).err().map(|e| format!("{} ({e})", d.display()))).collect()
 }
 
-pub fn tab_dirs() -> Vec<PathBuf> {
-    fs::read_dir(root().join("fences")).into_iter().flatten().flatten().map(|e| e.path()).filter(|p| p.is_dir()).collect()
+pub fn tab_dirs() -> io::Result<Vec<PathBuf>> {
+    let entries = match fs::read_dir(root().join("fences")) {
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(vec![]),
+        r => r?,
+    };
+    let paths = entries.map(|e| e.map(|e| e.path())).collect::<io::Result<Vec<_>>>()?;
+    Ok(paths.into_iter().filter(|p| p.is_dir()).collect())
 }
 
-pub fn filled_dirs() -> Vec<u64> {
+fn ids(filled: bool) -> Vec<u64> {
     tab_dirs()
+        .unwrap_or_default()
         .iter()
-        .filter(|d| fs::read_dir(d).is_ok_and(|mut r| r.next().is_some()))
+        .filter(|d| !filled || fs::read_dir(d).is_ok_and(|mut r| r.next().is_some()))
         .filter_map(|d| d.file_name()?.to_str()?.parse().ok())
         .collect()
 }
 
+pub fn dir_ids() -> Vec<u64> {
+    ids(false)
+}
+
+pub fn filled_dirs() -> Vec<u64> {
+    ids(true)
+}
+
 pub fn name(p: &Path) -> String {
     p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
+}
+
+fn ours(name: &str) -> bool {
+    name.starts_with("config.json") || name.ends_with(".log") || name.ends_with(".log.old") || name.starts_with("rdi_hook-")
+}
+
+fn clear(dir: &Path) {
+    for p in fs::read_dir(dir).into_iter().flatten().flatten().map(|e| e.path()) {
+        if p.is_file() && ours(&name(&p)) {
+            let _ = fs::remove_file(&p);
+        }
+    }
+    let _ = fs::remove_dir(dir);
+}
+
+pub fn remove_app_files() {
+    let r = root();
+    let _ = fs::remove_dir(r.join("fences"));
+    clear(&r.join("hook"));
+    clear(&r);
 }
 
 #[cfg(test)]

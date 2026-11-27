@@ -65,10 +65,17 @@ pub fn sync() {
     apply();
 }
 
-fn notify() {
+fn notify(alive: bool) {
     if let Some(t) = tray::hwnd() {
-        let _ = unsafe { PostMessageW(Some(t), WM_DESKS, WPARAM(0), LPARAM(0)) };
+        let _ = unsafe { PostMessageW(Some(t), WM_DESKS, WPARAM(usize::from(!alive)), LPARAM(0)) };
     }
+}
+
+pub fn woke(wp: WPARAM) {
+    if wp.0 != 0 && WATCH.with(|w| w.borrow_mut().take()).is_some() {
+        tray::timers::set(TIMER, Some(POLL_MS));
+    }
+    poll();
 }
 
 pub fn list() -> Vec<(String, Option<String>)> {

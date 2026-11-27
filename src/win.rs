@@ -11,7 +11,8 @@ use windows::{
             Controls::{Dialogs::*, EM_LIMITTEXT, EM_SETSEL},
             HiDpi::{GetDpiForSystem, GetDpiForWindow},
             Input::KeyboardAndMouse::{
-                GetAsyncKeyState, GetKeyState, SetFocus, TME_LEAVE, TRACKMOUSEEVENT, TrackMouseEvent, VIRTUAL_KEY, VK_LBUTTON, VK_RBUTTON,
+                GetAsyncKeyState, GetKeyState, SetFocus, TME_LEAVE, TME_NONCLIENT, TRACKMOUSEEVENT, TRACKMOUSEEVENT_FLAGS, TrackMouseEvent,
+                VIRTUAL_KEY, VK_LBUTTON, VK_RBUTTON,
             },
             WindowsAndMessaging::*,
         },
@@ -79,9 +80,17 @@ pub fn xy(lp: LPARAM) -> (i32, i32) {
     (lp.0 as i16 as i32, (lp.0 >> 16) as i16 as i32)
 }
 
-pub fn track_leave(h: HWND) {
-    let mut tme = TRACKMOUSEEVENT { cbSize: size_of::<TRACKMOUSEEVENT>() as u32, dwFlags: TME_LEAVE, hwndTrack: h, dwHoverTime: 0 };
+fn track(h: HWND, flags: TRACKMOUSEEVENT_FLAGS) {
+    let mut tme = TRACKMOUSEEVENT { cbSize: size_of::<TRACKMOUSEEVENT>() as u32, dwFlags: flags, hwndTrack: h, dwHoverTime: 0 };
     let _ = unsafe { TrackMouseEvent(&mut tme) };
+}
+
+pub fn track_leave(h: HWND) {
+    track(h, TME_LEAVE);
+}
+
+pub fn track_nc_leave(h: HWND) {
+    track(h, TME_LEAVE | TME_NONCLIENT);
 }
 
 pub fn cursor_pos() -> (i32, i32) {
@@ -114,11 +123,20 @@ pub fn now_ms() -> f64 {
     qpc_ms(t)
 }
 
-pub fn desktop_at((x, y): (i32, i32)) -> bool {
-    let root = unsafe { GetAncestor(WindowFromPoint(POINT { x, y }), GA_ROOT) };
+pub fn allow(h: HWND, messages: &[u32]) {
+    for &m in messages {
+        let _ = unsafe { ChangeWindowMessageFilterEx(h, m, MSGFLT_ALLOW, None) };
+    }
+}
+
+pub fn is_desktop(h: HWND) -> bool {
     let mut buf = [0u16; 32];
-    let n = unsafe { GetClassNameW(root, &mut buf) } as usize;
+    let n = unsafe { GetClassNameW(h, &mut buf) } as usize;
     matches!(String::from_utf16_lossy(&buf[..n]).as_str(), "Progman" | "WorkerW")
+}
+
+pub fn desktop_at((x, y): (i32, i32)) -> bool {
+    is_desktop(unsafe { GetAncestor(WindowFromPoint(POINT { x, y }), GA_ROOT) })
 }
 
 pub fn stamp(seconds: bool) -> String {
@@ -150,6 +168,28 @@ pub fn register_with(class: PCWSTR, proc: WNDPROC, brush: HBRUSH) {
 
 pub fn progman() -> Option<HWND> {
     unsafe { FindWindowW(w!("Progman"), None) }.ok()
+}
+
+pub fn desk_view() -> Option<(HWND, HWND)> {
+    let view = |h: HWND| unsafe { FindWindowExW(Some(h), None, w!("SHELLDLL_DefView"), None) }.ok().map(|v| (h, v));
+    let progman = progman()?;
+    let mut worker = None;
+    view(progman).or_else(|| {
+        loop {
+            let h = unsafe { FindWindowExW(None, worker, w!("WorkerW"), None) }.ok()?;
+            if let Some(found) = view(h) {
+                return Some(found);
+            }
+            worker = Some(h);
+        }
+    })
+}
+
+pub fn desk_host() -> Option<HWND> {
+    match desk_view() {
+        Some((h, _)) if unsafe { IsWindowVisible(h) }.as_bool() => Some(h),
+        _ => progman(),
+    }
 }
 
 pub fn keep_bottom(lp: LPARAM) {

@@ -129,7 +129,7 @@ fn lock_and_group(t: &mut Run, main: HWND) {
     right_click(empty_spot(main));
     menu::open();
     menu::pick(&["Behavior", "Group with"]);
-    let checked = menu::checked("Other");
+    let checked = support::poll(3, || menu::checked("Other"));
     menu::close();
     t.check(checked == Some(true), "the group menu ticks the grouped fence");
     fence_menu(main, &["Behavior", "Ungroup"]);

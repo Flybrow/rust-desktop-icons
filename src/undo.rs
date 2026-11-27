@@ -8,30 +8,42 @@ use crate::{
     i18n::T,
     report, store,
 };
-use std::{cell::RefCell, fs, io, path::Path};
+use std::{
+    cell::RefCell,
+    fs, io,
+    path::{Path, PathBuf},
+};
 
 thread_local! {
     static HISTORY: RefCell<History> = RefCell::new(History::default());
 }
 
-fn now() -> Config {
-    with(|a| a.cfg.clone()).unwrap_or_default()
+fn now() -> Option<Config> {
+    with(|a| a.cfg.clone())
 }
 
 pub fn step<R>(f: impl FnOnce() -> R) -> R {
-    HISTORY.with(|h| h.borrow_mut().begin(now));
+    let open = HISTORY.with(|h| h.borrow_mut().begin(now));
     let out = f();
-    HISTORY.with(|h| h.borrow_mut().end(now));
+    if open {
+        HISTORY.with(|h| h.borrow_mut().end(now));
+    }
     out
 }
 
-pub fn snapshot() -> Config {
+pub fn snapshot() -> Option<Config> {
     now()
 }
 
 pub fn since(before: Config) {
-    HISTORY.with(|h| h.borrow_mut().begin(|| before));
-    HISTORY.with(|h| h.borrow_mut().end(now));
+    if HISTORY.with(|h| h.borrow_mut().begin(|| Some(before))) {
+        HISTORY.with(|h| h.borrow_mut().end(now));
+    }
+}
+
+pub fn forget() {
+    let now = now();
+    HISTORY.with(|h| h.borrow_mut().clear(now.as_ref()));
 }
 
 fn note(op: Op) {
@@ -55,24 +67,24 @@ pub fn available() -> bool {
     HISTORY.with(|h| h.borrow().any())
 }
 
-fn back(from: &Path, to: &Path) -> io::Result<()> {
+fn back(from: &Path, to: &Path) -> io::Result<PathBuf> {
     let dir = from.parent().ok_or(io::ErrorKind::InvalidInput)?;
     fs::create_dir_all(dir)?;
-    if from.exists() {
-        return store::move_into(to, dir).map(|_| ());
+    if from.symlink_metadata().is_err() && store::rename_new(to, from).is_ok() {
+        crate::shell::notify_moved(to, from);
+        return Ok(from.to_path_buf());
     }
-    fs::rename(to, from).or_else(|_| store::move_into(to, dir).map(|_| ()))
+    store::move_into(to, dir)
 }
 
 fn revert(ops: &[Op]) -> Vec<String> {
     let mut errors = vec![];
     for op in ops.iter().rev() {
         match op {
-            Op::Moved(from, to) if to.exists() => {
-                if let Err(e) = back(from, to) {
-                    errors.push(format!("{} ({e})", store::name(to)));
-                }
-            }
+            Op::Moved(from, to) if to.exists() => match back(from, to) {
+                Ok(p) => crate::rules::ignore(p),
+                Err(e) => errors.push(format!("{} ({e})", store::name(to))),
+            },
             Op::Created(p) if p.exists() => {
                 if let Err(e) = fs::remove_file(p) {
                     errors.push(format!("{} ({e})", store::name(p)));
@@ -88,8 +100,9 @@ pub fn undo() {
     let Some(step) = HISTORY.with(|h| h.borrow_mut().pop()) else { return };
     let errors = revert(&step.ops);
     backup::adopt(|c| c.rewind(step.before));
-    let after = now();
-    HISTORY.with(|h| h.borrow_mut().rebase(&after));
+    if let Some(after) = now() {
+        HISTORY.with(|h| h.borrow_mut().rebase(&after));
+    }
     crate::fence::reload_all();
     report::failures(T::ErrMove, &errors);
 }
@@ -97,7 +110,7 @@ pub fn undo() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{os::windows::fs::OpenOptionsExt, path::PathBuf};
+    use std::os::windows::fs::OpenOptionsExt;
 
     fn tmp(tag: &str) -> PathBuf {
         let d = std::env::temp_dir().join(format!("rdi-undo-{tag}-{}", std::process::id()));
@@ -156,10 +169,17 @@ mod tests {
         assert!(!available());
         super::moved(Path::new("a"), Path::new("b"));
         assert!(!available());
+        step(|| super::moved(Path::new("a"), Path::new("b")));
+        assert!(!available());
+        since(Config::default());
+        assert!(HISTORY.with(|h| h.borrow_mut().pop()).is_some_and(|s| s.ops.is_empty()) && !available());
+        assert!(HISTORY.with(|h| h.borrow_mut().begin(|| Some(Config::default()))));
         step(|| {
             super::moved(Path::new("a"), Path::new("b"));
             created(Path::new("c"));
         });
+        assert!(!available());
+        HISTORY.with(|h| h.borrow_mut().end(|| None));
         assert!(available());
         let ops = HISTORY.with(|h| h.borrow_mut().pop()).unwrap().ops;
         assert_eq!(ops, vec![Op::Moved("a".into(), "b".into()), Op::Created("c".into())]);

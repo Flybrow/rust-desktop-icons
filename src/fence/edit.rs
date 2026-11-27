@@ -1,6 +1,12 @@
-use super::{cell, label_font, layout, metrics, reload, title_font, update, view};
+use super::{cell, label_font, layout, metrics, reload, title_font, update_tab, view};
 use crate::domain::side::Side;
-use crate::{app::with, domain::names, i18n::T, report, shell, store, win::*};
+use crate::{
+    app::{Rename, with},
+    domain::names,
+    i18n::T,
+    report, shell, store,
+    win::*,
+};
 use std::{fs, path::PathBuf};
 use windows::Win32::{
     Foundation::*,
@@ -23,7 +29,7 @@ pub fn key(msg: &MSG) -> bool {
     true
 }
 
-fn open(h: HWND, r: RECT, text: &str, font: HFONT, target: Option<PathBuf>) {
+fn open(h: HWND, r: RECT, text: &str, font: HFONT, target: Rename) {
     let mut p = POINT { x: r.left, y: r.top };
     let _ = unsafe { ClientToScreen(h, &mut p) };
     let at = RECT { left: p.x, top: p.y, right: p.x + r.right - r.left, bottom: p.y + r.bottom - r.top };
@@ -33,7 +39,14 @@ fn open(h: HWND, r: RECT, text: &str, font: HFONT, target: Option<PathBuf>) {
 }
 
 pub(super) fn title(h: HWND) {
-    let Some((text, font)) = with(|a| Some((a.fence_of(h)?.active().title.clone(), title_font(a, h)))).flatten() else { return };
+    let Some((text, tab, font)) = with(|a| {
+        let t = a.fence_of(h)?.active();
+        let (text, tab) = (t.title.clone(), t.id);
+        Some((text, tab, title_font(a, h)))
+    })
+    .flatten() else {
+        return;
+    };
     let (g, pad, wide) = (layout::geo_now(h), scale(h, 5), scale(h, 220));
     let (x0, y0, x1, _) = g.bar_rect();
     let (left, right) = match g.side {
@@ -41,7 +54,7 @@ pub(super) fn title(h: HWND) {
         Side::Right => (x1 - wide, x1 - pad),
         _ => (x0 + pad, x1 - pad),
     };
-    open(h, RECT { left, top: y0 + pad, right, bottom: y0 + g.bar - pad }, &text, font, None);
+    open(h, RECT { left, top: y0 + pad, right, bottom: y0 + g.bar - pad }, &text, font, Rename::Title(tab));
 }
 
 pub(super) fn item(h: HWND, path: &PathBuf) {
@@ -69,7 +82,7 @@ pub(super) fn item(h: HWND, path: &PathBuf) {
         RECT { top: r.top - s(2), bottom: r.top + s(22), left: r.left - s(10), right: r.right + s(10) },
         &text,
         font,
-        Some(path.clone()),
+        Rename::Item(path.clone()),
     );
 }
 
@@ -86,10 +99,10 @@ fn commit_edit(h: HWND, commit: bool) {
         return;
     }
     match target {
-        None if !text.trim().is_empty() => {
-            update(h, |f| f.active_mut().title = text.trim().chars().filter(|c| !c.is_control()).take(64).collect())
+        Rename::Title(tab) if !text.trim().is_empty() => {
+            update_tab(h, tab, |t| t.title = text.trim().chars().filter(|c| !c.is_control()).take(64).collect())
         }
-        Some(path) => {
+        Rename::Item(path) => {
             let shown = with(|a| a.view(h)?.items.iter().find(|i| i.path == path).map(|i| String::from_utf16_lossy(&i.name))).flatten();
             let file = store::name(&path);
             if let Some(name) = names::renamed(&file, shown.as_deref().unwrap_or(&file), &text) {
@@ -108,6 +121,6 @@ fn commit_edit(h: HWND, commit: bool) {
                 }
             }
         }
-        None => {}
+        Rename::Title(_) => {}
     }
 }

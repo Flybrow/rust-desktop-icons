@@ -74,7 +74,7 @@ pub(super) fn render(h: HWND) {
             }
         }
         frame.flush();
-        chrome::background(frame, p.close_hot, s);
+        chrome::background(frame, (chrome::TOP, p.close_hot), s);
         let mut c = frame.canvas();
         c.rrect((side, top, side + 1, ht - s(12)), 0., flat(premul(ui.ink, 26)), body, false);
         for (i, &(y0, y1)) in pages.iter().enumerate() {
@@ -104,6 +104,9 @@ pub(super) fn render(h: HWND) {
                 rows::Ctl::Swatch(col) => swatch(&mut c, at, *col, &s, body),
                 _ => {}
             }
+        }
+        if let Some((ty, th)) = crate::domain::scroll::thumb(ht - top, s(rows::total(&rows) + 16), p.scroll, s(24)) {
+            c.rrect((w - s(10), top + ty, w - s(6), top + ty + th), s(2) as f32, flat(premul(ui.ink, 90)), body, false);
         }
         frame.text_layers(ui.text, ui.shade, s(1), (0, ht));
         frame.clear_mask();

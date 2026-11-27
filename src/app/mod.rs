@@ -15,7 +15,7 @@ use crate::{
 };
 pub use fences::{duplicate, new_fence, new_portal, rebuild, recover, register_verb};
 use std::{cell::RefCell, collections::HashSet, path::PathBuf};
-pub use view::{Filter, Item, View};
+pub use view::{Filter, Item, Rename, View};
 use windows::{
     Win32::{
         Foundation::*,
@@ -163,6 +163,7 @@ pub fn run() {
         }
         tray::updates::enable(cfg.auto_update);
         let taskbar = RegisterWindowMessageW(w!("TaskbarCreated"));
+        crate::win::allow(tray, &[taskbar]);
         APP.with(|a| *a.borrow_mut() = Some(App::new(cfg, taskbar)));
         theme::apply(false);
         tray::add_icon(tray);

@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicIsize, AtomicU32, Ordering::SeqCst};
 use windows::{
     Win32::{
-        Foundation::{CloseHandle, HANDLE, HMODULE, HWND, LPARAM, LRESULT, WAIT_TIMEOUT, WPARAM},
+        Foundation::{HANDLE, HMODULE, HWND, LPARAM, LRESULT, WAIT_TIMEOUT, WPARAM},
         System::{LibraryLoader::*, Threading::*},
         UI::WindowsAndMessaging::*,
     },
@@ -66,20 +66,16 @@ unsafe extern "system" fn died(_: *mut core::ffi::c_void, _: bool) {
 }
 
 pub fn watch(pid: u32) {
-    if PID.swap(pid, SeqCst) == pid || window().is_none() {
+    if PID.load(SeqCst) == pid || window().is_none() {
         return;
     }
-    if let Some(w) = crate::exit::watch(pid, Some(died)) {
-        let (process, wait) = (w.process.0 as isize, w.wait.0 as isize);
-        std::mem::forget(w);
-        let (old, waited) = (PROC.swap(process, SeqCst), WAIT.swap(wait, SeqCst));
-        unsafe {
-            if waited != 0 {
-                let _ = UnregisterWait(HANDLE(waited as _));
-            }
-            if old != 0 {
-                let _ = CloseHandle(HANDLE(old as _));
-            }
-        }
+    let Some(w) = crate::exit::watch(pid, Some(died)) else { return };
+    let (process, wait) = (w.process.0 as isize, w.wait.0 as isize);
+    std::mem::forget(w);
+    PROC.store(process, SeqCst);
+    let waited = WAIT.swap(wait, SeqCst);
+    if waited != 0 {
+        let _ = unsafe { UnregisterWait(HANDLE(waited as _)) };
     }
+    PID.store(pid, SeqCst);
 }

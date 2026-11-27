@@ -2,192 +2,107 @@
 
 <h1 align="center">Rust Desktop Icons</h1>
 
-<p align="center"><b>A free, open-source alternative to Fences 6, written entirely in Rust.</b><br>
-Organize your Windows desktop into beautiful, translucent groups of icons. Tiny, fast, private.</p>
+<p align="center"><b>English</b> · <a href="README.fr.md">Français</a></p>
+
+<p align="center"><b>A free, open-source alternative to Fences for Windows 10 and 11.</b><br>
+Group your desktop icons into translucent or frosted-glass fences. Tiny, fast, private.</p>
 
 <p align="center">
   <a href="https://github.com/Flybrow/rust-desktop-icons/releases/latest"><img src="https://img.shields.io/github/v/release/Flybrow/rust-desktop-icons?style=for-the-badge&color=7c3aed" alt="Latest release"></a>
   <a href="https://github.com/Flybrow/rust-desktop-icons/releases"><img src="https://img.shields.io/github/downloads/Flybrow/rust-desktop-icons/total?style=for-the-badge&color=2563eb&label=downloads" alt="Total downloads"></a>
   <a href="https://github.com/Flybrow/rust-desktop-icons/stargazers"><img src="https://img.shields.io/github/stars/Flybrow/rust-desktop-icons?style=for-the-badge&color=eab308" alt="GitHub stars"></a>
   <br>
-  <a href="https://github.com/Flybrow/rust-desktop-icons/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Flybrow/rust-desktop-icons/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?style=flat-square&logo=windows" alt="Windows 10 | 11">
   <img src="https://img.shields.io/badge/made%20with-Rust-orange?style=flat-square&logo=rust" alt="Made with Rust">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-16a34a?style=flat-square" alt="MIT license"></a>
 </p>
 
+<p align="center"><a href="#why-rust-desktop-icons">Features</a> · <a href="#install">Install</a> · <a href="#getting-started">Getting started</a> · <a href="#faq">FAQ</a></p>
+
 <p align="center">
   <a href="https://github.com/Flybrow/rust-desktop-icons/releases/latest"><b>⬇ Download for Windows</b></a>
 </p>
 
-<p align="center"><img src="docs/screenshot.png" alt="Rust Desktop Icons fences on a Windows desktop" width="880"></p>
+<p align="center"><img src="docs/screenshot.png" alt="Rust Desktop Icons fences on a Windows desktop" width="928"></p>
 
 ## Why Rust Desktop Icons?
 
-|  |  |
-| --- | --- |
-| 🪟 **Translucent fences** | Semi-transparent groups that sit on your desktop, behind every window, with square or rounded corners (4, 6 or 8 px) |
-| 🌗 **Dark, light or automatic** | Fences, menus, settings and popups in a dark or light theme, or following Windows |
-| 🎨 **Make it yours** | Any color, opacity, icon size and tint, name size and color, icon spacing, icons aligned left, centered or right, chameleon mode, compact view without names, the File Explorer views per tab (icons, list, details with sortable and resizable columns, tiles, content), rename, resize, lock. Settings apply to every fence; any fence can override them from its right-click menu |
-| 🧲 **Snapping** | Fences line up with each other (with guide lines), keep equal spacing and resize to whole rows and columns of icons; hold **Alt** to move freely |
-| 📜 **Roll up** | A rolled fence shows only its title and unrolls on hover, away from the screen edge (upward near the bottom) |
-| ↔️ **Vertical fences** | Put the title on the side and park the fence on a screen edge: it unrolls toward the middle |
-| 🗂️ **Tabs and portals** | Several tabs per fence; a portal fence or tab shows any folder of your PC; folders open right inside the fence and can close when you click elsewhere |
-| 🔎 **Filter as you type** | **Ctrl+F** in a fence (or the magnifier of a portal tab) shows a search field in its title bar: only the matching icons stay |
-| 🔗 **Groups and virtual desktops** | Group fences so they move together; show a fence on every virtual desktop or only on one |
-| 🧹 **Sorting rules** | New desktop files go to the right fence automatically (apps, games, images, documents…); an "Everything else" rule makes any fence an inbox. Rules by name (`invoice*.pdf`) and by age (move items not modified for 30 days to an archive fence). New files never land hidden behind a fence |
-| 👀 **Peek and search** | A shortcut (Ctrl+Alt+Space by default, customizable) brings your fences above all windows; start typing to search every fence, or press Ctrl+Alt+F. Optional shortcuts to hide everything, create a fence or open the settings |
-| 🫥 **Quick hide** | Optional: double-click an empty spot of the desktop to hide all fences (and the other desktop icons, unless you turn that off), again to bring them back |
-| 🕶️ **Privacy mode** | For screen sharing or people nearby: names become gray bars, icons plain squares, titles dots, until the mouse is over the fence, the desktop is in use, or never |
-| 🖥️ **Screen changes** | Fences follow resolution and monitor changes: each screen setup keeps its own layout, new setups are scaled. Save and restore named layouts from the tray menu |
-| 🖥️ **Keep files on the desktop** | Optional: fenced files stay in your Desktop folder (visible in Explorer), only their desktop icons are hidden, by Explorer itself |
-| 🗑️ **System icons** | Put the Recycle Bin, This PC, your user folder, Network or Control Panel in a fence instead of the desktop |
-| 🖱️ **Drag & drop anything** | In, out and between fences; apps from the Start menu or anywhere else become shortcuts; drop a file on a folder or an app inside a fence to move it there or open it with that app |
-| ⚡ **Smooth and light** | Native Win32 + Rust, no runtime, no web view |
-| 🌍 **25 languages** | Auto-detected from Windows, switchable from the tray menu |
-| 🔄 **Updates** | Checks GitHub Releases, shows what's new and installs in one click (SHA-256 verified) |
-| 💾 **Export / import** | Save your whole setup (fences, tabs, rules, layouts, settings) to a file and load it on another PC |
-| 🔒 **Private** | No account, no telemetry, no ads; the only network call is the update check |
-| 👤 **No admin needed** | Per-user installer, optional start with Windows |
+<div align="center">
+<table>
+  <tr><td align="center"><img src="docs/icons/fences.svg" width="22" height="22" alt=""></td><td align="left"><b>Translucent fences</b></td><td align="left">Behind every window, corners up to 16 px</td></tr>
+  <tr><td align="center"><img src="docs/icons/glass.svg" width="22" height="22" alt=""></td><td align="left"><b>Glass theme</b></td><td align="left">Blurred wallpaper, names always readable</td></tr>
+  <tr><td align="center"><img src="docs/icons/mode.svg" width="22" height="22" alt=""></td><td align="left"><b>Dark, light or automatic</b></td><td align="left">Or simply follow Windows</td></tr>
+  <tr><td align="center"><img src="docs/icons/custom.svg" width="22" height="22" alt=""></td><td align="left"><b>Make it yours</b></td><td align="left">Colors, sizes, spacing, per fence or all</td></tr>
+  <tr><td align="center"><img src="docs/icons/views.svg" width="22" height="22" alt=""></td><td align="left"><b>File Explorer views</b></td><td align="left">Icons, list, details, tiles, content</td></tr>
+  <tr><td align="center"><img src="docs/icons/snap.svg" width="22" height="22" alt=""></td><td align="left"><b>Snapping</b></td><td align="left">Guide lines, equal spacing, whole icon rows</td></tr>
+  <tr><td align="center"><img src="docs/icons/rollup.svg" width="22" height="22" alt=""></td><td align="left"><b>Roll up</b></td><td align="left">Only the title shows, opens on hover</td></tr>
+  <tr><td align="center"><img src="docs/icons/vertical.svg" width="22" height="22" alt=""></td><td align="left"><b>Vertical fences</b></td><td align="left">Title on the side, parked on an edge</td></tr>
+  <tr><td align="center"><img src="docs/icons/tabs.svg" width="22" height="22" alt=""></td><td align="left"><b>Tabs and portals</b></td><td align="left">Many tabs, any folder, opened inside</td></tr>
+  <tr><td align="center"><img src="docs/icons/groups.svg" width="22" height="22" alt=""></td><td align="left"><b>Groups and virtual desktops</b></td><td align="left">Move together, show up where you want</td></tr>
+  <tr><td align="center"><img src="docs/icons/rules.svg" width="22" height="22" alt=""></td><td align="left"><b>Sorting rules</b></td><td align="left">New files sorted by kind, name or age</td></tr>
+  <tr><td align="center"><img src="docs/icons/drag.svg" width="22" height="22" alt=""></td><td align="left"><b>Drag &amp; drop anything</b></td><td align="left">In, out and between fences</td></tr>
+  <tr><td align="center"><img src="docs/icons/peek.svg" width="22" height="22" alt=""></td><td align="left"><b>Peek and search</b></td><td align="left"><b>Ctrl+Alt+Space</b>, then type to find</td></tr>
+  <tr><td align="center"><img src="docs/icons/filter.svg" width="22" height="22" alt=""></td><td align="left"><b>Filter as you type</b></td><td align="left"><b>Ctrl+F</b> keeps only matching icons</td></tr>
+  <tr><td align="center"><img src="docs/icons/hide.svg" width="22" height="22" alt=""></td><td align="left"><b>Quick hide</b></td><td align="left">Double-click the desktop to hide all</td></tr>
+  <tr><td align="center"><img src="docs/icons/privacy.svg" width="22" height="22" alt=""></td><td align="left"><b>Privacy mode</b></td><td align="left">Names and icons masked while sharing</td></tr>
+  <tr><td align="center"><img src="docs/icons/system.svg" width="22" height="22" alt=""></td><td align="left"><b>System icons</b></td><td align="left">Recycle Bin, This PC and more</td></tr>
+  <tr><td align="center"><img src="docs/icons/keep.svg" width="22" height="22" alt=""></td><td align="left"><b>Keep files on the desktop</b></td><td align="left">Files stay put, only icons hide</td></tr>
+  <tr><td align="center"><img src="docs/icons/undo.svg" width="22" height="22" alt=""></td><td align="left"><b>Undo</b></td><td align="left"><b>Ctrl+Z</b> on the last 20 actions</td></tr>
+  <tr><td align="center"><img src="docs/icons/screens.svg" width="22" height="22" alt=""></td><td align="left"><b>Screen changes</b></td><td align="left">Each monitor setup keeps its layout</td></tr>
+  <tr><td align="center"><img src="docs/icons/backup.svg" width="22" height="22" alt=""></td><td align="left"><b>Export / import</b></td><td align="left">Your whole setup in one file</td></tr>
+  <tr><td align="center"><img src="docs/icons/languages.svg" width="22" height="22" alt=""></td><td align="left"><b>25 languages</b></td><td align="left">Detected from Windows</td></tr>
+  <tr><td align="center"><img src="docs/icons/updates.svg" width="22" height="22" alt=""></td><td align="left"><b>Updates</b></td><td align="left">One click, SHA-256 verified</td></tr>
+  <tr><td align="center"><img src="docs/icons/private.svg" width="22" height="22" alt=""></td><td align="left"><b>Private and light</b></td><td align="left">No account, telemetry or admin rights</td></tr>
+</table>
+</div>
 
-<p align="center"><img src="docs/settings.png" alt="Rust Desktop Icons settings" width="600"></p>
+<p align="center"><img src="docs/settings.png" alt="Rust Desktop Icons settings" width="646"></p>
 
 ## Install
 
 1. Download `rust-desktop-icons-x.y.z-x64.msi` from the [latest release](https://github.com/Flybrow/rust-desktop-icons/releases/latest).
-2. Run it. The app starts right away and adds an icon next to the clock. Installing a newer MSI upgrades the
-   installed version in place and keeps your fences.
+2. Run it: no admin rights needed. The app starts at once and adds an icon next to the clock.
 
 > The installer is not code-signed yet, so SmartScreen may warn you: click **More info → Run anyway**.
-> Each release ships a `.sha256` file: compare it with `Get-FileHash .\rust-desktop-icons-*.msi`.
 
-**Coming from 0.7.x?** Older versions look for updates in the previous project home, so install 0.8.0 once by hand;
-updates are automatic again afterwards.
+## Getting started
 
-## Usage
+<div align="center">
+<table>
+  <tr><td align="center"><img src="docs/icons/new.svg" width="22" height="22" alt=""></td><td align="left"><b>Create a fence</b></td><td align="left">Right-click the desktop → <b>Create an RDI fence</b>, or tray icon → <b>New fence</b></td></tr>
+  <tr><td align="center"><img src="docs/icons/drag.svg" width="22" height="22" alt=""></td><td align="left"><b>Fill it</b></td><td align="left">Drag icons onto it from the desktop, the Start menu or File Explorer</td></tr>
+  <tr><td align="center"><img src="docs/icons/custom.svg" width="22" height="22" alt=""></td><td align="left"><b>Change its look</b></td><td align="left">Right-click it → <b>Appearance</b>; for every fence: tray icon → <b>Settings</b></td></tr>
+  <tr><td align="center"><img src="docs/icons/rollup.svg" width="22" height="22" alt=""></td><td align="left"><b>Roll it up</b></td><td align="left">Double-click its title bar</td></tr>
+  <tr><td align="center"><img src="docs/icons/peek.svg" width="22" height="22" alt=""></td><td align="left"><b>Find anything</b></td><td align="left"><b>Ctrl+Alt+Space</b>, then type</td></tr>
+</table>
+</div>
 
-| Action | How |
-| --- | --- |
-| Create a fence | Tray icon → **New fence**, right-click the desktop → **Create an RDI fence**, or right-click a fence |
-| Create a portal fence | Tray icon → **New portal fence…**, or right-click the desktop → **Create an RDI portal fence…**, then pick a folder |
-| Add icons | Drag them onto a fence (from the desktop, Start menu, Explorer…) |
-| Open an item | Double-click it (a folder, or a shortcut to one, opens inside the fence: the title-bar arrow or **Backspace** goes back; **Ctrl+double-click** opens Explorer) |
-| Where folders open | Right-click a fence → **Open folders** → **In the fence** / **In File Explorer** (Settings → Behavior for every fence); the menu of a folder or folder shortcut has **Open in the fence**. Settings → Behavior → **Back to the start when clicking elsewhere** closes an opened folder when you click outside the fence |
-| Undo | **Ctrl+Z** in a fence or the settings, or **Undo** at the top of a fence's or the tray icon's menu (last 20 actions) |
-| Keyboard | Arrow keys move between icons (Shift extends), Home/End, Page Up/Down, **Ctrl+Tab** switches tabs |
-| Move an item elsewhere | Right-click it → **Move to** → any fence, tab or the desktop |
-| Take an item out | Drag it out of the fence, or select it and press **Delete** to send it to the Recycle Bin |
-| Rename a fence | Right-click its title |
-| Move / resize | Drag the title bar / drag an edge (hold **Alt** to turn off snapping) |
-| Peek | **Ctrl+Alt+Space** (change it in Settings → Keyboard shortcuts); **Esc** or a click outside ends it |
-| Search | Type while peeking, or **Ctrl+Alt+F**, or tray icon → **Search…**; **Enter** opens the item |
-| Filter a fence | **Ctrl+F** in it, its menu → **Filter the icons**, or the magnifier at the end of a portal tab in the title bar; type, **Enter** opens the first match, **Esc** or ✕ closes the filter |
-| Privacy mode | Tray icon → **Privacy mode**, or Settings → **Privacy** (what to mask and when to show it again) |
-| Theme | Settings → General → **Theme**: Dark, Light or Automatic (follows Windows) |
-| More shortcuts | Settings → **Keyboard shortcuts**: hide/show everything, new fence, open the settings (none by default) |
-| Hide everything | Turn on Settings → Desktop → **Hide all on desktop double-click**, then double-click an empty spot of the desktop (**Hide all: desktop icons too** decides whether the other desktop icons hide as well) |
-| Show names / compact view | Right-click a fence → **Appearance** → **Show names** |
-| Views | Right-click a fence → **View** → Icons, List, Details, Tiles or Content (each tab keeps its own). In Details, click a column title to sort (again to reverse), drag its edge to resize it, right-click the titles to show or hide columns. Settings → Icons → **List view by default** sets the view of tabs that have none |
-| Corners | Settings → Default appearance → **Corners** (square, 4, 6 or 8 px), or per fence from its Appearance menu |
-| Thumbnails | Pictures, videos and PDFs show a preview; turn off in Settings → Icons or right-click → **Appearance** → **Show thumbnails** |
-| Title bar | Settings → **Title bar** (alignment, size, color, show on hover), or right-click → **Appearance** → **Title bar** |
-| Wallpaper colors | Settings → Default appearance → **Color from the wallpaper**, or per fence from its Appearance menu |
-| Filtered portal | Right-click a fence → **Tabs** → **Filter files…** (`*.pdf; *.jpg`) |
-| Names and spacing | Right-click a fence → **Appearance** → **Name size**, **Name color**, **Icon spacing**, or Settings → Icons for every fence |
-| Icon alignment | Right-click a fence → **Appearance** → **Icon alignment** (left, centered, right), or Settings for every fence |
-| Sort | Right-click a fence → **Sort by** (name, type, date modified, date created, size or your own order) |
-| Inbox | Right-click a fence → **Sorting rules** → **Everything else** |
-| Rules by name / age | Settings → **Sorting rules**: send new files matching `invoice*.pdf` to a fence; move items not modified for N days to another fence |
-| Duplicate a fence | Right-click it → **Duplicate**: same look, size and tabs (names, rules, sort, portals), placed next to it, without the files |
-| Group fences | Right-click a fence → **Behavior** → **Group with**: the group moves together; **Ungroup** to leave it |
-| Virtual desktops | Right-click a fence → **Behavior** → **Show on** → all desktops or a single one |
-| Export / import | Settings → **General** → **Export the configuration…** / **Import a configuration…** (fences, tabs, rules, layouts, settings; never your files) |
-| Layouts | Tray icon → **Layouts** → **Save current layout**; each saved layout can be restored, renamed or deleted |
-| Roll up / down | Double-click the title bar |
-| Vertical fence | Right-click a fence → **Behavior** → **Vertical title**, then park it on a screen edge |
-| System icons | Right-click a fence → **System icons** (This PC, Recycle Bin, Network…) |
-| Icon size | **Ctrl + mouse wheel** over a fence (that fence only) |
-| Color, tabs, rules, delete | Right-click inside the fence (Appearance, Behavior and Tabs submenus) |
-| Global options | Tray icon → **Settings** (every option has a short explanation) |
-| Undo a fence's own look | Right-click it → **Appearance** → **Reset to default** |
+Everything else is in the [user guide](docs/guide.md).
 
-**Settings and individual fences:** the appearance and behavior settings (color, opacity, icon size, tint, names,
-name size and color, spacing, icon alignment, chameleon, automatic height, opening folders in the fence) apply to every fence at once. A setting you change on one fence from its right-click menu
-stays specific to that fence; **Reset to default** in that menu makes it follow Settings again, and Settings →
-**Reset all fences to these settings** does it for every fence.
+## FAQ
 
-By default, files from your own desktop are **moved** into `%LOCALAPPDATA%\RustDesktopIcons\fences\<id>` (never deleted);
-anything else gets a **shortcut**, so the original stays where it is. Deleting a fence moves its items back to the desktop.
-If the configuration is ever damaged or loses a fence, the files still stored in `fences\<id>` come back at the next start in a
-**Recovered files** fence.
+**Where do my files go?** Desktop files you drop on a fence are moved to `%LOCALAPPDATA%\RustDesktopIcons\fences`, never
+deleted; anything else gets a shortcut. Prefer them in your Desktop folder? Turn on **Settings → Keep files on the desktop**.
 
-With **Settings → Keep files on the desktop**, fenced files stay in your Desktop folder instead: Explorer → Desktop
-lists them, and only their desktop icons are hidden: a small helper loaded into Explorer leaves them out of the desktop view,
-like Fences does. If it cannot load, they are stacked in one corner cell under a wallpaper patch instead (desktop
-auto-arrange is turned off while the option is on). Turning it on moves existing fence contents to the desktop; turning it off moves them back.
+**What happens if I uninstall?** Every file in your fences goes back to the desktop.
+
+**Is it private?** No account, no telemetry, no ads. The only network call is the update check on GitHub; updates are
+downloaded over HTTPS from this repository only and checked against their SHA-256 before installing.
+
+**Does it slow down my PC?** No: native Rust and Win32, no web view, no runtime; it stays idle until you use it.
 
 ## Languages
 
 English, 中文, हिन्दी, Español, Français, العربية, বাংলা, Português, Русский, اردو, Bahasa Indonesia, Deutsch, 日本語,
 Kiswahili, मराठी, తెలుగు, Türkçe, தமிழ், Tiếng Việt, 한국어, Italiano, ไทย, Polski, Українська, فارسی.
-
 Native speakers: corrections are welcome in [`src/i18n/table.rs`](src/i18n/table.rs).
 
-## Updates and security
+## Contributing
 
-- Every 6 hours (first check 30 s after start) the app asks the GitHub API for the latest release and shows what's new;
-  **Install** downloads it with a progress bar, **Later** skips it until the next start.
-- A newer `.msi` and its `.sha256` are downloaded **only** from this repository's release URLs over HTTPS; the hash
-  must match before `msiexec /qn` runs. The installer then restarts the app.
-- Disable it from the tray menu (**Automatic updates**).
-- Only documented Windows APIs are used. Dependencies are scanned with `cargo audit` on every push and before each release.
-
-## Build from source
-
-```powershell
-cargo test
-cargo build --release
-dotnet tool install --global wix --version 5.0.2
-wix extension add -g WixToolset.UI.wixext/5.0.2 WixToolset.Util.wixext/5.0.2
-wix build installer/main.wxs -d Version=X.Y.Z -arch x64 -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext -o rust-desktop-icons.msi
-```
-
-End-to-end checks on a real desktop (isolated data, test files only): `cargo build` then
-`cargo run --example keep_e2e`, `cargo run --example unroll_e2e`, `cargo run --example system_e2e`, `cargo run --example relaunch_e2e`,
-`cargo run --example update_e2e`, `cargo run --example layout_e2e [-- --desktop]`, `cargo run --example peek_e2e`,
-`menu_e2e`, `actions_e2e` (every fence and item menu command), `settings_e2e` (every settings page), `tray_e2e`, `features_e2e`,
-`rules_e2e`, `browse_e2e` (folders and folder shortcuts opened inside fences), `display_e2e`, `filter_e2e`, `look_e2e` (corners, list view,
-search field, theme and privacy mode as drawn), `views_e2e` (details, tiles and content views, column headers), `perf_e2e` (animation smoothness, run with the release build), `undo_e2e`, `recover_e2e`,
-`load_e2e` (41 fences, 3,800 files), `soak_e2e` (resources stay flat), `vdesk_e2e` (creates and closes a temporary virtual desktop)
-and `uninstall_e2e`. They move the mouse and press keys:
-don't touch the PC while they run. CI runs the ones that need no input on every push.
-
-Pushing a `vX.Y.Z` tag builds and publishes the MSI with [GitHub Actions](.github/workflows/release.yml).
-
-## Architecture
-
-| Module | Role |
-| --- | --- |
-| `domain/` | Pure, unit-tested logic: model, config, look inheritance, theme, privacy, layout grid, title bar side, sorting, rules, animation, pins, system icons, snapping, screen setups and layouts, shortcuts, search ranking |
-| `render/`, `layered/` | Pixel compositing (alpha, rounded rectangles, blur) and layered-window painting |
-| `fence/` | Fence window: layout, painting, tabs, drag & drop, selection, menus, roll animation |
-| `keep/` | "Keep files on the desktop" mode: migration, placement, hiding desktop icons |
-| `hook/` | Small DLL loaded into Explorer that leaves pinned icons out of the desktop view (built and embedded by `build.rs`) |
-| `shell/` | Windows Shell wrappers: icons, shortcuts, folder watch, drag & drop, system icons, desktop view |
-| `app/`, `tray/`, `settings/`, `dialog/` | Global state and screen changes, tray icon, layouts menu and update scheduling, settings window, themed popups (what's new, updates) |
-| `visibility/`, `search/`, `prompt.rs` | Quick hide (desktop double-click), peek shortcut and dim layer, search window, text prompt (layout names) |
-| `store/`, `rules/`, `update/` | Persistence and safe moves, desktop auto-sort and age rules, release check and silent install |
-| `undo.rs`, `backup.rs`, `uninstall.rs` | Undo (Ctrl+Z), export / import, moving fenced files back to the desktop on uninstall |
-
-## Known limitations
-
-- No background blur: Windows only offers it for active windows, and fences are never active.
-- Uninstalling moves the items of your fences back to the desktop; files are never deleted.
-
-## Credits
-
-Created by vincentxjoubert-lang (now FromHumanToHorse), maintained by [Flybrow](https://github.com/Flybrow).
+Bug reports and ideas are welcome in [Issues](https://github.com/Flybrow/rust-desktop-icons/issues). To build the app
+or send a pull request, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-[MIT](LICENSE). Not affiliated with Stardock; "Fences" is a trademark of its respective owner.
+[MIT](LICENSE). Created by vincentxjoubert-lang (now FromHumanToHorse), maintained by [Flybrow](https://github.com/Flybrow).
+Not affiliated with Stardock; "Fences" is a trademark of its respective owner.

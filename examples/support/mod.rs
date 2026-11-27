@@ -10,7 +10,8 @@ pub mod usage;
 
 pub use grab::{capture, grab};
 pub use input::{
-    chord, click, ctrl_wheel, cursor, double_click, drag, glide, hold, point, press, right, right_click, show_desktop, type_text, wheel,
+    chord, click, ctrl_wheel, cursor, double_click, drag, glide, hold, hop, point, press, right, right_click, show_desktop, type_text,
+    wheel,
 };
 pub use link::shortcut;
 
@@ -25,7 +26,25 @@ use windows::Win32::Foundation::{HWND, LPARAM, POINT, RECT, WPARAM};
 use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::BOOL;
 
+pub fn aware() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| unsafe {
+        let _ =
+            windows::Win32::UI::HiDpi::SetProcessDpiAwarenessContext(windows::Win32::UI::HiDpi::DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+    });
+}
+
+pub fn bar_h() -> i32 {
+    if std::env::var_os("RDI_GLASS").is_some() { 40 } else { 34 }
+}
+
+pub fn scale(v: i32) -> i32 {
+    aware();
+    v * unsafe { windows::Win32::UI::HiDpi::GetDpiForSystem() }.max(96) as i32 / 96
+}
+
 pub fn app(root: &Path, env: &[(&str, &str)], args: &[&str]) -> Child {
+    aware();
     let exe = std::env::current_exe().unwrap().parent().unwrap().parent().unwrap().join("rust-desktop-icons.exe");
     let mut c = Command::new(exe);
     c.args(args).env("LOCALAPPDATA", root).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
@@ -60,6 +79,7 @@ pub fn poll<T>(secs: u64, mut f: impl FnMut() -> Option<T>) -> Option<T> {
 }
 
 pub fn work() -> RECT {
+    aware();
     let mut r = RECT::default();
     unsafe { SystemParametersInfoW(SPI_GETWORKAREA, 0, Some(&mut r as *mut _ as _), SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0)).unwrap() };
     r

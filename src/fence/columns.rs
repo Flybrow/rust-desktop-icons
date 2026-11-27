@@ -38,7 +38,7 @@ pub(super) fn down(h: HWND, p: (i32, i32)) -> bool {
     if let Some((e, spans)) = edge(h, p) {
         let cols = read(h, |f| f.active().columns()).unwrap_or_default();
         view(h, |v| v.resize = Some((e, cols, spans)));
-        BEFORE.with(|b| *b.borrow_mut() = Some(crate::undo::snapshot()));
+        BEFORE.with(|b| *b.borrow_mut() = crate::undo::snapshot());
         unsafe { SetCapture(h) };
         return true;
     }

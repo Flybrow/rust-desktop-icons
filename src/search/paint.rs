@@ -42,7 +42,7 @@ pub(super) fn render(h: HWND) {
                 let (x, y) = (pad + s(4), row(i) + (s(ROW) - icon) / 2);
                 opaque_if_flat(icons.px(), w, (x, y, x + icon, y + icon));
             }
-            chrome::background(frame, false, s);
+            chrome::background(frame, (chrome::TOP, false), s);
             let mut c = frame.canvas();
             if !st.shown.is_empty() {
                 let y = row(st.sel);

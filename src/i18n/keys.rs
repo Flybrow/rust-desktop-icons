@@ -221,4 +221,9 @@ pub enum T {
     ModeContent,
     ErrConfigHeld,
     UpdateDownloadFailed,
+    Style,
+    DStyle,
+    StyleDefault,
+    StyleGlass,
+    WhatsNew,
 }

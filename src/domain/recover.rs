@@ -1,4 +1,4 @@
-use super::{Config, Fence, Tab};
+use super::{Config, Fence, TABS, Tab};
 
 impl Config {
     pub fn orphans(&self, dirs: &[u64]) -> Vec<u64> {
@@ -14,12 +14,17 @@ impl Config {
         if orphans.is_empty() {
             return None;
         }
-        let id = self.next_id().max(orphans.iter().max().map_or(0, |m| m + 1));
+        let mut ids = self.ids(&orphans);
         let name = |k: usize| if k == 0 { title.to_string() } else { format!("{title} {}", k + 1) };
-        let tabs = orphans.iter().enumerate().map(|(k, &d)| Tab { id: d, title: name(k), ..Tab::default() }).collect();
-        let look = self.look.clone();
-        self.fences.push(Fence { id, x: at.0, y: at.1, tabs, custom: Some(vec![]), look, ..Fence::default() });
-        Some(id)
+        let mut first = None;
+        for (n, chunk) in orphans.chunks(TABS).enumerate() {
+            let (id, shift) = (ids.take(), 24 * n as i32);
+            let tabs = chunk.iter().enumerate().map(|(k, &d)| Tab { id: d, title: name(n * TABS + k), ..Tab::default() }).collect();
+            let look = self.look.clone();
+            self.fences.push(Fence { id, x: at.0 + shift, y: at.1 + shift, tabs, custom: Some(vec![]), look, ..Fence::default() });
+            first.get_or_insert(id);
+        }
+        first
     }
 }
 
@@ -39,6 +44,16 @@ mod tests {
         assert_eq!((id, f.x, f.y, f.look.clone()), (10, 10, 20, c.look.clone()));
         assert_eq!(f.tabs.iter().map(|t| (t.id, t.title.as_str())).collect::<Vec<_>>(), vec![(3, "Recovered"), (9, "Recovered 2")]);
         assert!(c.orphans(&[9, 7, 3, 1]).is_empty() && c.next_id() == 11);
+        assert_eq!(c.clone().sanitized(), c);
+    }
+
+    #[test]
+    fn many_orphans_fill_several_fences() {
+        let mut c = Config::default();
+        let dirs: Vec<u64> = (1..=100).chain([u64::MAX]).collect();
+        let id = c.recover(&dirs, "R", (0, 0)).unwrap();
+        assert_eq!(c.fences.iter().map(|f| (f.id, f.tabs.len(), f.x)).collect::<Vec<_>>(), vec![(id, TABS, 0), (id + 1, 37, 24)]);
+        assert_eq!((id, c.fences[1].tabs[0].title.as_str()), (101, "R 65"));
         assert_eq!(c.clone().sanitized(), c);
     }
 

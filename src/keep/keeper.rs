@@ -6,7 +6,10 @@ use crate::{
     tray,
     win::buttons_down,
 };
-use std::cell::Cell;
+use std::{
+    cell::{Cell, RefCell},
+    path::PathBuf,
+};
 use windows::Win32::{
     Foundation::{HWND, LPARAM, RECT, WPARAM},
     UI::{Accessibility::*, WindowsAndMessaging::*},
@@ -19,11 +22,14 @@ const SOON_MS: u32 = 30;
 const RETRY_MS: u32 = 250;
 const ABSENT_MS: u32 = 100;
 
+type Reveal = (Vec<PathBuf>, (i32, i32));
+
 thread_local! {
     static HOOK: Cell<(isize, isize)> = const { Cell::new((0, 0)) };
     static QUEUED: Cell<bool> = const { Cell::new(false) };
     static STACK: Cell<Option<(i32, i32)>> = const { Cell::new(None) };
     static COVER: Cell<Option<RECT>> = const { Cell::new(None) };
+    static REVEAL: RefCell<Option<Reveal>> = const { RefCell::new(None) };
 }
 
 fn union(a: RECT, b: RECT) -> RECT {
@@ -32,7 +38,7 @@ fn union(a: RECT, b: RECT) -> RECT {
 
 unsafe extern "system" fn event(_: HWINEVENTHOOK, _: u32, h: HWND, _: i32, _: i32, _: u32, _: u32) {
     if h.0 as isize == HOOK.get().1 && !QUEUED.replace(true) {
-        wake();
+        soon();
     }
 }
 
@@ -55,16 +61,38 @@ fn hook() {
     }
     unhook();
     let mut pid = 0;
-    unsafe { GetWindowThreadProcessId(lv, Some(&mut pid)) };
+    let tid = unsafe { GetWindowThreadProcessId(lv, Some(&mut pid)) };
+    if tid == 0 {
+        return;
+    }
     let flags = WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS;
-    let h = unsafe { SetWinEventHook(EVENT_OBJECT_CREATE, EVENT_OBJECT_LOCATIONCHANGE, None, Some(event), pid, 0, flags) };
+    let h = unsafe { SetWinEventHook(EVENT_OBJECT_CREATE, EVENT_OBJECT_LOCATIONCHANGE, None, Some(event), pid, tid, flags) };
     HOOK.set((h.0 as isize, lv.0 as isize));
 }
 
 use tray::timers::set as timer;
 
 pub fn soon() {
-    timer(SOON, Some(SOON_MS));
+    after(SOON_MS);
+}
+
+pub fn after(ms: u32) {
+    timer(SOON, Some(ms));
+}
+
+pub fn reveal(paths: Vec<PathBuf>, at: (i32, i32)) {
+    REVEAL.set(Some((paths, at)));
+    apply();
+}
+
+fn revealed() {
+    if let Some((paths, at)) = REVEAL.take() {
+        let _ = Desk::open().map(|d| d.show_at(&paths, at));
+    }
+}
+
+fn let_go() {
+    timer(TICK, (!super::inject::stop()).then_some(TICK_MS));
 }
 
 pub fn apply() {
@@ -76,14 +104,21 @@ pub fn apply() {
     if with(|a| a.cfg.keep_on_desktop) == Some(true) {
         super::reconcile();
     }
-    let Some(paths) = with(|a| a.cfg.keep_on_desktop.then(|| a.cfg.pinned())).flatten().filter(|_| live()) else { return };
+    let Some(paths) = with(|a| a.cfg.keep_on_desktop.then(|| a.cfg.pinned())).flatten().filter(|_| live()) else {
+        REVEAL.set(None);
+        return let_go();
+    };
     timer(TICK, Some(TICK_MS));
-    match super::inject::push(&paths) {
-        Push::Done => return unstack(),
+    let paths = match super::inject::push(&paths) {
+        Push::Done(n) if n >= paths.len() => {
+            unstack();
+            return revealed();
+        }
+        Push::Done(n) => paths[n..].to_vec(),
         Push::Pending => return,
         Push::Absent => return timer(SOON, Some(ABSENT_MS)),
-        Push::Failed => {}
-    }
+        Push::Failed => paths,
+    };
     hook();
     let ready = Desk::open().filter(|_| HOOK.get().0 != 0);
     let Some(d) = ready else { return timer(SOON, Some(RETRY_MS)) };
@@ -104,6 +139,7 @@ pub fn apply() {
             super::cover::hide();
         }
     }
+    revealed();
 }
 
 fn unstack() {
@@ -119,8 +155,7 @@ fn unstack() {
 }
 
 pub fn restore() {
-    timer(TICK, None);
     timer(SOON, None);
-    super::inject::stop();
+    let_go();
     unstack();
 }

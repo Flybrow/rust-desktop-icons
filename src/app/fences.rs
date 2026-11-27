@@ -39,18 +39,21 @@ fn create(portal: Option<std::path::PathBuf>) {
     crate::visibility::end_peek();
     crate::visibility::reveal();
     let (px, py) = cursor_pos();
-    let s = sys_scale;
+    let (s, w) = (sys_scale, work_area_at((px, py)));
+    let (fw, fh) = (s(360), s(240));
+    let x = (px - fw / 2).clamp(w.left, (w.right - fw).max(w.left));
+    let y = (py - fh / 2).clamp(w.top, (w.bottom - fh).max(w.top));
     let Some(f) = super::edit(|a| {
         let title =
             portal.as_ref().and_then(|p| p.file_name()).map_or_else(|| a.t(T::Fence).to_string(), |n| n.to_string_lossy().into_owned());
-        let mut f = Fence::new(a.cfg.next_id(), &title, (px - s(180), py - s(120), s(360), s(240)), a.cfg.look.clone());
+        let mut f = Fence::new(a.cfg.next_id(), &title, (x, y, fw, fh), a.cfg.look.clone());
         f.tabs[0].portal = portal.clone();
         a.cfg.fences.push(f.clone());
         f
     }) else {
         return;
     };
-    open(&f);
+    report::failures(T::ErrSave, &open(&f));
 }
 
 pub fn duplicate(id: u64) {
@@ -62,18 +65,21 @@ pub fn duplicate(id: u64) {
     .flatten() else {
         return;
     };
-    open(&f);
+    let errors = open(&f);
     crate::visibility::desks::sync();
+    report::failures(T::ErrSave, &errors);
 }
 
-fn open(f: &Fence) {
-    let Some(h) = fence::create(f) else {
-        return report::log(&format!("cannot create the window of fence {}", f.id));
-    };
+fn open(f: &Fence) -> Vec<String> {
     let dirs: Vec<_> = f.tabs.iter().filter(|t| t.portal.is_none()).map(store::tab_dir).collect();
-    report::failures(T::ErrSave, &store::ensure(&dirs));
+    let errors = store::ensure(&dirs);
+    let Some(h) = fence::create(f) else {
+        report::log(&format!("cannot create the window of fence {}", f.id));
+        return errors;
+    };
     with(|a| a.views.push(View::new(h, f)));
     fence::bind(h);
+    errors
 }
 
 pub fn rebuild() {
@@ -85,6 +91,8 @@ pub fn rebuild() {
     for v in old {
         unsafe { DestroyWindow(v.hwnd).ok() };
     }
-    fences.iter().for_each(open);
+    let errors: Vec<String> = fences.iter().flat_map(open).collect();
+    crate::fence::bind_owner();
     crate::visibility::desks::sync();
+    report::failures(T::ErrSave, &errors);
 }

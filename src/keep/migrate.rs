@@ -13,8 +13,8 @@ use std::{
     thread,
 };
 use windows::Win32::{
-    Foundation::{HWND, LPARAM, WPARAM},
-    UI::WindowsAndMessaging::{PostMessageW, WM_APP},
+    Foundation::{HWND, LPARAM},
+    UI::WindowsAndMessaging::WM_APP,
 };
 
 pub const WM_KEEP: u32 = WM_APP + 21;
@@ -84,16 +84,14 @@ pub fn sync(rebuild_after: bool) {
     };
     let tray = t.0 as isize;
     thread::spawn(move || {
-        let raw = Box::into_raw(Box::new(run(job, rebuild_after)));
-        if unsafe { PostMessageW(Some(HWND(tray as _)), WM_KEEP, WPARAM(0), LPARAM(raw as isize)) }.is_err() {
-            drop(unsafe { Box::from_raw(raw) });
+        if !crate::mail::post(HWND(tray as _), WM_KEEP, run(job, rebuild_after)) {
             BUSY.store(false, Ordering::Release);
         }
     });
 }
 
 pub fn finish(lp: LPARAM) {
-    let d = *unsafe { Box::from_raw(lp.0 as *mut Done) };
+    let Some(d) = crate::mail::take::<Done>(lp) else { return };
     BUSY.store(false, Ordering::Release);
     let (mut back, mut errors) = (d.back, d.errors);
     for (p, dir) in d.public {
@@ -111,6 +109,7 @@ pub fn finish(lp: LPARAM) {
         }
         c.unpin(&back);
     });
+    crate::undo::forget();
     report::failures(T::ErrMove, &errors);
     if with(|a| a.cfg.keep_on_desktop) != Some(d.keep) {
         return sync(true);

@@ -15,9 +15,7 @@ pub fn desktop_active() -> bool {
 }
 
 fn on_desktop(h: HWND) -> bool {
-    let mut name = [0u16; 32];
-    let n = unsafe { GetClassNameW(h, &mut name) } as usize;
-    matches!(String::from_utf16_lossy(&name[..n]).as_str(), "Progman" | "WorkerW") || fence::hwnds().contains(&h)
+    crate::win::is_desktop(h) || fence::hwnds().contains(&h)
 }
 
 fn refresh() {
@@ -35,8 +33,8 @@ pub fn sync(repaint: bool) {
     let want = with(|a| a.cfg.privacy.on && a.cfg.privacy.reveal == Reveal::Desktop) == Some(true);
     let hook = HOOK.get();
     if want && hook == 0 {
-        let flags = WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS;
-        let h = unsafe { SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, None, Some(event), 0, 0, flags) };
+        let h =
+            unsafe { SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, None, Some(event), 0, 0, WINEVENT_OUTOFCONTEXT) };
         HOOK.set(h.0 as isize);
     } else if !want && hook != 0 {
         let _ = unsafe { UnhookWinEvent(HWINEVENTHOOK(hook as _)) };

@@ -1,22 +1,26 @@
 use super::{
-    Config, Fence,
+    Config, Fence, compat,
     model::clean,
-    screens::{Rect, Screen, same, scale},
+    screens::{self, KEPT, Rect, Screen, same, scale},
 };
 use serde::{Deserialize, Serialize};
 
 pub const SNAPSHOTS: usize = 10;
+const PLACES: usize = 1024;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Layout {
+    #[serde(deserialize_with = "compat::known")]
     pub screens: Vec<Screen>,
+    #[serde(deserialize_with = "compat::known")]
     pub fences: Vec<(u64, Rect)>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Snapshot {
+    #[serde(deserialize_with = "compat::text")]
     pub name: String,
     pub layout: Layout,
 }
@@ -25,6 +29,17 @@ impl Layout {
     pub fn rect(&self, id: u64) -> Option<Rect> {
         self.fences.iter().find(|(f, _)| *f == id).map(|(_, r)| *r)
     }
+
+    fn sanitized(mut self) -> Self {
+        self.fences.truncate(PLACES);
+        self.fences.iter_mut().for_each(|(_, r)| *r = Fence::bounded(*r));
+        Layout { screens: screens::sanitized(self.screens), ..self }
+    }
+}
+
+pub(super) fn last<T>(v: &mut Vec<T>, n: usize) {
+    let extra = v.len().saturating_sub(n);
+    v.drain(..extra);
 }
 
 const STEP: usize = 16;
@@ -49,11 +64,8 @@ pub fn beside(f: &Fence, [ax, ay, aw, ah]: Rect, gap: i32, others: &[Rect]) -> (
 impl Config {
     pub fn duplicate(&mut self, id: u64, area: Rect, gap: i32) -> Option<Fence> {
         let src = self.fence(id)?.clone();
-        let mut next = self.next_id();
-        let mut fresh = || {
-            next += 1;
-            next - 1
-        };
+        let mut ids = self.ids(&[]);
+        let mut fresh = || ids.take();
         let others: Vec<Rect> = self.fences.iter().map(|f| [f.x, f.y, f.w, f.h]).collect();
         let (x, y) = beside(&src, area, gap, &others);
         let tabs = src.tabs.iter().map(|t| super::Tab { id: fresh(), order: vec![], pins: vec![], system: vec![], ..t.clone() }).collect();
@@ -63,11 +75,22 @@ impl Config {
     }
 }
 
-pub fn place(f: &mut Fence, [x, y, w, h]: Rect) {
-    (f.x, f.y, f.w, f.h) = (x, y, w.max(Fence::MIN.0), h.max(Fence::MIN.1));
+pub fn place(f: &mut Fence, r: Rect) {
+    [f.x, f.y, f.w, f.h] = Fence::bounded(r);
 }
 
 impl Config {
+    pub(super) fn sanitize_places(&mut self) {
+        self.screens = screens::sanitized(std::mem::take(&mut self.screens));
+        last(&mut self.layouts, KEPT);
+        self.layouts = std::mem::take(&mut self.layouts).into_iter().map(Layout::sanitized).collect();
+        last(&mut self.snapshots, SNAPSHOTS);
+        for s in &mut self.snapshots {
+            s.name = clean(&s.name);
+            s.layout = std::mem::take(&mut s.layout).sanitized();
+        }
+    }
+
     pub fn layout(&self) -> Layout {
         Layout { screens: self.screens.clone(), fences: self.fences.iter().map(|f| (f.id, [f.x, f.y, f.w, f.h])).collect() }
     }
@@ -75,8 +98,7 @@ impl Config {
     pub fn snapshot(&mut self, name: String) {
         let layout = self.layout();
         self.snapshots.push(Snapshot { name, layout });
-        let extra = self.snapshots.len().saturating_sub(SNAPSHOTS);
-        self.snapshots.drain(..extra);
+        last(&mut self.snapshots, SNAPSHOTS);
     }
 
     pub fn restore(&mut self, i: usize) -> bool {
@@ -84,7 +106,7 @@ impl Config {
         let moved = !l.screens.is_empty() && !self.screens.is_empty() && !same(&l.screens, &self.screens);
         for f in &mut self.fences {
             if let Some(r) = l.rect(f.id) {
-                place(f, if moved { scale(r, &l.screens, &self.screens) } else { r });
+                place(f, if moved { scale(Fence::bounded(r), &l.screens, &self.screens) } else { r });
             }
         }
         true

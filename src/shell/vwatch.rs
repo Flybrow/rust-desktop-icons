@@ -1,6 +1,6 @@
 use super::vdesk::keys;
 use crate::win::wide;
-use std::thread;
+use std::{sync::Arc, thread};
 use windows::{
     Win32::{
         Foundation::{CloseHandle, HANDLE, WAIT_OBJECT_0},
@@ -14,11 +14,26 @@ use windows::{
     core::PCWSTR,
 };
 
-pub struct Watcher(HANDLE);
+struct Event(HANDLE);
+
+unsafe impl Send for Event {}
+unsafe impl Sync for Event {}
+
+impl Drop for Event {
+    fn drop(&mut self) {
+        let _ = unsafe { CloseHandle(self.0) };
+    }
+}
+
+fn event() -> Option<Event> {
+    unsafe { CreateEventW(None, false, false, None) }.ok().map(Event)
+}
+
+pub struct Watcher(Arc<Event>);
 
 impl Drop for Watcher {
     fn drop(&mut self) {
-        let _ = unsafe { SetEvent(self.0) };
+        let _ = unsafe { SetEvent(self.0.0) };
     }
 }
 
@@ -27,41 +42,42 @@ fn open(path: &str) -> Option<HKEY> {
     unsafe { RegOpenKeyExW(HKEY_CURRENT_USER, PCWSTR(p.as_ptr()), None, KEY_NOTIFY, &mut k) }.is_ok().then_some(k)
 }
 
-fn close(keys: Vec<HKEY>, handles: Vec<HANDLE>) {
+fn close(keys: Vec<HKEY>) {
     for k in keys {
         let _ = unsafe { RegCloseKey(k) };
     }
-    for e in handles {
-        let _ = unsafe { CloseHandle(e) };
-    }
 }
 
-pub fn watch(changed: impl Fn() + Send + 'static) -> Option<Watcher> {
+pub fn watch(changed: impl Fn(bool) + Send + 'static) -> Option<Watcher> {
     let keys: Vec<HKEY> = keys().iter().filter_map(|k| open(k)).collect();
-    let stop = unsafe { CreateEventW(None, false, false, None) }.ok()?;
-    let events: Vec<HANDLE> = keys.iter().filter_map(|_| unsafe { CreateEventW(None, false, false, None) }.ok()).collect();
-    if keys.is_empty() || events.len() != keys.len() {
-        close(keys, events.into_iter().chain([stop]).collect());
+    let (stop, events) = (event().map(Arc::new), keys.iter().map_while(|_| event()).collect::<Vec<Event>>());
+    let Some(stop) = stop.filter(|_| !keys.is_empty() && events.len() == keys.len()) else {
+        close(keys);
         return None;
-    }
-    let (raw_keys, raw_events, raw_stop): (Vec<isize>, Vec<isize>, isize) =
-        (keys.iter().map(|k| k.0 as isize).collect(), events.iter().map(|e| e.0 as isize).collect(), stop.0 as isize);
+    };
+    let raw_keys: Vec<isize> = keys.iter().map(|k| k.0 as isize).collect();
+    let mine = stop.clone();
     thread::spawn(move || {
         let keys: Vec<HKEY> = raw_keys.into_iter().map(|k| HKEY(k as _)).collect();
-        let events: Vec<HANDLE> = raw_events.into_iter().map(|e| HANDLE(e as _)).collect();
-        let all: Vec<HANDLE> = events.iter().copied().chain([HANDLE(raw_stop as _)]).collect();
-        loop {
+        let all: Vec<HANDLE> = events.iter().map(|e| e.0).chain([mine.0]).collect();
+        let alive = loop {
             let armed = keys
                 .iter()
                 .zip(&events)
-                .all(|(k, e)| unsafe { RegNotifyChangeKeyValue(*k, false, REG_NOTIFY_CHANGE_LAST_SET, Some(*e), true) }.is_ok());
-            let hit = unsafe { WaitForMultipleObjects(&all, false, INFINITE) };
-            if !armed || hit.0.wrapping_sub(WAIT_OBJECT_0.0) as usize >= events.len() {
-                break;
+                .all(|(k, e)| unsafe { RegNotifyChangeKeyValue(*k, false, REG_NOTIFY_CHANGE_LAST_SET, Some(e.0), true) }.is_ok());
+            if !armed {
+                break false;
             }
-            changed();
+            match unsafe { WaitForMultipleObjects(&all, false, INFINITE) }.0.wrapping_sub(WAIT_OBJECT_0.0) as usize {
+                i if i < events.len() => changed(true),
+                i if i == events.len() => break true,
+                _ => break false,
+            }
+        };
+        close(keys);
+        if !alive {
+            changed(false);
         }
-        close(keys, all);
     });
     Some(Watcher(stop))
 }

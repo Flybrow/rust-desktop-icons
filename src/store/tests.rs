@@ -1,5 +1,6 @@
 use super::*;
 use crate::domain::{Fence, Look};
+use std::ffi::OsStr;
 
 fn tmp(tag: &str) -> PathBuf {
     let d = env::temp_dir().join(format!("rdi-test-{tag}-{}", std::process::id()));
@@ -165,5 +166,57 @@ fn folders_are_created_and_failures_named() {
     let errors = ensure(&[ok.clone(), blocked]);
     assert!(ok.is_dir() && errors.len() == 1 && errors[0].contains("file"), "{errors:?}");
     assert!(inside(&d.join("a").join("b"), &d.join("a")) && !inside(&d, &d.join("a")) && inside(&d, &d));
+    fs::remove_dir_all(d).unwrap();
+}
+
+#[test]
+fn moves_never_replace_a_file_created_meanwhile() {
+    let d = tmp("race");
+    fs::write(d.join("a.txt"), "a").unwrap();
+    fs::write(d.join("b.txt"), "b").unwrap();
+    let e = rename_new(&d.join("a.txt"), &d.join("b.txt")).unwrap_err();
+    assert_eq!((e.kind(), fs::read_to_string(d.join("b.txt")).unwrap().as_str()), (io::ErrorKind::AlreadyExists, "b"));
+    let mut first = true;
+    let dst = put_new(&d, OsStr::new("c.txt"), |p| {
+        if std::mem::take(&mut first) {
+            fs::write(p, "late").unwrap();
+        }
+        rename_new(&d.join("a.txt"), p)
+    })
+    .unwrap();
+    assert_eq!(dst, d.join("c (2).txt"));
+    assert_eq!((fs::read_to_string(&dst).unwrap(), fs::read_to_string(d.join("c.txt")).unwrap()), ("a".into(), "late".into()));
+    fs::remove_dir_all(d).unwrap();
+}
+
+#[test]
+fn relocation_never_follows_junctions() {
+    let d = tmp("junction");
+    let src = d.join("dir");
+    fs::create_dir_all(src.join("sub")).unwrap();
+    fs::write(src.join("sub").join("f.txt"), "x").unwrap();
+    let made = std::process::Command::new("cmd").args(["/c", "mklink", "/J"]).arg(src.join("loop")).arg(&src).output().unwrap();
+    assert!(made.status.success() && src.join("loop").join("sub").exists());
+    let err = relocate(&src, &d.join("copy")).unwrap_err();
+    assert!(err.to_string().contains("loop"), "{err}");
+    assert_eq!(fs::read_to_string(d.join("copy").join("sub").join("f.txt")).unwrap(), "x");
+    assert!(!d.join("copy").join("loop").exists() && !src.join("sub").exists());
+    assert!(relocate(&src.join("loop"), &d.join("copy2")).is_err() && !d.join("copy2").exists());
+    fs::remove_dir(src.join("loop")).unwrap();
+    fs::remove_dir_all(d).unwrap();
+}
+
+#[test]
+fn a_damaged_config_never_becomes_the_backup() {
+    let d = tmp("bak");
+    let c = |n| Config { roll_ms: n, ..Config::default() };
+    save_to(&d, &c(350)).unwrap();
+    save_to(&d, &c(350)).unwrap();
+    fs::write(d.join("config.json"), "{broken").unwrap();
+    assert_eq!(load_from(&d).0.roll_ms, 350);
+    save_to(&d, &c(500)).unwrap();
+    assert_eq!(parse(&d.join("config.json.bak")).map(|c| c.roll_ms), Some(350));
+    save_to(&d, &c(700)).unwrap();
+    assert_eq!(parse(&d.join("config.json.bak")).map(|c| c.roll_ms), Some(500));
     fs::remove_dir_all(d).unwrap();
 }

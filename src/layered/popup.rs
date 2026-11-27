@@ -36,11 +36,11 @@ pub fn close_rect(h: HWND) -> RECT {
     chrome::close_rect(client_rect(h).right, |v| scale(h, v))
 }
 
-pub fn hit(h: HWND, lp: LPARAM) -> LRESULT {
+pub fn hit(h: HWND, lp: LPARAM, top: i32) -> LRESULT {
     let (x, y) = xy(lp);
     let mut p = POINT { x, y };
     let _ = unsafe { ScreenToClient(h, &mut p) };
-    let caption = p.y < scale(h, chrome::TOP) && !inside(&close_rect(h), (p.x, p.y));
+    let caption = p.y < scale(h, top) && !inside(&close_rect(h), (p.x, p.y));
     LRESULT(if caption { HTCAPTION } else { HTCLIENT } as isize)
 }
 

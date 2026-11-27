@@ -1,4 +1,4 @@
-use super::{TABS, WM_CHANGED, actions, fence_of, layout, read, reload, to_client, update, view};
+use super::{TABS, WM_CHANGED, actions, fence_of, layout, loader, read, reload, to_client, update, update_tab, view, window};
 use crate::{
     app::with,
     domain::{Tab, grid, system::Sys},
@@ -11,7 +11,11 @@ use windows::Win32::{Foundation::*, UI::Input::KeyboardAndMouse::DragDetect};
 pub fn bind(h: HWND) {
     let Some((tabs, keep)) = with(|a| Some((a.fence_of(h)?.tabs.clone(), a.cfg.keep_on_desktop))).flatten() else { return };
     layout::orient(h);
-    view(h, |v| v.watches.clear());
+    view(h, |v| {
+        v.watches.clear();
+        v.cache.retain(|(id, _)| tabs.iter().any(|t| t.id == *id));
+        v.gens.retain(|(id, _)| tabs.iter().any(|t| t.id == *id));
+    });
     let mut watches = vec![];
     for (i, t) in tabs.iter().enumerate().take(TABS) {
         let msg = WM_CHANGED + i as u32;
@@ -47,7 +51,7 @@ pub(super) fn click(h: HWND, screen: (i32, i32)) -> bool {
 
 pub(super) fn hover(h: HWND, screen: (i32, i32)) {
     let seg = at(h, to_client(h, screen));
-    let entered = view(h, |v| std::mem::replace(&mut v.bar_tab, seg) != seg) == Some(true);
+    let entered = view(h, |v| std::mem::replace(&mut v.bar_tab, seg) != seg && v.edit.is_none()) == Some(true);
     if let Some(i) = seg.filter(|_| entered && super::browse::current(h).is_none()) {
         select(h, i);
     }
@@ -58,6 +62,7 @@ pub(super) fn off_bar(h: HWND) {
 }
 
 pub(super) fn select(h: HWND, i: usize) {
+    let from = fence_of(h).and_then(|f| super::anim::extent(h, &f));
     let hit = with(|a| {
         let f = a.fence_of(h)?;
         if f.tab == i || i >= f.tabs.len() {
@@ -71,9 +76,9 @@ pub(super) fn select(h: HWND, i: usize) {
         let items = std::mem::take(&mut v.items);
         v.cache.retain(|(id, _)| *id != old);
         if !browsed {
-            v.cache.push((old, items));
+            v.cache.push((old, loader::bare(items)));
         }
-        v.scroll = 0;
+        (v.scroll, v.floor) = (0, 0);
         let found = v.cache.iter().position(|(id, _)| *id == new).map(|k| v.cache.remove(k).1);
         let hit = found.is_some();
         v.items = found.unwrap_or_default();
@@ -82,7 +87,13 @@ pub(super) fn select(h: HWND, i: usize) {
     .flatten();
     match hit {
         Some((_, true)) => bind(h),
-        Some((true, _)) => layout::apply(h),
+        Some((true, _)) => {
+            match from {
+                Some(from) => super::anim::grow(h, from),
+                None => layout::apply(h),
+            }
+            loader::thumbs(h);
+        }
         Some((false, _)) => reload(h),
         None => {}
     }
@@ -90,14 +101,15 @@ pub(super) fn select(h: HWND, i: usize) {
 
 fn add(h: HWND, portal: Option<PathBuf>) {
     let title = portal.as_ref().and_then(|p| p.file_name()).map(|n| n.to_string_lossy().into_owned());
-    let dir = crate::app::edit(|a| {
+    let Some(dir) = crate::app::edit(|a| {
         let (id, name) = (a.cfg.next_id(), a.t(T::NewTab));
         let f = a.fence_of(h)?;
-        f.tabs.push(Tab { id, title: title.unwrap_or_else(|| name.into()), portal, ..Tab::default() });
-        f.tab = f.tabs.len() - 1;
-        Some(store::tab_dir(f.active()))
-    });
-    report::failures(T::ErrSave, &store::ensure(&dir.flatten().into_iter().collect::<Vec<_>>()));
+        f.add_tab(Tab { id, title: title.unwrap_or_else(|| name.into()), portal, ..Tab::default() }).then(|| store::tab_dir(f.active()))
+    })
+    .flatten() else {
+        return;
+    };
+    report::failures(T::ErrSave, &store::ensure(&[dir]));
     update(h, |_| {});
     super::browse::forget(h);
     bind(h);
@@ -114,21 +126,28 @@ pub(super) fn new_portal(h: HWND) {
 }
 
 pub(super) fn filter(h: HWND) {
-    let Some(current) = read(h, |f| f.active().filter.clone()) else { return };
-    let hwnd = h.0 as isize;
+    let Some((current, fence, tab)) = read(h, |f| (f.active().filter.clone(), f.id, f.active().id)) else { return };
     crate::prompt::ask_any(&current, move |text| {
-        let h = HWND(hwnd as _);
-        update(h, |f| f.active_mut().filter = text.trim().to_string());
+        let Some(h) = window(fence) else { return };
+        update_tab(h, tab, |t| t.filter = text.trim().to_string());
         reload(h);
     });
 }
 
 pub(super) fn remove(h: HWND) {
-    let Some(f) = fence_of(h).filter(|f| f.tabs.len() > 1) else { return };
-    let tab = f.active().clone();
-    if tab.portal.is_none() && !crate::report::confirm(h, T::ConfirmDeleteTab) {
+    let Some((fence, id, portal)) = read(h, |f| (f.tabs.len() > 1).then(|| (f.id, f.active().id, f.active().portal.is_some()))).flatten()
+    else {
+        return;
+    };
+    if !portal && !crate::report::confirm(h, T::ConfirmDeleteTab) {
         return;
     }
+    let Some((h, tab)) = window(fence).and_then(|h| {
+        let f = fence_of(h).filter(|f| f.tabs.len() > 1)?;
+        Some((h, f.tabs.into_iter().find(|t| t.id == id)?))
+    }) else {
+        return;
+    };
     if tab.portal.is_none() {
         let errors = actions::evacuate(&store::tab_dir(&tab));
         if !errors.is_empty() {

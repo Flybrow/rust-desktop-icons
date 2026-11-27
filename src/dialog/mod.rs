@@ -5,13 +5,11 @@ mod paint;
 use crate::update::notes::Block;
 use crate::{
     app::{App, with},
-    layered::{
-        chrome::{self, inside},
-        popup,
-    },
+    layered::{chrome::inside, popup},
     win::*,
 };
 use layout::{Layout, Metrics, hit, layout};
+use std::rc::Rc;
 use windows::{
     Win32::{
         Foundation::*,
@@ -26,6 +24,8 @@ use windows::{
 
 const CLASS: PCWSTR = w!("RustDesktopIcons.Dialog");
 const WIDTH: i32 = 600;
+const HEAD: i32 = 72;
+const APP: &str = "Rust Desktop Icons";
 const ANIM: usize = 1;
 
 pub struct Button {
@@ -45,6 +45,7 @@ pub struct Spec {
     pub progress: Option<Progress>,
     pub dismiss: fn(),
     pub notes: Vec<Block>,
+    pub badge: Option<String>,
 }
 
 pub struct Dialog {
@@ -54,7 +55,10 @@ pub struct Dialog {
     pub close_hot: bool,
     pub scroll: i32,
     pub phase: u32,
+    measured: Option<Measured>,
 }
+
+type Measured = ((i32, i32), Rc<notes::Placed>);
 
 pub fn register_class() {
     register(CLASS, Some(proc));
@@ -75,7 +79,7 @@ fn metrics(h: HWND) -> Metrics {
     let area = work_area(&window_rect(h));
     Metrics {
         width: s(WIDTH),
-        top: s(chrome::TOP),
+        top: s(HEAD),
         pad: s(22),
         gap: s(16),
         line: s(20),
@@ -87,22 +91,32 @@ fn metrics(h: HWND) -> Metrics {
 
 fn fonts(a: &mut App, h: HWND) -> (HFONT, notes::Fonts) {
     let s = |v| scale(h, v);
-    let f = notes::Fonts { section: a.font(s(12), 600), title: a.font(s(13), 600), desc: a.font(s(13), 400) };
+    let f = notes::Fonts { section: a.font(s(12), 600), title: a.font(s(13), 600), desc: a.font(s(13), 400), icon: a.icon_font(s(13)) };
     (f.desc, f)
 }
 
-fn text(h: HWND, width: i32) -> (i32, Vec<notes::Line>) {
-    let Some((font, f, body, blocks)) = with(|a| {
+fn text(h: HWND, width: i32) -> Rc<notes::Placed> {
+    let key = (width, scale(h, 96));
+    let Some(found) = with(|a| {
         let (font, f) = fonts(a, h);
-        a.dialog.as_ref().map(|d| (font, f, d.spec.body.clone(), d.spec.notes.clone()))
+        a.dialog.as_ref().map(|d| match &d.measured {
+            Some((k, m)) if *k == key => Ok(m.clone()),
+            _ => Err((font, f, d.spec.body.clone(), d.spec.notes.clone())),
+        })
     })
     .flatten() else {
-        return (0, vec![]);
+        return Default::default();
+    };
+    let (font, f, body, blocks) = match found {
+        Ok(m) => return m,
+        Err(x) => x,
     };
     let top = if body.is_empty() { 0 } else { paint::measure(font, &body, width) + scale(h, 14) };
-    let (mut lines, height) = notes::place(&blocks, f, width, |v| scale(h, v));
-    lines.iter_mut().for_each(|l| (l.rect.1, l.rect.3) = (l.rect.1 + top, l.rect.3 + top));
-    (top + height, lines)
+    let mut placed = notes::place(&blocks, f, width, |v| scale(h, v));
+    placed.shift(top);
+    let m = Rc::new(placed);
+    with(|a| a.dialog.as_mut().map(|d| d.measured = Some((key, m.clone()))));
+    m
 }
 
 fn current(h: HWND) -> Layout {
@@ -112,7 +126,7 @@ fn current(h: HWND) -> Layout {
         with(|a| a.dialog.as_ref().map(|d| (d.spec.progress.is_some(), d.spec.buttons.len()))).flatten().unwrap_or_default();
     let line = paint::measure(font, "X", m.width).max(1);
     let m = Metrics { max_body: (m.max_body / line).max(1) * line, ..m };
-    layout(&m, text(h, m.width - 2 * m.pad).0, progress, buttons)
+    layout(&m, text(h, m.width - 2 * m.pad).height, progress, buttons)
 }
 
 fn scroll_by(h: HWND, delta: i32) {
@@ -135,7 +149,7 @@ fn refresh(h: HWND) {
 pub fn show(spec: Spec) {
     crate::visibility::end_peek();
     if let Some(h) = hwnd() {
-        with(|a| a.dialog.as_mut().map(|d| (d.spec, d.scroll, d.hover) = (spec, 0, None)));
+        with(|a| a.dialog.as_mut().map(|d| (d.spec, d.scroll, d.hover, d.measured) = (spec, 0, None, None)));
         let _ = unsafe { KillTimer(Some(h), ANIM) };
         refresh(h);
         let _ = unsafe { SetForegroundWindow(h) };
@@ -143,7 +157,7 @@ pub fn show(spec: Spec) {
     }
     let ex = WS_EX_LAYERED | WS_EX_APPWINDOW | WS_EX_TOPMOST;
     let Some(h) = popup::open(CLASS, ex, WIDTH, |a| a.top + sys_scale(120)) else { return };
-    with(|a| a.dialog = Some(Dialog { hwnd: h, spec, hover: None, close_hot: false, scroll: 0, phase: 0 }));
+    with(|a| a.dialog = Some(Dialog { hwnd: h, spec, hover: None, close_hot: false, scroll: 0, phase: 0, measured: None }));
     refresh(h);
     popup::show(h);
 }
@@ -196,7 +210,7 @@ fn click(h: HWND, p: (i32, i32)) {
 
 unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {
     match m {
-        WM_NCHITTEST => return popup::hit(h, lp),
+        WM_NCHITTEST => return popup::hit(h, lp, HEAD),
         WM_MOUSEMOVE => track(h, xy(lp)),
         WM_MOUSELEAVE => {
             with(|a| a.dialog.as_mut().map(|d| (d.hover, d.close_hot) = (None, false)));

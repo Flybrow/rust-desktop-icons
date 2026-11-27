@@ -82,6 +82,13 @@ fn shove((x, y): (i32, i32)) {
     }
 }
 
+pub fn hop(path: &[(i32, i32)], ms: u64) {
+    for p in path {
+        shove(*p);
+        thread::sleep(Duration::from_millis(ms));
+    }
+}
+
 pub fn glide(from: (i32, i32), to: (i32, i32)) {
     for k in 1..=20 {
         shove((from.0 + (to.0 - from.0) * k / 20, from.1 + (to.1 - from.1) * k / 20));

@@ -36,7 +36,7 @@ fn main() {
     }
     let k = unsafe { windows::Win32::UI::HiDpi::GetDpiForSystem() } as i32;
     let (cell, cols) = (104 * k / 96, ((f.right - f.left) / (104 * k / 96)).max(1));
-    let item = (f.left + ((f.right - f.left) - cols * cell) / 2 + cell / 2, f.top + (34 + 4) * k / 96 + cell / 2);
+    let item = (f.left + ((f.right - f.left) - cols * cell) / 2 + cell / 2, f.top + (support::bar_h() + 4) * k / 96 + cell / 2);
     match support::free_desktop_spot(&[f]) {
         Some(spot) => {
             let saved = support::cursor();

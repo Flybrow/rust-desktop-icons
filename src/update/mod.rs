@@ -22,8 +22,17 @@ pub fn installed(code: u32) -> bool {
 
 pub fn check() -> Res<Option<Release>> {
     let json = net::get(&format!("https://api.github.com/repos/{REPO}/releases/latest"), 1 << 20)?;
-    let rel = release::from_json(&serde_json::from_slice(&json)?).ok_or("unexpected release format")?;
-    Ok(rel.newer_than(&current()).then_some(rel))
+    let mut rel = release::from_json(&serde_json::from_slice(&json)?).ok_or("unexpected release format")?;
+    if !rel.newer_than(&current()) {
+        return Ok(None);
+    }
+    for (lang, url) in rel.sources.clone() {
+        match net::get(&url, 1 << 18).map(|b| String::from_utf8_lossy(&b).into_owned()) {
+            Ok(md) => rel.translations.push((lang, notes::parse(&md))),
+            Err(e) => crate::report::log(&format!("release notes {lang}: {e}")),
+        }
+    }
+    Ok(Some(rel))
 }
 
 pub fn clean() {

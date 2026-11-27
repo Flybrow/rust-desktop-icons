@@ -67,7 +67,10 @@ pub fn launch(h: HWND, ask: Ask) {
 
 pub fn create() -> Option<HWND> {
     register(CLASS, Some(proc));
-    unsafe { CreateWindowExW(WINDOW_EX_STYLE(0), CLASS, PCWSTR::null(), WS_POPUP, 0, 0, 0, 0, None, None, Some(inst()), None).ok() }
+    let h =
+        unsafe { CreateWindowExW(WINDOW_EX_STYLE(0), CLASS, PCWSTR::null(), WS_POPUP, 0, 0, 0, 0, None, None, Some(inst()), None).ok()? };
+    allow(h, &[WM_ASK, WM_TRAY]);
+    Some(h)
 }
 
 pub fn add_icon(h: HWND) {
@@ -136,6 +139,7 @@ unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESU
         _ if m == keep::reply() => keep::apply(),
         _ if visibility::message(m, wp, lp) => {}
         WM_TIMER if wp.0 == timers::ICON => add_icon(h),
+        WM_TIMER if wp.0 == crate::fence::ADOPT => crate::fence::adopt(),
         _ if with(|a| a.taskbar) == Some(m) => {
             add_icon(h);
             rules::bind(h);
